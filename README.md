@@ -1,5 +1,5 @@
 
-# Pollinations Image Generator (PollGen)
+# [Pollinations Image Generator (PollGen)](https://xhyperdevx.github.io/PollGen)
 
 A clean, minimal web application for generating AI images using the Pollinations API. Built with vanilla JavaScript, HTML, and CSS.
 
