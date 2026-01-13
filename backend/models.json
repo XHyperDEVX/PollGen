@@ -1,0 +1,42 @@
+[
+  {
+    "name": "flux",
+    "label": "Flux Schnell - 0.0002/Image"
+  },
+  {
+    "name": "zimage",
+    "label": "Z-Image - 0.0002/Image"
+  },
+  {
+    "name": "turbo",
+    "label": "SDXL - 0.002/Image"
+  },
+  {
+    "name": "gptimage",
+    "label": "GPT Image 1 Mini - 8.0/M"
+  },
+  {
+    "name": "gptimage-large",
+    "label": "GPT Image 1.5 - 32.0/M"
+  },
+  {
+    "name": "seedream",
+    "label": "Seedream - 0.03/Image"
+  },
+  {
+    "name": "kontext",
+    "label": "Flux.1 Kontext - 0.04/Image"
+  },
+  {
+    "name": "nanobanana",
+    "label": "Google Nanobanana - 30.0/M"
+  },
+  {
+    "name": "seedream-pro",
+    "label": "Seedream 4.5 Pro - 0.04/Image"
+  },
+  {
+    "name": "nanobanana-pro",
+    "label": "Google Nanobanana Pro - 120.0/M"
+  }
+]
