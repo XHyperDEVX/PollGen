@@ -22,8 +22,17 @@ function formatBalanceDisplay(balance) {
   const currentLang = i18n.getCurrentLanguage();
   const decimalSeparator = currentLang === 'de' ? ',' : '.';
   
-  // Convert to string and replace decimal separator based on locale
-  return balance.toString().replace('.', decimalSeparator);
+  // Round to maximum 5 decimal places, then remove trailing zeros
+  const rounded = Math.round(balance * 100000) / 100000;
+  let formatted = rounded.toString();
+  
+  // Remove trailing zeros after decimal point
+  if (formatted.includes('.')) {
+    formatted = formatted.replace(/\.?0+$/, '');
+  }
+  
+  // Replace decimal separator based on locale
+  return formatted.replace('.', decimalSeparator);
 }
 
 async function updateBalance(apiKey) {
