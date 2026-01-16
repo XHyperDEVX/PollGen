@@ -15,6 +15,81 @@ const state = {
 };
 
 // ============================================================================
+// BALANCE DISPLAY
+// ============================================================================
+
+function formatBalanceDisplay(balance) {
+  // Handle the specific rounding logic
+  if (balance === 1) {
+    return '1';
+  }
+  
+  if (balance < 1) {
+    // Truncate to 2 decimal places (don't round up)
+    const truncated = Math.floor(balance * 100) / 100;
+    return truncated.toString().replace('.', ',');
+  }
+  
+  // For values >= 1, use normal formatting with comma separator
+  return balance.toString().replace('.', ',');
+}
+
+async function updateBalance(apiKey) {
+  const balanceDisplay = document.getElementById('balance-display');
+  const balanceText = document.getElementById('balance-text');
+  
+  if (!apiKey || !apiKey.trim()) {
+    if (balanceDisplay) {
+      balanceDisplay.classList.add('hidden');
+    }
+    return;
+  }
+  
+  try {
+    const response = await fetch('https://gen.pollinations.ai/account/balance', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey.trim()}`
+      }
+    });
+    
+    if (!response.ok) {
+      // Silently hide display on API failure
+      if (balanceDisplay) {
+        balanceDisplay.classList.add('hidden');
+      }
+      return;
+    }
+    
+    const data = await response.json();
+    const balance = data.balance;
+    
+    if (typeof balance === 'number' && !isNaN(balance)) {
+      const formattedBalance = formatBalanceDisplay(balance);
+      
+      if (balanceText) {
+        balanceText.textContent = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
+      }
+      
+      if (balanceDisplay) {
+        balanceDisplay.classList.remove('hidden');
+      }
+    } else {
+      // Silently hide display if balance is invalid
+      if (balanceDisplay) {
+        balanceDisplay.classList.add('hidden');
+      }
+    }
+  } catch (error) {
+    // Silently hide display on network errors
+    console.log('Balance API call failed:', error.message);
+    if (balanceDisplay) {
+      balanceDisplay.classList.add('hidden');
+    }
+  }
+}
+
+// ============================================================================
 // API KEY MANAGEMENT
 // ============================================================================
 
@@ -394,6 +469,9 @@ function displayResult(data) {
     }
     
     state.currentImage = data;
+    
+    // Update balance after successful image generation
+    updateBalance(state.apiKey);
   }
 }
 
@@ -451,11 +529,19 @@ function setupEventListeners() {
   // API Key input
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
-    apiKeyInput.addEventListener('blur', validateApiKey);
+    apiKeyInput.addEventListener('blur', () => {
+      validateApiKey();
+      updateBalance(state.apiKey);
+    });
     apiKeyInput.addEventListener('input', () => {
       const key = apiKeyInput.value.trim();
       if (key) {
         saveApiKey(key);
+        updateBalance(key);
+      } else {
+        // Clear the API key if input is empty
+        state.apiKey = null;
+        updateBalance('');
       }
     });
   }
@@ -559,6 +645,8 @@ function init() {
     if (apiKeyInput) {
       apiKeyInput.value = state.apiKey;
     }
+    // Update balance display with loaded API key
+    updateBalance(state.apiKey);
   }
   
   // Setup event listeners

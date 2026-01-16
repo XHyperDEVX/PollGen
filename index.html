@@ -501,6 +501,23 @@
             text-decoration: underline;
         }
         
+        /* Balance Display */
+        .balance-display {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--success);
+            font-weight: 500;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .balance-text {
+            display: block;
+        }
+        
         /* Responsive */
         @media (max-width: 1023px) {
             .language-toggle {
@@ -588,6 +605,9 @@
                                 placeholder="Enter your Pollinations API key"
                                 required
                             >
+                            <div class="balance-display hidden" id="balance-display">
+                                <span class="balance-text" id="balance-text"></span>
+                            </div>
                             <div class="api-key-info">
                                 <span data-i18n="apiKeyHint">Get your free API key from</span>
                                 <a href="https://enter.pollinations.ai" target="_blank" rel="noopener">pollinations.ai</a>
