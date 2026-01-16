@@ -15,6 +15,100 @@ const state = {
 };
 
 // ============================================================================
+// BALANCE DISPLAY
+// ============================================================================
+
+function formatBalanceDisplay(balance) {
+  const currentLang = i18n.getCurrentLanguage();
+  const decimalSeparator = currentLang === 'de' ? ',' : '.';
+  
+  // Round to maximum 5 decimal places, then remove trailing zeros
+  const rounded = Math.round(balance * 100000) / 100000;
+  let formatted = rounded.toString();
+  
+  // Remove trailing zeros after decimal point
+  if (formatted.includes('.')) {
+    formatted = formatted.replace(/\.?0+$/, '');
+  }
+  
+  // Replace decimal separator based on locale
+  return formatted.replace('.', decimalSeparator);
+}
+
+async function updateBalance(apiKey) {
+  const balanceDisplay = document.getElementById('balance-display');
+  const balanceText = document.getElementById('balance-text');
+  const apiKeyInfo = document.querySelector('.api-key-info');
+  
+  if (!apiKey || !apiKey.trim()) {
+    if (balanceDisplay) {
+      balanceDisplay.classList.add('hidden');
+    }
+    if (apiKeyInfo) {
+      apiKeyInfo.classList.remove('hidden');
+    }
+    return;
+  }
+  
+  try {
+    const response = await fetch('https://gen.pollinations.ai/account/balance', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey.trim()}`
+      }
+    });
+    
+    if (!response.ok) {
+      // Silently hide display on API failure
+      if (balanceDisplay) {
+        balanceDisplay.classList.add('hidden');
+      }
+      if (apiKeyInfo) {
+        apiKeyInfo.classList.remove('hidden');
+      }
+      return;
+    }
+    
+    const data = await response.json();
+    const balance = data.balance;
+    
+    if (typeof balance === 'number' && !isNaN(balance)) {
+      const formattedBalance = formatBalanceDisplay(balance);
+      
+      if (balanceText) {
+        balanceText.textContent = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
+      }
+      
+      if (balanceDisplay) {
+        balanceDisplay.classList.remove('hidden');
+      }
+      
+      // Hide the API key info when balance is displayed
+      if (apiKeyInfo) {
+        apiKeyInfo.classList.add('hidden');
+      }
+    } else {
+      // Silently hide display if balance is invalid
+      if (balanceDisplay) {
+        balanceDisplay.classList.add('hidden');
+      }
+      if (apiKeyInfo) {
+        apiKeyInfo.classList.remove('hidden');
+      }
+    }
+  } catch (error) {
+    // Silently hide display on network errors
+    console.log('Balance API call failed:', error.message);
+    if (balanceDisplay) {
+      balanceDisplay.classList.add('hidden');
+    }
+    if (apiKeyInfo) {
+      apiKeyInfo.classList.remove('hidden');
+    }
+  }
+}
+
+// ============================================================================
 // API KEY MANAGEMENT
 // ============================================================================
 
@@ -394,6 +488,9 @@ function displayResult(data) {
     }
     
     state.currentImage = data;
+    
+    // Update balance after successful image generation
+    updateBalance(state.apiKey);
   }
 }
 
@@ -442,20 +539,56 @@ function setupEventListeners() {
       
       // Reload models with new language
       renderModelOptions(state.models);
+      
+      // Update balance display with new language if it exists
+      if (state.apiKey && document.getElementById('balance-display').classList.contains('hidden') === false) {
+        updateBalance(state.apiKey);
+      }
     });
     
     // Set initial button text to show selected language
     languageToggle.textContent = i18n.getCurrentLanguage() === 'en' ? 'EN' : 'DE';
   }
   
+  // Listen for language changes (from i18n system)
+  window.addEventListener('languageChanged', (event) => {
+    // Update balance display with new language if it exists
+    if (state.apiKey && document.getElementById('balance-display').classList.contains('hidden') === false) {
+      updateBalance(state.apiKey);
+    }
+  });
+  
   // API Key input
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
-    apiKeyInput.addEventListener('blur', validateApiKey);
+    apiKeyInput.addEventListener('blur', () => {
+      validateApiKey();
+      updateBalance(state.apiKey);
+    });
     apiKeyInput.addEventListener('input', () => {
       const key = apiKeyInput.value.trim();
       if (key) {
         saveApiKey(key);
+        // Clear balance display when typing (will be restored on blur)
+        const balanceDisplay = document.getElementById('balance-display');
+        const apiKeyInfo = document.querySelector('.api-key-info');
+        if (balanceDisplay) {
+          balanceDisplay.classList.add('hidden');
+        }
+        if (apiKeyInfo) {
+          apiKeyInfo.classList.remove('hidden');
+        }
+      } else {
+        // Clear the API key if input is empty
+        state.apiKey = null;
+        const balanceDisplay = document.getElementById('balance-display');
+        const apiKeyInfo = document.querySelector('.api-key-info');
+        if (balanceDisplay) {
+          balanceDisplay.classList.add('hidden');
+        }
+        if (apiKeyInfo) {
+          apiKeyInfo.classList.remove('hidden');
+        }
       }
     });
   }
@@ -559,6 +692,8 @@ function init() {
     if (apiKeyInput) {
       apiKeyInput.value = state.apiKey;
     }
+    // Update balance display with loaded API key
+    updateBalance(state.apiKey);
   }
   
   // Setup event listeners

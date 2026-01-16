@@ -102,7 +102,10 @@ const translations = {
     
     // Model Pricing
     pricePerImage: 'per image',
-    pricePerMillion: 'per million tokens'
+    pricePerMillion: 'per million tokens',
+    
+    // Balance Display
+    balanceRemaining: 'pollen remaining.'
   },
   
   de: {
@@ -203,7 +206,10 @@ const translations = {
     
     // Model Pricing
     pricePerImage: 'pro Bild',
-    pricePerMillion: 'pro Million Tokens'
+    pricePerMillion: 'pro Million Tokens',
+    
+    // Balance Display
+    balanceRemaining: 'Pollen verbleibend.'
   }
 };
 
