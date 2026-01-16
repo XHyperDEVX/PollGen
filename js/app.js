@@ -19,6 +19,9 @@ const state = {
 // ============================================================================
 
 function formatBalanceDisplay(balance) {
+  const currentLang = i18n.getCurrentLanguage();
+  const decimalSeparator = currentLang === 'de' ? ',' : '.';
+  
   // Handle the specific rounding logic
   if (balance === 1) {
     return '1';
@@ -27,20 +30,24 @@ function formatBalanceDisplay(balance) {
   if (balance < 1) {
     // Truncate to 2 decimal places (don't round up)
     const truncated = Math.floor(balance * 100) / 100;
-    return truncated.toString().replace('.', ',');
+    return truncated.toString().replace('.', decimalSeparator);
   }
   
-  // For values >= 1, use normal formatting with comma separator
-  return balance.toString().replace('.', ',');
+  // For values >= 1, use normal formatting with appropriate decimal separator
+  return balance.toString().replace('.', decimalSeparator);
 }
 
 async function updateBalance(apiKey) {
   const balanceDisplay = document.getElementById('balance-display');
   const balanceText = document.getElementById('balance-text');
+  const apiKeyInfo = document.querySelector('.api-key-info');
   
   if (!apiKey || !apiKey.trim()) {
     if (balanceDisplay) {
       balanceDisplay.classList.add('hidden');
+    }
+    if (apiKeyInfo) {
+      apiKeyInfo.classList.remove('hidden');
     }
     return;
   }
@@ -58,6 +65,9 @@ async function updateBalance(apiKey) {
       if (balanceDisplay) {
         balanceDisplay.classList.add('hidden');
       }
+      if (apiKeyInfo) {
+        apiKeyInfo.classList.remove('hidden');
+      }
       return;
     }
     
@@ -74,10 +84,18 @@ async function updateBalance(apiKey) {
       if (balanceDisplay) {
         balanceDisplay.classList.remove('hidden');
       }
+      
+      // Hide the API key info when balance is displayed
+      if (apiKeyInfo) {
+        apiKeyInfo.classList.add('hidden');
+      }
     } else {
       // Silently hide display if balance is invalid
       if (balanceDisplay) {
         balanceDisplay.classList.add('hidden');
+      }
+      if (apiKeyInfo) {
+        apiKeyInfo.classList.remove('hidden');
       }
     }
   } catch (error) {
@@ -85,6 +103,9 @@ async function updateBalance(apiKey) {
     console.log('Balance API call failed:', error.message);
     if (balanceDisplay) {
       balanceDisplay.classList.add('hidden');
+    }
+    if (apiKeyInfo) {
+      apiKeyInfo.classList.remove('hidden');
     }
   }
 }
@@ -520,11 +541,24 @@ function setupEventListeners() {
       
       // Reload models with new language
       renderModelOptions(state.models);
+      
+      // Update balance display with new language if it exists
+      if (state.apiKey && document.getElementById('balance-display').classList.contains('hidden') === false) {
+        updateBalance(state.apiKey);
+      }
     });
     
     // Set initial button text to show selected language
     languageToggle.textContent = i18n.getCurrentLanguage() === 'en' ? 'EN' : 'DE';
   }
+  
+  // Listen for language changes (from i18n system)
+  window.addEventListener('languageChanged', (event) => {
+    // Update balance display with new language if it exists
+    if (state.apiKey && document.getElementById('balance-display').classList.contains('hidden') === false) {
+      updateBalance(state.apiKey);
+    }
+  });
   
   // API Key input
   const apiKeyInput = document.getElementById('api-key');
@@ -537,11 +571,26 @@ function setupEventListeners() {
       const key = apiKeyInput.value.trim();
       if (key) {
         saveApiKey(key);
-        updateBalance(key);
+        // Clear balance display when typing (will be restored on blur)
+        const balanceDisplay = document.getElementById('balance-display');
+        const apiKeyInfo = document.querySelector('.api-key-info');
+        if (balanceDisplay) {
+          balanceDisplay.classList.add('hidden');
+        }
+        if (apiKeyInfo) {
+          apiKeyInfo.classList.remove('hidden');
+        }
       } else {
         // Clear the API key if input is empty
         state.apiKey = null;
-        updateBalance('');
+        const balanceDisplay = document.getElementById('balance-display');
+        const apiKeyInfo = document.querySelector('.api-key-info');
+        if (balanceDisplay) {
+          balanceDisplay.classList.add('hidden');
+        }
+        if (apiKeyInfo) {
+          apiKeyInfo.classList.remove('hidden');
+        }
       }
     });
   }
