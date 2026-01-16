@@ -22,18 +22,7 @@ function formatBalanceDisplay(balance) {
   const currentLang = i18n.getCurrentLanguage();
   const decimalSeparator = currentLang === 'de' ? ',' : '.';
   
-  // Handle the specific rounding logic
-  if (balance === 1) {
-    return '1';
-  }
-  
-  if (balance < 1) {
-    // Truncate to 2 decimal places (don't round up)
-    const truncated = Math.floor(balance * 100) / 100;
-    return truncated.toString().replace('.', decimalSeparator);
-  }
-  
-  // For values >= 1, use normal formatting with appropriate decimal separator
+  // Convert to string and replace decimal separator based on locale
   return balance.toString().replace('.', decimalSeparator);
 }
 
