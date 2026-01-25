@@ -6,7 +6,7 @@
 const translations = {
   en: {
     // Header
-    pageTitle: 'Pollinations Image Generator',
+    pageTitle: 'PollGen',
     pageDescription: 'Create high-quality images with dynamic models and custom parameters.',
     
     // Language
@@ -96,6 +96,10 @@ const translations = {
     generateBtn: 'Generate Image',
     resetBtn: 'Reset Form',
     downloadBtn: 'Download Image',
+    copyLinkBtn: 'Copy Link',
+    copyLinkSuccess: 'Link copied to clipboard',
+    copyLinkError: 'Could not copy link',
+    copyLinkNoImage: 'No image link available yet',
     openSourceBtn: 'Open Source Link',
     
     // Status Messages
@@ -130,7 +134,7 @@ const translations = {
   
   de: {
     // Header
-    pageTitle: 'Pollinations Bildgenerator',
+    pageTitle: 'PollGen',
     pageDescription: 'Erstelle hochwertige Bilder mit dynamischen Modellen und benutzerdefinierten Parametern.',
     
     // Language
@@ -220,6 +224,10 @@ const translations = {
     generateBtn: 'Bild generieren',
     resetBtn: 'Formular zurücksetzen',
     downloadBtn: 'Bild herunterladen',
+    copyLinkBtn: 'Link kopieren',
+    copyLinkSuccess: 'Link in die Zwischenablage kopiert',
+    copyLinkError: 'Link konnte nicht kopiert werden',
+    copyLinkNoImage: 'Noch kein Bild-Link verfügbar',
     openSourceBtn: 'Quell-Link öffnen',
     
     // Status Messages

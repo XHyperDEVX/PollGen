@@ -514,8 +514,8 @@ function addToImageHistory(imageData) {
   // Add to beginning of history array (newest first)
   state.imageHistory.unshift(historyItem);
 
-  // Limit to 18 images (6 columns x 3 rows)
-  if (state.imageHistory.length > 18) {
+  // Limit to 12 images (6 columns x 2 rows)
+  if (state.imageHistory.length > 12) {
     state.imageHistory.pop();
   }
 
@@ -525,10 +525,20 @@ function addToImageHistory(imageData) {
 
 function renderImageHistory() {
   const historyGrid = document.getElementById('image-history-grid');
+  const historySection = document.getElementById('image-history-section');
+
   if (!historyGrid) return;
 
   // Clear existing content
   historyGrid.innerHTML = '';
+
+  if (historySection) {
+    if (state.imageHistory.length > 0) {
+      historySection.classList.add('visible');
+    } else {
+      historySection.classList.remove('visible');
+    }
+  }
 
   // Render each history item
   state.imageHistory.forEach((item, index) => {
@@ -581,12 +591,18 @@ function updateDimensionsFromAspectRatio() {
   const aspectRatioSelect = document.getElementById('aspect-ratio');
   const widthInput = document.getElementById('width');
   const heightInput = document.getElementById('height');
+  const customDimensions = document.getElementById('custom-dimensions');
 
   if (!aspectRatioSelect || !widthInput || !heightInput) {
     return;
   }
 
   const ratio = aspectRatioSelect.value;
+
+  if (customDimensions) {
+    customDimensions.classList.toggle('hidden', ratio !== 'custom');
+  }
+
   const ratios = {
     'Ultrabreit (21:9)': { width: 4788, height: 2052 },
     'Breitbild (16:9)': { width: 3648, height: 2052 },
@@ -662,6 +678,18 @@ function closeImageModal() {
 function setupEventListeners() {
   // Initialize image modal
   initImageModal();
+
+  // Advanced options toggle
+  const advancedToggle = document.querySelector('.advanced-toggle');
+  const advancedOptions = document.getElementById('advanced-options');
+  if (advancedToggle && advancedOptions) {
+    advancedToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      const isExpanded = advancedToggle.getAttribute('aria-expanded') === 'true';
+      advancedToggle.setAttribute('aria-expanded', String(!isExpanded));
+      advancedOptions.classList.toggle('open', !isExpanded);
+    });
+  }
 
   // Language switcher
   const languageToggle = document.getElementById('language-toggle');
@@ -790,6 +818,15 @@ function setupEventListeners() {
         if (guidanceScale && guidanceValue) {
           guidanceValue.textContent = guidanceScale.value;
         }
+
+        // Update dimension UI (and hide custom dims when using a preset)
+        updateDimensionsFromAspectRatio();
+
+        // Collapse advanced options after reset
+        if (advancedToggle && advancedOptions) {
+          advancedToggle.setAttribute('aria-expanded', 'false');
+          advancedOptions.classList.remove('open');
+        }
         
         setStatus('', ''); // Clear status on reset
       }
@@ -811,6 +848,40 @@ function setupEventListeners() {
   const aspectRatioSelect = document.getElementById('aspect-ratio');
   if (aspectRatioSelect) {
     aspectRatioSelect.addEventListener('change', updateDimensionsFromAspectRatio);
+    updateDimensionsFromAspectRatio();
+  }
+
+  // Copy source URL
+  const copyUrlBtn = document.getElementById('copy-url-btn');
+  if (copyUrlBtn) {
+    copyUrlBtn.addEventListener('click', async () => {
+      const url = state.currentImage?.sourceUrl;
+      if (!url) {
+        setStatus(i18n.t('copyLinkNoImage'), 'error');
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setStatus(i18n.t('copyLinkSuccess'), 'success');
+      } catch (error) {
+        try {
+          const textarea = document.createElement('textarea');
+          textarea.value = url;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          document.execCommand('copy');
+          textarea.remove();
+          setStatus(i18n.t('copyLinkSuccess'), 'success');
+        } catch (fallbackError) {
+          console.error('Failed to copy link:', fallbackError);
+          setStatus(i18n.t('copyLinkError'), 'error');
+        }
+      }
+    });
   }
 }
 
