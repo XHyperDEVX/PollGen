@@ -851,39 +851,8 @@ function setupEventListeners() {
     updateDimensionsFromAspectRatio();
   }
 
-  // Copy source URL
-  const copyUrlBtn = document.getElementById('copy-url-btn');
-  if (copyUrlBtn) {
-    copyUrlBtn.addEventListener('click', async () => {
-      const url = state.currentImage?.sourceUrl;
-      if (!url) {
-        setStatus(i18n.t('copyLinkNoImage'), 'error');
-        return;
-      }
-
-      try {
-        await navigator.clipboard.writeText(url);
-        setStatus(i18n.t('copyLinkSuccess'), 'success');
-      } catch (error) {
-        try {
-          const textarea = document.createElement('textarea');
-          textarea.value = url;
-          textarea.style.position = 'fixed';
-          textarea.style.opacity = '0';
-          document.body.appendChild(textarea);
-          textarea.focus();
-          textarea.select();
-          document.execCommand('copy');
-          textarea.remove();
-          setStatus(i18n.t('copyLinkSuccess'), 'success');
-        } catch (fallbackError) {
-          console.error('Failed to copy link:', fallbackError);
-          setStatus(i18n.t('copyLinkError'), 'error');
-        }
-      }
-    });
-  }
 }
+
 
 // ============================================================================
 // INITIALIZATION

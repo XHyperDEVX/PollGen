@@ -96,10 +96,6 @@ const translations = {
     generateBtn: 'Generate Image',
     resetBtn: 'Reset Form',
     downloadBtn: 'Download Image',
-    copyLinkBtn: 'Copy Link',
-    copyLinkSuccess: 'Link copied to clipboard',
-    copyLinkError: 'Could not copy link',
-    copyLinkNoImage: 'No image link available yet',
     openSourceBtn: 'Open Source Link',
     
     // Status Messages
@@ -224,10 +220,6 @@ const translations = {
     generateBtn: 'Bild generieren',
     resetBtn: 'Formular zurücksetzen',
     downloadBtn: 'Bild herunterladen',
-    copyLinkBtn: 'Link kopieren',
-    copyLinkSuccess: 'Link in die Zwischenablage kopiert',
-    copyLinkError: 'Link konnte nicht kopiert werden',
-    copyLinkNoImage: 'Noch kein Bild-Link verfügbar',
     openSourceBtn: 'Quell-Link öffnen',
     
     // Status Messages
