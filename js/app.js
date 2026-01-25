@@ -415,7 +415,7 @@ function setStatus(message, type = 'info') {
   if (!statusBox) return;
   
   statusBox.textContent = message;
-  statusBox.className = `status ${type}`;
+  statusBox.className = `status-message ${type}`;
 }
 
 function toggleLoading(isLoading) {
@@ -470,6 +470,7 @@ function displayResult(data) {
   const placeholder = document.getElementById('placeholder');
   const downloadLink = document.getElementById('download-link');
   const downloadActions = document.getElementById('result-actions');
+  const resultsSection = document.getElementById('results-section');
 
   if (!resultImage || !placeholder || !downloadLink || !downloadActions) {
     return;
@@ -489,6 +490,11 @@ function displayResult(data) {
     }
 
     state.currentImage = data;
+
+    // Show results section
+    if (resultsSection) {
+      resultsSection.style.display = 'block';
+    }
 
     // Add to image history
     addToImageHistory(data);
@@ -556,6 +562,7 @@ function displayInMainView(historyItem) {
   const placeholder = document.getElementById('placeholder');
   const downloadLink = document.getElementById('download-link');
   const downloadActions = document.getElementById('result-actions');
+  const resultsSection = document.getElementById('results-section');
 
   if (!resultImage || !placeholder || !downloadLink || !downloadActions) {
     return;
@@ -574,6 +581,11 @@ function displayInMainView(historyItem) {
   }
 
   state.currentImage = historyItem;
+  
+  // Show results section
+  if (resultsSection) {
+    resultsSection.style.display = 'block';
+  }
 }
 
 
@@ -642,7 +654,7 @@ function openImageModal(imageSrc) {
 
   if (modal && modalImage) {
     modalImage.src = imageSrc;
-    modal.style.display = 'flex';
+    modal.classList.add('active');
     document.body.style.overflow = 'hidden';
   }
 }
@@ -650,7 +662,7 @@ function openImageModal(imageSrc) {
 function closeImageModal() {
   const modal = document.getElementById('image-modal');
   if (modal) {
-    modal.style.display = 'none';
+    modal.classList.remove('active');
     document.body.style.overflow = '';
   }
 }
@@ -659,9 +671,31 @@ function closeImageModal() {
 // EVENT HANDLERS
 // ============================================================================
 
+function setupAdvancedToggle() {
+  const toggleBtn = document.querySelector('.advanced-toggle');
+  const advancedContent = document.querySelector('.advanced-content');
+  
+  if (!toggleBtn || !advancedContent) return;
+  
+  toggleBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+    toggleBtn.setAttribute('aria-expanded', !isExpanded);
+    
+    if (!isExpanded) {
+      advancedContent.classList.add('expanded');
+    } else {
+      advancedContent.classList.remove('expanded');
+    }
+  });
+}
+
 function setupEventListeners() {
   // Initialize image modal
   initImageModal();
+  
+  // Setup advanced options toggle
+  setupAdvancedToggle();
 
   // Language switcher
   const languageToggle = document.getElementById('language-toggle');
@@ -781,18 +815,25 @@ function setupEventListeners() {
   const resetBtn = document.getElementById('reset-btn');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      if (form) {
-        form.reset();
-        
-        // Update guidance value display
-        const guidanceScale = document.getElementById('guidance_scale');
-        const guidanceValue = document.getElementById('guidance-value');
-        if (guidanceScale && guidanceValue) {
-          guidanceValue.textContent = guidanceScale.value;
-        }
-        
-        setStatus('', ''); // Clear status on reset
+      // Clear result image
+      const resultImage = document.getElementById('result-image');
+      const placeholder = document.getElementById('placeholder');
+      const downloadActions = document.getElementById('result-actions');
+      
+      if (resultImage) {
+        resultImage.classList.remove('visible');
+        resultImage.src = '';
       }
+      
+      if (placeholder) {
+        placeholder.style.display = 'flex';
+      }
+      
+      if (downloadActions) {
+        downloadActions.classList.add('hidden');
+      }
+      
+      setStatus('', ''); // Clear status
     });
   }
   
