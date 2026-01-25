@@ -6,7 +6,7 @@
 const translations = {
   en: {
     // Header
-    pageTitle: 'Pollinations Image Generator',
+    pageTitle: 'PollGen',
     pageDescription: 'Create high-quality images with dynamic models and custom parameters.',
     
     // Language
@@ -130,7 +130,7 @@ const translations = {
   
   de: {
     // Header
-    pageTitle: 'Pollinations Bildgenerator',
+    pageTitle: 'PollGen',
     pageDescription: 'Erstelle hochwertige Bilder mit dynamischen Modellen und benutzerdefinierten Parametern.',
     
     // Language
