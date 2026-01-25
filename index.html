@@ -3,584 +3,388 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pollinations Image Generator</title>
+    <title>PollGen - AI Image Generator</title>
     <style>
+        /* Root Variables */
         :root {
+            --color-bg-primary: #0a0e1a;
+            --color-bg-secondary: #0f132a;
+            --color-accent-primary: #00d9ff;
+            --color-accent-secondary: #a855f7;
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #cbd5e1;
+            --color-success: #10b981;
+            --color-error: #ef4444;
+            --spacing-unit: 8px;
             color-scheme: dark;
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #111827;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e5;
-            --border: #334155;
-            --error: #f87171;
-            --success: #34d399;
-            --info: #38bdf8;
-            --warning: #fbbf24;
-            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
-        
+
+        /* Base Styles */
         * {
             box-sizing: border-box;
         }
-        
-        html {
+
+        html, body {
             height: 100%;
         }
-        
+
         body {
             margin: 0;
-            min-height: 100vh;
-            background: radial-gradient(circle at top, rgba(79,70,229,0.4), transparent 55%), var(--bg-primary);
-            color: var(--text-primary);
-            padding: 20px;
+            background: radial-gradient(circle at 50% 0%, rgba(0, 217, 255, 0.1), transparent 50%), linear-gradient(to bottom, var(--color-bg-primary), var(--color-bg-secondary));
+            color: var(--color-text-primary);
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             overflow-x: hidden;
+            min-height: 100vh;
         }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
+
         /* Header */
-        header {
-            text-align: center;
-            padding: 20px 0 30px;
-            position: relative;
+        .main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(15, 19, 42, 0.8);
+            border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 100;
         }
-        
-        header h1 {
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 48px;
+        }
+
+        .header-content h1 {
             margin: 0;
-            font-size: clamp(2rem, 4vw, 3rem);
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #fff, #94a3b8);
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            letter-spacing: -0.02em;
         }
-        
-        header p {
-            margin: 10px 0 0;
-            color: var(--text-secondary);
-            font-size: clamp(0.95rem, 2vw, 1.1rem);
-        }
-        
+
         .language-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: var(--text-primary);
+            background: rgba(0, 217, 255, 0.15);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            color: var(--color-text-primary);
             padding: 8px 16px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             font-size: 0.9rem;
-            transition: all 0.2s ease;
+            transition: all 200ms ease-out;
         }
-        
+
         .language-toggle:hover {
-            background: rgba(99, 102, 241, 0.25);
+            background: rgba(0, 217, 255, 0.25);
             transform: translateY(-1px);
         }
-        
-        /* Main Content */
-        main {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-            margin-top: 20px;
-            margin-bottom: 20px;
+
+        /* Main Container */
+        .main-container {
+            margin-top: 70px;
+            padding: 60px 20px;
+            min-height: calc(100vh - 70px);
         }
-        
-        @media (min-width: 1024px) {
-            main {
-                grid-template-columns: minmax(500px, 1fr) minmax(450px, 0.9fr);
-            }
+
+        .content-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
         }
-        
-        /* Panel */
-        .panel {
-            background: linear-gradient(145deg, rgba(17,24,39,0.95), rgba(30,41,59,0.95));
-            border: 1px solid rgba(99,102,241,0.15);
-            border-radius: 20px;
-            padding: 28px;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 30px 70px -25px rgba(15,23,42,0.9);
-        }
-        
-        /* Form Elements */
+
+        /* Form Section */
         .form-section {
-            margin-bottom: 24px;
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 16px;
+            padding: 48px;
+            backdrop-filter: blur(10px);
+            animation: slideUp 400ms ease-out;
+            margin-bottom: 48px;
         }
-        
-        .form-section:last-child {
-            margin-bottom: 0;
-        }
-        
-        .form-section-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin: 0 0 14px 0;
-            color: var(--text-primary);
-        }
-        
-        .field {
-            margin-bottom: 18px;
-        }
-        
-        label {
+
+        .form-section.active {
             display: block;
+        }
+
+        /* Form Groups */
+        .form-group {
+            margin-bottom: 28px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
             font-weight: 600;
             font-size: 0.95rem;
-            margin-bottom: 6px;
-            color: var(--text-primary);
+            margin-bottom: 12px;
+            color: var(--color-text-primary);
         }
-        
-        .required {
-            color: var(--error);
-            margin-left: 4px;
-        }
-        
-        .hint {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            display: block;
-        }
-        
-        input[type="text"],
-        input[type="number"],
-        input[type="password"],
-        select,
-        textarea {
-            width: 100%;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 11px 14px;
-            color: var(--text-primary);
-            font-size: 0.95rem;
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            background: rgba(10, 14, 26, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--color-text-primary);
             font-family: inherit;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: all 200ms ease-out;
         }
-        
-        textarea {
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--color-accent-primary);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+            transform: scale(1.01);
+        }
+
+        /* Textarea specific */
+        .form-group textarea {
             min-height: 120px;
             resize: vertical;
-            line-height: 1.5;
+            font-size: 1rem;
+            line-height: 1.6;
         }
-        
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
-        }
-        
-        input::placeholder,
-        textarea::placeholder {
-            color: rgba(148,163,184,0.5);
-        }
-        
-        /* Grid Layouts */
-        .grid-2 {
-            display: grid;
-            gap: 16px;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        }
-        
-        /* Checkbox Group */
-        .checkbox-group {
-            display: grid;
-            gap: 10px;
-        }
-        
-        .checkbox-item {
+
+        /* Input wrapper for API key with balance */
+        .input-wrapper {
+            position: relative;
             display: flex;
-            gap: 12px;
-            align-items: flex-start;
-            padding: 12px 14px;
-            border-radius: 10px;
-            background: rgba(148,163,184,0.06);
-            border: 1px solid rgba(148,163,184,0.1);
-            cursor: pointer;
-            transition: all 0.2s ease;
+            align-items: center;
         }
-        
-        .checkbox-item:hover {
-            background: rgba(148,163,184,0.1);
-            border-color: rgba(99,102,241,0.3);
-        }
-        
-        .checkbox-item input[type="checkbox"] {
-            margin-top: 3px;
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        
-        .checkbox-item-content {
+
+        .input-wrapper input {
             flex: 1;
         }
-        
-        .checkbox-item strong {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 2px;
+
+        .balance-display {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8rem;
+            color: var(--color-success);
+            font-weight: 500;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 200ms ease-out;
         }
-        
-        .checkbox-item span {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            display: block;
+
+        .balance-display.visible {
+            opacity: 1;
+            visibility: visible;
         }
-        
-        /* Range Slider */
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 5px;
-            background: var(--bg-tertiary);
-            outline: none;
-            -webkit-appearance: none;
+
+        /* Advanced Options */
+        .form-section-advanced {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(0, 217, 255, 0.1);
         }
-        
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-        
-        input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
+
+        .advanced-toggle {
+            background: none;
             border: none;
-            transition: transform 0.2s ease;
-        }
-        
-        input[type="range"]::-moz-range-thumb:hover {
-            transform: scale(1.2);
-        }
-        
-        /* Buttons */
-        .btn {
-            border: none;
-            border-radius: 12px;
-            padding: 12px 20px;
+            color: var(--color-accent-primary);
+            cursor: pointer;
             font-size: 1rem;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 200ms ease-out;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        .advanced-toggle:hover {
+            gap: 12px;
+        }
+
+        .toggle-icon {
+            transition: transform 300ms ease-out;
+            display: inline-block;
+        }
+
+        .advanced-toggle[aria-expanded="true"] .toggle-icon {
+            transform: rotate(-180deg);
+        }
+
+        .advanced-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 300ms ease-out;
+        }
+
+        .advanced-content.expanded {
+            max-height: 600px;
+            margin-top: 24px;
+        }
+
+        .advanced-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+            border: none;
+            color: #000;
+            padding: 14px 32px;
+            height: 52px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: inherit;
-            display: inline-flex;
+            transition: all 200ms ease-out;
+            width: 100%;
+            margin-top: 20px;
+            display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
         }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-            color: #fff;
-            width: 100%;
-            padding: 14px 24px;
-            font-size: 1.05rem;
+
+        .btn-primary:hover:not(:disabled) {
+            transform: scale(1.02);
+            box-shadow: 0 12px 32px rgba(0, 217, 255, 0.3);
         }
-        
-        .btn-primary:not(:disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -10px rgba(99,102,241,0.5);
+
+        .btn-primary:active:not(:disabled) {
+            transform: scale(0.98);
         }
-        
+
         .btn-primary:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
-            filter: grayscale(0.4);
-            opacity: 0.6;
         }
-        
+
         .btn-secondary {
             background: transparent;
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
+            border: 1px solid var(--color-accent-primary);
+            color: var(--color-accent-primary);
+            padding: 10px 24px;
+            height: 44px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms ease-out;
+            font-family: inherit;
         }
-        
+
         .btn-secondary:hover {
-            border-color: var(--accent);
-            color: var(--text-primary);
-            background: rgba(99,102,241,0.1);
+            background: rgba(0, 217, 255, 0.1);
+            transform: translateY(-2px);
         }
-        
-        .btn-link {
-            background: rgba(99,102,241,0.12);
-            color: var(--text-primary);
-            border: 1px solid rgba(99,102,241,0.2);
-            text-decoration: none;
-            padding: 10px 18px;
-        }
-        
-        .btn-link:hover {
-            background: rgba(99,102,241,0.25);
-            transform: translateY(-1px);
-        }
-        
-        /* Status Messages */
-        .status {
+
+        .btn-tertiary {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            padding: 8px 16px;
             font-size: 0.9rem;
-            padding: 10px 14px;
-            border-radius: 10px;
-            margin-top: 12px;
-            min-height: 0;
+            cursor: pointer;
+            transition: all 200ms ease-out;
+            text-decoration: underline;
+        }
+
+        .btn-tertiary:hover {
+            color: var(--color-text-primary);
+        }
+
+        /* Results Section */
+        .results-section {
+            animation: slideUp 400ms ease-out;
+        }
+
+        .results-section.hidden {
             display: none;
-            align-items: center;
         }
-        
-        .status.info {
-            display: flex;
-            background: rgba(56,189,248,0.1);
-            color: var(--info);
-            border: 1px solid rgba(56,189,248,0.2);
+
+        .result-image-container {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeIn 400ms ease-out;
         }
-        
-        .status.success {
-            display: flex;
-            background: rgba(52,211,153,0.1);
-            color: var(--success);
-            border: 1px solid rgba(52,211,153,0.2);
+
+        .result-image-container img {
+            max-width: 100%;
+            max-height: 60vh;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: all 200ms ease-out;
         }
-        
-        .status.error {
-            display: flex;
-            background: rgba(248,113,113,0.1);
-            color: var(--error);
-            border: 1px solid rgba(248,113,113,0.2);
+
+        .result-image-container img:hover {
+            transform: scale(1.02);
         }
-        
-        /* Result Panel */
-        .result-container {
-            position: relative;
-            width: 100%;
-            background: rgba(15,23,42,0.7);
-            border: 1px solid rgba(99,102,241,0.2);
+
+        .result-info {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(0, 217, 255, 0.15);
             border-radius: 16px;
-            overflow: hidden;
-            aspect-ratio: 1 / 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .result-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: none;
-        }
-        
-        .result-container img.visible {
-            display: block;
-        }
-        
-        .placeholder {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 1rem;
             padding: 24px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 24px;
         }
-        
-        .loader {
-            width: 56px;
-            height: 56px;
-            border: 5px solid rgba(99,102,241,0.2);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            position: absolute;
-            z-index: 2;
-            display: none;
-        }
-        
-        .loader.visible {
-            display: block;
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .loading-status {
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            min-height: 24px;
-            margin-top: 12px;
-            margin-bottom: -8px;
-        }
-        
-        .result-panel-container {
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        
-        .btn-primary {
-            margin-top: 16px;
-        }
-        
+
         .result-actions {
             display: flex;
             justify-content: center;
             gap: 12px;
             flex-wrap: wrap;
-            margin-top: 16px;
         }
-        
+
         .result-actions.hidden {
             display: none;
         }
-        
-        .footer {
-            text-align: center;
-            margin-top: auto;
-            padding-top: 16px;
-            border-top: 1px solid rgba(148,163,184,0.1);
-            font-size: 0.75rem;
-            color: rgba(203, 213, 229, 0.6);
-        }
-        
-        .footer a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .footer a:hover {
-            text-decoration: underline;
-        }
-        
-        /* API Key Info */
-        .api-key-info {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 8px;
-        }
-        
-        .api-key-info a {
-            color: var(--warning);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        
-        .api-key-info a:hover {
-            text-decoration: underline;
-        }
-        
-        /* Balance Display */
-        .balance-display {
-            margin-top: 8px;
-            padding: 8px 12px;
-            background: rgba(52, 211, 153, 0.1);
-            border: 1px solid rgba(52, 211, 153, 0.2);
+
+        /* Status Message */
+        .status-message {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 16px 24px;
             border-radius: 8px;
-            font-size: 0.85rem;
-            color: var(--success);
-            font-weight: 500;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+            animation: slideUp 300ms ease-out;
+            max-width: 500px;
+            margin: 0 auto;
+            z-index: 1000;
+            text-align: center;
         }
-        
-        .balance-text {
-            display: block;
-        }
-        
-        /* Responsive */
-        @media (max-width: 1023px) {
-            .language-toggle {
-                position: static;
-                display: block;
-                width: fit-content;
-                margin: 15px auto 0;
-            }
-            
-            header {
-                padding-bottom: 20px;
-            }
-        }
-        
-        @media (max-width: 640px) {
-            body {
-                padding: 12px;
-            }
 
-            .panel {
-                padding: 20px;
-            }
+        .status-message.success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
 
-            header h1 {
-                font-size: 1.8rem;
-            }
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
 
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-
-            .image-history-grid {
-                grid-template-columns: repeat(3, 1fr);
-                grid-template-rows: repeat(6, 1fr);
-                aspect-ratio: 3/6;
-            }
-        }
-        
-        /* Utility */
-        .hidden {
-            display: none !important;
-        }
-        
-        /* Scrollbar */
-        .form-panel {
-            max-height: calc(100vh - 200px);
-            overflow-y: auto;
-            padding-right: 4px;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(148,163,184,0.3) transparent;
-        }
-        
-        .form-panel::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .form-panel::-webkit-scrollbar-thumb {
-            background: rgba(148,163,184,0.3);
-            border-radius: 999px;
-        }
-        
-        .form-panel::-webkit-scrollbar-track {
-            background: transparent;
+        .status-message.info {
+            background: rgba(0, 217, 255, 0.2);
+            border: 1px solid var(--color-accent-primary);
+            color: var(--color-accent-primary);
         }
 
         /* Image Modal */
@@ -590,11 +394,16 @@
             left: 0;
             right: 0;
             bottom: 0;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             z-index: 10000;
             backdrop-filter: blur(4px);
+        }
+
+        .image-modal.active {
+            display: flex;
+            animation: fadeIn 300ms ease-out;
         }
 
         .image-modal-overlay {
@@ -610,10 +419,8 @@
             position: relative;
             max-height: 90vh;
             max-width: 90vw;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             z-index: 10001;
+            animation: scaleIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .image-modal-container img {
@@ -627,95 +434,245 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(91, 141, 255, 0.2);
-            border: 1px solid rgba(91, 141, 255, 0.4);
+            background: rgba(0, 217, 255, 0.2);
+            border: 1px solid rgba(0, 217, 255, 0.4);
             color: #f1f5f9;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 8px;
             cursor: pointer;
+            font-size: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 200ms ease;
+            transition: all 200ms ease-out;
             z-index: 10001;
         }
 
         .image-modal-close:hover {
-            background: rgba(91, 141, 255, 0.3);
+            background: rgba(0, 217, 255, 0.3);
             transform: scale(1.1);
         }
 
-        #result-image {
-            cursor: pointer;
-        }
-
-        /* Image History */
-        .image-history-section {
-            margin-top: 24px;
-        }
-
-        .image-history-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin: 0 0 12px 0;
-            color: var(--text-primary);
-        }
-
-        .image-history-grid {
+        /* Checkbox Groups */
+        .checkbox-group {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 8px;
-            width: 100%;
-            aspect-ratio: 6/3;
+            gap: 12px;
+            grid-template-columns: 1fr 1fr;
         }
 
-        .image-history-item {
-            position: relative;
-            width: 100%;
-            height: 100%;
+        .checkbox-item {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(10, 14, 26, 0.4);
+            border: 1px solid rgba(0, 217, 255, 0.1);
             cursor: pointer;
-            border-radius: 6px;
-            overflow: hidden;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(99, 102, 241, 0.1);
-            transition: all 0.2s ease;
+            transition: all 200ms ease-out;
         }
 
-        .image-history-item:hover {
-            border-color: rgba(99, 102, 241, 0.4);
-            transform: scale(1.05);
-            z-index: 2;
+        .checkbox-item:hover {
+            background: rgba(10, 14, 26, 0.6);
+            border-color: rgba(0, 217, 255, 0.3);
         }
 
-        .image-history-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .checkbox-item input[type="checkbox"] {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .checkbox-item-content {
+            flex: 1;
+        }
+
+        .checkbox-item strong {
             display: block;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+            color: var(--color-text-primary);
+        }
+
+        .checkbox-item span {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            display: block;
+            line-height: 1.4;
+        }
+
+        /* Range Slider */
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: rgba(10, 14, 26, 0.8);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--color-accent-primary);
+            cursor: pointer;
+            transition: transform 200ms ease-out;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--color-accent-primary);
+            cursor: pointer;
+            border: none;
+            transition: transform 200ms ease-out;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-top: 2px solid #000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1440px) {
+            .content-wrapper {
+                max-width: 820px;
+            }
+            .form-section {
+                padding: 40px;
+            }
+            .header-content {
+                padding: 0 40px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                padding: 40px 20px;
+            }
+            .content-wrapper {
+                max-width: 100%;
+            }
+            .advanced-grid {
+                grid-template-columns: 1fr;
+            }
+            .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 30px 16px;
+            }
+            .form-section {
+                padding: 28px;
+            }
+            .header-content {
+                padding: 0 20px;
+            }
+            .result-image-container img {
+                max-height: 50vh;
+            }
+            .result-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 data-i18n="pageTitle">Pollinations Image Generator</h1>
-            <p data-i18n="pageDescription">Create high-quality images with dynamic models and custom parameters.</p>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <h1 id="page-title">PollGen</h1>
             <button type="button" id="language-toggle" class="language-toggle">EN</button>
-        </header>
-        
-        <main>
-            <!-- Form Panel -->
-            <div class="panel form-panel">
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <div class="content-wrapper">
+            <!-- Form Section -->
+            <section class="form-section active" id="form-section">
                 <form id="generation-form">
-                    <!-- API Key Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="api-key">
-                                <span data-i18n="apiKeyLabel">API Key</span>
-                                <span class="required">*</span>
-                            </label>
+                    <!-- API Key -->
+                    <div class="form-group">
+                        <label for="api-key">
+                            <span data-i18n="apiKeyLabel">API Key</span>
+                            <span class="required">*</span>
+                        </label>
+                        <div class="input-wrapper">
                             <input 
                                 type="password" 
                                 id="api-key" 
@@ -724,234 +681,263 @@
                                 placeholder="Enter your Pollinations API key"
                                 required
                             >
-                            <div class="balance-display hidden" id="balance-display">
+                            <div class="balance-display" id="balance-display">
                                 <span class="balance-text" id="balance-text"></span>
                             </div>
-                            <div class="api-key-info">
-                                <span data-i18n="apiKeyHint">Get your free API key from</span>
-                                <a href="https://enter.pollinations.ai" target="_blank" rel="noopener">pollinations.ai</a>
+                        </div>
+                        <small class="hint" style="margin-top: 8px;">
+                            <span data-i18n="apiKeyHint">Get your free API key from</span>
+                            <a href="https://enter.pollinations.ai" target="_blank" rel="noopener" style="color: var(--color-accent-primary); text-decoration: none; font-weight: 600;">pollinations.ai</a>
+                        </small>
+                    </div>
+
+                    <!-- Prompt -->
+                    <div class="form-group">
+                        <label for="prompt">
+                            <span data-i18n="promptLabel">Image Description</span>
+                            <span class="required">*</span>
+                        </label>
+                        <textarea 
+                            id="prompt" 
+                            name="prompt"
+                            data-i18n-placeholder="promptPlaceholder"
+                            placeholder="Describe your desired image in detail..."
+                            required
+                        ></textarea>
+                        <small class="hint" style="margin-top: 8px; color: var(--color-text-secondary);">
+                            <span id="char-count">0</span>/5000
+                        </small>
+                    </div>
+
+                    <!-- Format Preset -->
+                    <div class="form-group">
+                        <label for="aspect-ratio" data-i18n="aspectRatioLabel">Format</label>
+                        <select id="aspect-ratio" name="aspect-ratio">
+                            <option value="custom" data-i18n="aspectCustom">Custom</option>
+                            <option value="Ultrabreit (21:9)" data-i18n="aspectUltrawide" data-i18n-dims="aspectUltrawideDims">Ultrabreit (21:9) - 4788 × 2052 px</option>
+                            <option value="Breitbild (16:9)" data-i18n="aspectWidescreen" data-i18n-dims="aspectWidescreenDims">Breitbild (16:9) - 3648 × 2052 px</option>
+                            <option value="Klassisch (5:4)" data-i18n="aspectClassic" data-i18n-dims="aspectClassicDims">Klassisch (5:4) - 2560 × 2048 px</option>
+                            <option value="Querformat (4:3)" data-i18n="aspectLandscape" data-i18n-dims="aspectLandscapeDims">Querformat (4:3) - 2732 × 2049 px</option>
+                            <option value="Breit (3:2)" data-i18n="aspectWide" data-i18n-dims="aspectWideDims">Breit (3:2) - 3072 × 2048 px</option>
+                            <option value="Quadratisch (1:1)" data-i18n="aspectSquare" data-i18n-dims="aspectSquareDims">Quadratisch (1:1) - 2048 × 2048 px</option>
+                            <option value="Standard (4:5)" data-i18n="aspectPortrait" data-i18n-dims="aspectPortraitDims">Standard (4:5) - 2048 × 2560 px</option>
+                            <option value="Hochformat (3:4)" data-i18n="aspectStandard" data-i18n-dims="aspectStandardDims">Hochformat (3:4) - 2049 × 2732 px</option>
+                            <option value="Hoch (2:3)" data-i18n="aspectTall" data-i18n-dims="aspectTallDims">Hoch (2:3) - 2048 × 3072 px</option>
+                            <option value="Vertikal (9:16)" data-i18n="aspectVertical" data-i18n-dims="aspectVerticalDims">Vertikal (9:16) - 2052 × 3648 px</option>
+                        </select>
+                    </div>
+
+                    <!-- Advanced Options (Collapsible) -->
+                    <div class="form-section-advanced">
+                        <button class="advanced-toggle" type="button" aria-expanded="false" id="advanced-toggle">
+                            <span data-i18n="optionsLabel">Advanced Options</span>
+                            <span class="toggle-icon">▼</span>
+                        </button>
+                        <div class="advanced-content" id="advanced-content">
+                            <div class="advanced-grid">
+                                <!-- Width/Height inputs -->
+                                <div class="form-group">
+                                    <label for="width" data-i18n="widthLabel">Width (px)</label>
+                                    <input type="number" id="width" name="width" min="64" max="2048" step="1" value="1024">
+                                </div>
+                                <div class="form-group">
+                                    <label for="height" data-i18n="heightLabel">Height (px)</label>
+                                    <input type="number" id="height" name="height" min="64" max="2048" step="1" value="1024">
+                                </div>
+
+                                <!-- Seed input -->
+                                <div class="form-group">
+                                    <label for="seed">
+                                        <span data-i18n="seedLabel">Seed</span>
+                                    </label>
+                                    <input type="number" id="seed" name="seed" value="0">
+                                    <small class="hint" data-i18n="seedHint">0 = random</small>
+                                </div>
+
+                                <!-- Guidance scale -->
+                                <div class="form-group">
+                                    <label for="guidance_scale">
+                                        <span data-i18n="guidanceLabel">Guidance Scale</span>
+                                        <span id="guidance-value">7</span>
+                                    </label>
+                                    <input type="range" id="guidance_scale" name="guidance_scale" min="1" max="20" step="0.5" value="7">
+                                </div>
+
+                                <!-- Negative prompt -->
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <label for="negative_prompt" data-i18n="negativePromptLabel">Negative Prompt</label>
+                                    <textarea 
+                                        id="negative_prompt" 
+                                        name="negative_prompt"
+                                        data-i18n-placeholder="negativePromptPlaceholder"
+                                        placeholder="What to avoid in the image..."
+                                    ></textarea>
+                                    <small class="hint" data-i18n="negativePromptHint">Optional: Describe what you don't want</small>
+                                </div>
+
+                                <!-- Quality -->
+                                <div class="form-group">
+                                    <label for="quality" data-i18n="qualityLabel">Quality</label>
+                                    <select id="quality" name="quality">
+                                        <option value="low" data-i18n="qualityLow">Low</option>
+                                        <option value="medium" data-i18n="qualityMedium">Medium</option>
+                                        <option value="high" data-i18n="qualityHigh">High</option>
+                                        <option value="hd" selected data-i18n="qualityHD">HD</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Advanced flags -->
+                            <div class="form-group" style="margin-top: 24px;">
+                                <label data-i18n="advancedOptionsLabel">Advanced Options</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="enhance" name="enhance">
+                                        <div class="checkbox-item-content">
+                                            <strong data-i18n="enhanceLabel">Enhance</strong>
+                                            <span data-i18n="enhanceDesc">Let AI optimize the prompt</span>
+                                        </div>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="private" name="private" checked>
+                                        <div class="checkbox-item-content">
+                                            <strong data-i18n="privateLabel">Private</strong>
+                                            <span data-i18n="privateDesc">Hide from public feeds</span>
+                                        </div>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="nologo" name="nologo" checked>
+                                        <div class="checkbox-item-content">
+                                            <strong data-i18n="nologoLabel">No Logo</strong>
+                                            <span data-i18n="nologoDesc">Remove watermark</span>
+                                        </div>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="nofeed" name="nofeed" checked>
+                                        <div class="checkbox-item-content">
+                                            <strong data-i18n="nofeedLabel">No Feed</strong>
+                                            <span data-i18n="nofeedDesc">Don't share in public feed</span>
+                                        </div>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="safe" name="safe">
+                                        <div class="checkbox-item-content">
+                                            <strong data-i18n="safeLabel">Safe</strong>
+                                            <span data-i18n="safeDesc">Enable safety filters</span>
+                                        </div>
+                                    </label>
+                                    <label class="checkbox-item">
+                                        <input type="checkbox" id="transparent" name="transparent">
+                                        <div class="checkbox-item-content">
+                                            <strong data-i18n="transparentLabel">Transparent</strong>
+                                            <span data-i18n="transparentDesc">Transparent background</span>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Prompt Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="prompt">
-                                <span data-i18n="promptLabel">Image Description</span>
-                                <span class="required">*</span>
-                            </label>
-                            <textarea 
-                                id="prompt" 
-                                name="prompt"
-                                data-i18n-placeholder="promptPlaceholder"
-                                placeholder="Describe your desired image in detail..."
-                                required
-                            ></textarea>
-                        </div>
+
+                    <!-- Generate Button -->
+                    <button type="submit" class="btn-primary" id="generate-btn">
+                        <span data-i18n="generateBtn">Generate Image</span>
+                    </button>
+
+                    <!-- Reset Button -->
+                    <button type="button" class="btn-secondary" id="reset-btn" style="margin-top: 12px; width: 100%;">
+                        <span data-i18n="resetBtn">Reset Form</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section hidden" id="results-section">
+                <div class="result-image-container">
+                    <img id="result-image" src="" alt="Generated image">
+                </div>
+
+                <div class="result-info">
+                    <div class="result-metadata" id="result-metadata">
+                        <!-- Generation details will be added here -->
                     </div>
-                    
-                    <!-- Model Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="model">
-                                <span data-i18n="modelLabel">Model</span>
-                                <span class="required">*</span>
-                            </label>
-                            <select id="model" name="model" required>
-                                <option value="" disabled selected data-i18n="modelPlaceholder">Select a model...</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Dimensions & Settings -->
-                    <div class="form-section">
-                        <h3 class="form-section-title" data-i18n="optionsLabel">Generation Options</h3>
-                        
-                        <div class="grid-2">
-                            <div class="field">
-                                <label for="width" data-i18n="widthLabel">Width (px)</label>
-                                <input type="number" id="width" name="width" min="64" max="2048" step="1" value="1024">
-                            </div>
-                            <div class="field">
-                                <label for="height" data-i18n="heightLabel">Height (px)</label>
-                                <input type="number" id="height" name="height" min="64" max="2048" step="1" value="1024">
-                            </div>
-                        </div>
-                        
-                        <div class="field">
-                            <label for="aspect-ratio" data-i18n="aspectRatioLabel">Aspect Ratio</label>
-                            <select id="aspect-ratio" name="aspect-ratio" class="i18n-aspect-ratios">
-                                <option value="custom" data-i18n="aspectCustom">Custom</option>
-                                <option value="Ultrabreit (21:9)" data-i18n="aspectUltrawide" data-i18n-dims="aspectUltrawideDims">Ultrabreit (21:9) - 4788 × 2052 px</option>
-                                <option value="Breitbild (16:9)" data-i18n="aspectWidescreen" data-i18n-dims="aspectWidescreenDims">Breitbild (16:9) - 3648 × 2052 px</option>
-                                <option value="Klassisch (5:4)" data-i18n="aspectClassic" data-i18n-dims="aspectClassicDims">Klassisch (5:4) - 2560 × 2048 px</option>
-                                <option value="Querformat (4:3)" data-i18n="aspectLandscape" data-i18n-dims="aspectLandscapeDims">Querformat (4:3) - 2732 × 2049 px</option>
-                                <option value="Breit (3:2)" data-i18n="aspectWide" data-i18n-dims="aspectWideDims">Breit (3:2) - 3072 × 2048 px</option>
-                                <option value="Quadratisch (1:1)" data-i18n="aspectSquare" data-i18n-dims="aspectSquareDims">Quadratisch (1:1) - 2048 × 2048 px</option>
-                                <option value="Standard (4:5)" data-i18n="aspectPortrait" data-i18n-dims="aspectPortraitDims">Standard (4:5) - 2048 × 2560 px</option>
-                                <option value="Hochformat (3:4)" data-i18n="aspectStandard" data-i18n-dims="aspectStandardDims">Hochformat (3:4) - 2049 × 2732 px</option>
-                                <option value="Hoch (2:3)" data-i18n="aspectTall" data-i18n-dims="aspectTallDims">Hoch (2:3) - 2048 × 3072 px</option>
-                                <option value="Vertikal (9:16)" data-i18n="aspectVertical" data-i18n-dims="aspectVerticalDims">Vertikal (9:16) - 2052 × 3648 px</option>
-                            </select>
-                        </div>
-                        
-                        <div class="grid-2">
-                            <div class="field">
-                                <label for="seed">
-                                    <span data-i18n="seedLabel">Seed</span>
-                                </label>
-                                <input type="number" id="seed" name="seed" value="0">
-                                <small class="hint" data-i18n="seedHint">0 = random</small>
-                            </div>
-                            <div class="field">
-                                <label for="quality" data-i18n="qualityLabel">Quality</label>
-                                <select id="quality" name="quality">
-                                    <option value="low" data-i18n="qualityLow">Low</option>
-                                    <option value="medium" data-i18n="qualityMedium">Medium</option>
-                                    <option value="high" data-i18n="qualityHigh">High</option>
-                                    <option value="hd" selected data-i18n="qualityHD">HD</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="field">
-                            <label for="guidance_scale">
-                                <span data-i18n="guidanceLabel">Guidance Scale</span>
-                                <span id="guidance-value">7</span>
-                            </label>
-                            <input type="range" id="guidance_scale" name="guidance_scale" min="1" max="20" step="0.5" value="7">
-                            <small class="hint" data-i18n="guidanceHint">Determines how closely the result follows the description</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Negative Prompt -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="negative_prompt" data-i18n="negativePromptLabel">Negative Prompt</label>
-                            <textarea 
-                                id="negative_prompt" 
-                                name="negative_prompt"
-                                data-i18n-placeholder="negativePromptPlaceholder"
-                                placeholder="What to avoid in the image..."
-                                style="min-height: 80px;"
-                            ></textarea>
-                            <small class="hint" data-i18n="negativePromptHint">Optional: Describe what you don't want</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Advanced Options -->
-                    <div class="form-section">
-                        <h3 class="form-section-title" data-i18n="optionsLabel">Advanced Options</h3>
-                        <div class="checkbox-group">
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="enhance" name="enhance">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="enhanceLabel">Enhance</strong>
-                                    <span data-i18n="enhanceDesc">Let AI optimize the prompt</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="private" name="private" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="privateLabel">Private</strong>
-                                    <span data-i18n="privateDesc">Hide from public feeds</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="nologo" name="nologo" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="nologoLabel">No Logo</strong>
-                                    <span data-i18n="nologoDesc">Remove watermark</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="nofeed" name="nofeed" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="nofeedLabel">No Feed</strong>
-                                    <span data-i18n="nofeedDesc">Don't share in public feed</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="safe" name="safe">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="safeLabel">Safe</strong>
-                                    <span data-i18n="safeDesc">Enable safety filters</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="transparent" name="transparent">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="transparentLabel">Transparent</strong>
-                                    <span data-i18n="transparentDesc">Transparent background</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Actions -->
-                    <div class="form-section">
-                        <button type="button" class="btn btn-secondary" id="reset-btn">
-                            <span data-i18n="resetBtn">Reset Form</span>
+
+                    <div class="result-actions hidden" id="result-actions">
+                        <a id="download-link" class="btn-secondary" download="pollinations-image.png">
+                            <span data-i18n="downloadBtn">Download</span>
+                        </a>
+                        <button class="btn-secondary" id="copy-url-btn">
+                            <span data-i18n="copyUrlBtn">Copy URL</span>
+                        </button>
+                        <button class="btn-secondary" id="share-btn">
+                            <span data-i18n="shareBtn">Share</span>
                         </button>
                     </div>
-                </form>
-            </div>
-            
-            <!-- Result Panel -->
-            <div class="panel result-panel-container">
-                <div class="result-container" id="result-container">
-                    <div class="loader" id="result-loader"></div>
-                    <div class="placeholder" id="placeholder" data-i18n="placeholderText">
-                        Your generated images will appear here
-                    </div>
-                    <img id="result-image" alt="Generated Image">
                 </div>
-                <div class="loading-status" id="loading-status"></div>
-                
-                <button type="submit" form="generation-form" class="btn btn-primary" id="generate-btn">
-                    <span data-i18n="generateBtn">Generate Image</span>
+
+                <button id="reset-results-btn" class="btn-tertiary" style="width: 100%; margin-top: 20px;">
+                    <span data-i18n="generateAnotherBtn">Generate Another</span>
                 </button>
+            </section>
+        </div>
+    </main>
 
-                <div id="status" class="status"></div>
+    <!-- Status Message -->
+    <div id="status-message" class="status-message hidden"></div>
 
-                <div class="result-actions hidden" id="result-actions">
-                    <a id="download-link" class="btn btn-link" download="pollinations-image.png">
-                        <span data-i18n="downloadBtn">Download Image</span>
-                    </a>
-                </div>
-
-                <!-- Image History -->
-                <div class="image-history-section">
-                    <h4 class="image-history-title" data-i18n="imageHistoryTitle">Image History</h4>
-                    <div class="image-history-grid" id="image-history-grid">
-                        <!-- Generated images will be added here -->
-                    </div>
-                </div>
-
-                <footer class="footer">
-                    Powered by <a href="https://pollinations.ai" target="_blank" rel="noopener">Pollinations</a> ✨
-                </footer>
-            </div>
-        </main>
+    <!-- Image Modal -->
+    <div id="image-modal" class="image-modal">
+        <div class="image-modal-overlay"></div>
+        <div class="image-modal-container">
+            <button id="image-modal-close" class="image-modal-close">✕</button>
+            <img id="image-modal-image" src="" alt="Enlarged image">
+        </div>
     </div>
-    
+
+    <!-- Loading Status -->
+    <div id="loading-status" class="hidden"></div>
+
     <!-- Scripts -->
     <script src="js/i18n.js"></script>
     <script src="js/app.js"></script>
 
-    <!-- Image Modal -->
-    <div id="image-modal" class="image-modal" style="display: none;">
-        <div class="image-modal-overlay"></div>
-        <div class="image-modal-container">
-            <button id="image-modal-close" class="image-modal-close" aria-label="Close image">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-            <img id="image-modal-image" src="" alt="Enlarged image">
-        </div>
-    </div>
+    <script>
+        // Advanced Options Toggle Functionality
+        function setupAdvancedToggle() {
+            const toggleBtn = document.getElementById('advanced-toggle');
+            const advancedContent = document.getElementById('advanced-content');
+            
+            if (!toggleBtn || !advancedContent) return;
+            
+            toggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+                toggleBtn.setAttribute('aria-expanded', !isExpanded);
+                
+                if (!isExpanded) {
+                    advancedContent.classList.add('expanded');
+                } else {
+                    advancedContent.classList.remove('expanded');
+                }
+            });
+        }
+
+        // Character count for prompt
+        function setupCharCount() {
+            const promptTextarea = document.getElementById('prompt');
+            const charCount = document.getElementById('char-count');
+            
+            if (!promptTextarea || !charCount) return;
+            
+            promptTextarea.addEventListener('input', () => {
+                charCount.textContent = promptTextarea.value.length;
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setupAdvancedToggle();
+            setupCharCount();
+        });
+    </script>
 </body>
 </html>
