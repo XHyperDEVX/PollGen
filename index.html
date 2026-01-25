@@ -576,6 +576,73 @@
         .form-panel::-webkit-scrollbar-track {
             background: transparent;
         }
+
+        /* Image Modal */
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+
+        .image-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 14, 26, 0.95);
+        }
+
+        .image-modal-container {
+            position: relative;
+            max-height: 90vh;
+            max-width: 90vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+        }
+
+        .image-modal-container img {
+            max-height: 90vh;
+            max-width: 90vw;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(91, 141, 255, 0.2);
+            border: 1px solid rgba(91, 141, 255, 0.4);
+            color: #f1f5f9;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 200ms ease;
+            z-index: 10001;
+        }
+
+        .image-modal-close:hover {
+            background: rgba(91, 141, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        #result-image {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -664,10 +731,16 @@
                             <label for="aspect-ratio" data-i18n="aspectRatioLabel">Aspect Ratio</label>
                             <select id="aspect-ratio" name="aspect-ratio">
                                 <option value="custom" data-i18n="aspectCustom">Custom</option>
-                                <option value="16:9" data-i18n="aspectWidescreen">16:9 (Widescreen)</option>
-                                <option value="9:16" data-i18n="aspectPortrait">9:16 (Portrait)</option>
-                                <option value="1:1" data-i18n="aspectSquare">1:1 (Square)</option>
-                                <option value="3:4" data-i18n="aspectStandard">3:4 (Standard)</option>
+                                <option value="Ultrabreit (21:9)">Ultrabreit (21:9) - 4788 × 2052 px</option>
+                                <option value="Breitbild (16:9)">Breitbild (16:9) - 3648 × 2052 px</option>
+                                <option value="Klassisch (5:4)">Klassisch (5:4) - 2560 × 2048 px</option>
+                                <option value="Querformat (4:3)">Querformat (4:3) - 2732 × 2049 px</option>
+                                <option value="Breit (3:2)">Breit (3:2) - 3072 × 2048 px</option>
+                                <option value="Quadratisch (1:1)">Quadratisch (1:1) - 2048 × 2048 px</option>
+                                <option value="Standard (4:5)">Standard (4:5) - 2048 × 2560 px</option>
+                                <option value="Hochformat (3:4)">Hochformat (3:4) - 2049 × 2732 px</option>
+                                <option value="Hoch (2:3)">Hoch (2:3) - 2048 × 3072 px</option>
+                                <option value="Vertikal (9:16)">Vertikal (9:16) - 2052 × 3648 px</option>
                             </select>
                         </div>
                         
@@ -806,5 +879,19 @@
     <!-- Scripts -->
     <script src="js/i18n.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="image-modal" style="display: none;">
+        <div class="image-modal-overlay"></div>
+        <div class="image-modal-container">
+            <button id="image-modal-close" class="image-modal-close" aria-label="Close image">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <img id="image-modal-image" src="" alt="Enlarged image">
+        </div>
+    </div>
 </body>
 </html>

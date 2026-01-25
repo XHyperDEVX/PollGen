@@ -498,26 +498,77 @@ function updateDimensionsFromAspectRatio() {
   const aspectRatioSelect = document.getElementById('aspect-ratio');
   const widthInput = document.getElementById('width');
   const heightInput = document.getElementById('height');
-  
+
   if (!aspectRatioSelect || !widthInput || !heightInput) {
     return;
   }
-  
+
   const ratio = aspectRatioSelect.value;
   const ratios = {
-    '16:9': { width: 1792, height: 1024 },
-    '9:16': { width: 1024, height: 1792 },
-    '1:1': { width: 1024, height: 1024 },
-    '3:4': { width: 1024, height: 1365 }
+    'Ultrabreit (21:9)': { width: 4788, height: 2052 },
+    'Breitbild (16:9)': { width: 3648, height: 2052 },
+    'Klassisch (5:4)': { width: 2560, height: 2048 },
+    'Querformat (4:3)': { width: 2732, height: 2049 },
+    'Breit (3:2)': { width: 3072, height: 2048 },
+    'Quadratisch (1:1)': { width: 2048, height: 2048 },
+    'Standard (4:5)': { width: 2048, height: 2560 },
+    'Hochformat (3:4)': { width: 2049, height: 2732 },
+    'Hoch (2:3)': { width: 2048, height: 3072 },
+    'Vertikal (9:16)': { width: 2052, height: 3648 }
   };
-  
+
   if (ratio === 'custom') {
     return;
   }
-  
+
   if (ratios[ratio]) {
     widthInput.value = ratios[ratio].width;
     heightInput.value = ratios[ratio].height;
+  }
+}
+
+// ============================================================================
+// IMAGE MODAL FUNCTIONS
+// ============================================================================
+
+function initImageModal() {
+  const modal = document.getElementById('image-modal');
+  const closeBtn = document.getElementById('image-modal-close');
+  const overlay = document.querySelector('.image-modal-overlay');
+  const resultImage = document.getElementById('result-image');
+
+  if (!modal || !closeBtn || !resultImage) return;
+
+  resultImage.addEventListener('click', () => {
+    openImageModal(resultImage.src);
+  });
+
+  closeBtn.addEventListener('click', closeImageModal);
+  overlay.addEventListener('click', closeImageModal);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeImageModal();
+    }
+  });
+}
+
+function openImageModal(imageSrc) {
+  const modal = document.getElementById('image-modal');
+  const modalImage = document.getElementById('image-modal-image');
+
+  if (modal && modalImage) {
+    modalImage.src = imageSrc;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeImageModal() {
+  const modal = document.getElementById('image-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
   }
 }
 
@@ -526,6 +577,9 @@ function updateDimensionsFromAspectRatio() {
 // ============================================================================
 
 function setupEventListeners() {
+  // Initialize image modal
+  initImageModal();
+
   // Language switcher
   const languageToggle = document.getElementById('language-toggle');
   if (languageToggle) {
