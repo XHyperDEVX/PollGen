@@ -11,7 +11,8 @@ const state = {
   apiKey: null,
   models: [],
   currentImage: null,
-  isGenerating: false
+  isGenerating: false,
+  imageHistory: []
 };
 
 // ============================================================================
@@ -469,30 +470,112 @@ function displayResult(data) {
   const placeholder = document.getElementById('placeholder');
   const downloadLink = document.getElementById('download-link');
   const downloadActions = document.getElementById('result-actions');
-  
+
   if (!resultImage || !placeholder || !downloadLink || !downloadActions) {
     return;
   }
-  
+
   if (data.imageData) {
     resultImage.src = data.imageData;
     resultImage.classList.add('visible');
     placeholder.style.display = 'none';
-    
+
     downloadActions.classList.remove('hidden');
     downloadLink.href = data.imageData;
-    
+
     if (data.contentType && typeof data.contentType === 'string') {
       const ext = data.contentType.split('/')[1]?.split(';')[0] || 'png';
       downloadLink.setAttribute('download', `pollinations-image.${ext}`);
     }
-    
+
     state.currentImage = data;
-    
+
+    // Add to image history
+    addToImageHistory(data);
+
     // Update balance after successful image generation
     updateBalance(state.apiKey);
   }
 }
+
+// ============================================================================
+// IMAGE HISTORY FUNCTIONS
+// ============================================================================
+
+function addToImageHistory(imageData) {
+  // Create a copy of the image data for history
+  const historyItem = {
+    imageData: imageData.imageData,
+    contentType: imageData.contentType,
+    sourceUrl: imageData.sourceUrl,
+    timestamp: Date.now()
+  };
+
+  // Add to beginning of history array (newest first)
+  state.imageHistory.unshift(historyItem);
+
+  // Limit to 18 images (6 columns x 3 rows)
+  if (state.imageHistory.length > 18) {
+    state.imageHistory.pop();
+  }
+
+  // Render the history grid
+  renderImageHistory();
+}
+
+function renderImageHistory() {
+  const historyGrid = document.getElementById('image-history-grid');
+  if (!historyGrid) return;
+
+  // Clear existing content
+  historyGrid.innerHTML = '';
+
+  // Render each history item
+  state.imageHistory.forEach((item, index) => {
+    const historyItem = document.createElement('div');
+    historyItem.className = 'image-history-item';
+    historyItem.title = `Click to view image ${index + 1}`;
+
+    const img = document.createElement('img');
+    img.src = item.imageData;
+    img.alt = `Generated image ${index + 1}`;
+
+    historyItem.appendChild(img);
+
+    // Add click event to display image in main view
+    historyItem.addEventListener('click', () => {
+      displayInMainView(item);
+    });
+
+    historyGrid.appendChild(historyItem);
+  });
+}
+
+function displayInMainView(historyItem) {
+  const resultImage = document.getElementById('result-image');
+  const placeholder = document.getElementById('placeholder');
+  const downloadLink = document.getElementById('download-link');
+  const downloadActions = document.getElementById('result-actions');
+
+  if (!resultImage || !placeholder || !downloadLink || !downloadActions) {
+    return;
+  }
+
+  resultImage.src = historyItem.imageData;
+  resultImage.classList.add('visible');
+  placeholder.style.display = 'none';
+
+  downloadActions.classList.remove('hidden');
+  downloadLink.href = historyItem.imageData;
+
+  if (historyItem.contentType && typeof historyItem.contentType === 'string') {
+    const ext = historyItem.contentType.split('/')[1]?.split(';')[0] || 'png';
+    downloadLink.setAttribute('download', `pollinations-image.${ext}`);
+  }
+
+  state.currentImage = historyItem;
+}
+
 
 function updateDimensionsFromAspectRatio() {
   const aspectRatioSelect = document.getElementById('aspect-ratio');

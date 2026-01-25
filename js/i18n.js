@@ -46,10 +46,27 @@ const translations = {
     qualityHD: 'HD',
     aspectRatioLabel: 'Aspect Ratio',
     aspectCustom: 'Custom',
-    aspectWidescreen: '16:9 (Widescreen)',
-    aspectPortrait: '9:16 (Portrait)',
-    aspectSquare: '1:1 (Square)',
-    aspectStandard: '3:4 (Standard)',
+    aspectUltrawide: 'Ultrawide (21:9)',
+    aspectWidescreen: 'Widescreen (16:9)',
+    aspectClassic: 'Classic (5:4)',
+    aspectLandscape: 'Landscape (4:3)',
+    aspectWide: 'Wide (3:2)',
+    aspectSquare: 'Square (1:1)',
+    aspectPortrait: 'Portrait (4:5)',
+    aspectStandard: 'Standard (3:4)',
+    aspectTall: 'Tall (2:3)',
+    aspectVertical: 'Vertical (9:16)',
+    // Aspect Ratio Dimensions
+    aspectUltrawideDims: '4788 × 2052 px',
+    aspectWidescreenDims: '3648 × 2052 px',
+    aspectClassicDims: '2560 × 2048 px',
+    aspectLandscapeDims: '2732 × 2049 px',
+    aspectWideDims: '3072 × 2048 px',
+    aspectSquareDims: '2048 × 2048 px',
+    aspectPortraitDims: '2048 × 2560 px',
+    aspectStandardDims: '2049 × 2732 px',
+    aspectTallDims: '2048 × 3072 px',
+    aspectVerticalDims: '2052 × 3648 px',
     
     // Guidance Scale
     guidanceLabel: 'Guidance Scale',
@@ -105,7 +122,10 @@ const translations = {
     pricePerMillion: 'per million tokens',
     
     // Balance Display
-    balanceRemaining: 'pollen remaining.'
+    balanceRemaining: 'pollen remaining.',
+
+    // Image History
+    imageHistoryTitle: 'Image History'
   },
   
   de: {
@@ -150,10 +170,27 @@ const translations = {
     qualityHD: 'HD',
     aspectRatioLabel: 'Seitenverhältnis',
     aspectCustom: 'Benutzerdefiniert',
-    aspectWidescreen: '16:9 (Breitbild)',
-    aspectPortrait: '9:16 (Hochformat)',
-    aspectSquare: '1:1 (Quadratisch)',
-    aspectStandard: '3:4 (Standard)',
+    aspectUltrawide: 'Ultrabreit (21:9)',
+    aspectWidescreen: 'Breitbild (16:9)',
+    aspectClassic: 'Klassisch (5:4)',
+    aspectLandscape: 'Querformat (4:3)',
+    aspectWide: 'Breit (3:2)',
+    aspectSquare: 'Quadratisch (1:1)',
+    aspectPortrait: 'Standard (4:5)',
+    aspectStandard: 'Hochformat (3:4)',
+    aspectTall: 'Hoch (2:3)',
+    aspectVertical: 'Vertikal (9:16)',
+    // Aspect Ratio Dimensions
+    aspectUltrawideDims: '4788 × 2052 px',
+    aspectWidescreenDims: '3648 × 2052 px',
+    aspectClassicDims: '2560 × 2048 px',
+    aspectLandscapeDims: '2732 × 2049 px',
+    aspectWideDims: '3072 × 2048 px',
+    aspectSquareDims: '2048 × 2048 px',
+    aspectPortraitDims: '2048 × 2560 px',
+    aspectStandardDims: '2049 × 2732 px',
+    aspectTallDims: '2048 × 3072 px',
+    aspectVerticalDims: '2052 × 3648 px',
     
     // Guidance Scale
     guidanceLabel: 'Guidance Scale',
@@ -209,7 +246,10 @@ const translations = {
     pricePerMillion: 'pro Million Tokens',
     
     // Balance Display
-    balanceRemaining: 'Pollen verbleibend.'
+    balanceRemaining: 'Pollen verbleibend.',
+
+    // Image History
+    imageHistoryTitle: 'Bildhistorie'
   }
 };
 
@@ -250,15 +290,21 @@ class I18n {
   updatePageLanguage() {
     // Update document language
     document.documentElement.lang = this.currentLanguage;
-    
+
     // Update all elements with data-i18n attribute
     document.querySelectorAll('[data-i18n]').forEach(element => {
       const key = element.getAttribute('data-i18n');
       if (key) {
-        element.textContent = this.t(key);
+        // Check if this is an option element with dimensions
+        if (element.tagName === 'OPTION' && element.hasAttribute('data-i18n-dims')) {
+          const dimsKey = element.getAttribute('data-i18n-dims');
+          element.textContent = `${this.t(key)} - ${this.t(dimsKey)}`;
+        } else {
+          element.textContent = this.t(key);
+        }
       }
     });
-    
+
     // Update all elements with data-i18n-placeholder attribute
     document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
       const key = element.getAttribute('data-i18n-placeholder');
@@ -266,10 +312,10 @@ class I18n {
         element.placeholder = this.t(key);
       }
     });
-    
+
     // Update page title
     document.title = this.t('pageTitle');
-    
+
     // Trigger custom event for components that need to update
     window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: this.currentLanguage } }));
   }
