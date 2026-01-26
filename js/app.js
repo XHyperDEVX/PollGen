@@ -588,16 +588,16 @@ function updateDimensionsFromAspectRatio() {
 
   const ratio = aspectRatioSelect.value;
   const ratios = {
-    'Ultrabreit (21:9)': { width: 4788, height: 2052 },
-    'Breitbild (16:9)': { width: 3648, height: 2052 },
-    'Klassisch (5:4)': { width: 2560, height: 2048 },
-    'Querformat (4:3)': { width: 2732, height: 2049 },
-    'Breit (3:2)': { width: 3072, height: 2048 },
-    'Quadratisch (1:1)': { width: 2048, height: 2048 },
-    'Standard (4:5)': { width: 2048, height: 2560 },
-    'Hochformat (3:4)': { width: 2049, height: 2732 },
-    'Hoch (2:3)': { width: 2048, height: 3072 },
-    'Vertikal (9:16)': { width: 2052, height: 3648 }
+    'Ultrabreit (21:9)': { width: 2394, height: 1026 },
+    'Breitbild (16:9)': { width: 1824, height: 1026 },
+    'Klassisch (5:4)': { width: 1280, height: 1024 },
+    'Querformat (4:3)': { width: 1366, height: 1025 },
+    'Breit (3:2)': { width: 1536, height: 1024 },
+    'Quadratisch (1:1)': { width: 1024, height: 1024 },
+    'Standard (4:5)': { width: 1024, height: 1280 },
+    'Hochformat (3:4)': { width: 1025, height: 1366 },
+    'Hoch (2:3)': { width: 1024, height: 1536 },
+    'Vertikal (9:16)': { width: 1026, height: 1824 }
   };
 
   if (ratio === 'custom') {
