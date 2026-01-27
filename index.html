@@ -3,956 +3,1086 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pollinations Image Generator</title>
+    <title>PollGen</title>
     <style>
         :root {
-            color-scheme: dark;
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #111827;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e5;
-            --border: #334155;
-            --error: #f87171;
-            --success: #34d399;
-            --info: #38bdf8;
-            --warning: #fbbf24;
-            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --sidebar-bg: #1f1f21;
+            --canvas-bg: #2f2f31;
+            --panel-bg: #242427;
+            --primary-text: #FFFFFF;
+            --secondary-text: #BDBDBD;
+            --muted-text: #9E9E9E;
+            --border-color: #2e2e2f;
+            --primary-accent: #2563EB;
+            --primary-accent-hover: #1d4ed8;
+            --upload-border: rgba(255, 255, 255, 0.06);
+            --popover-bg: #252526;
+            --popover-hover: #303033;
         }
-        
+
         * {
             box-sizing: border-box;
-        }
-        
-        html {
-            height: 100%;
-        }
-        
-        body {
             margin: 0;
-            min-height: 100vh;
-            background: radial-gradient(circle at top, rgba(79,70,229,0.4), transparent 55%), var(--bg-primary);
-            color: var(--text-primary);
-            padding: 20px;
-            overflow-x: hidden;
+            padding: 0;
         }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
         }
-        
-        /* Header */
-        header {
-            text-align: center;
-            padding: 20px 0 30px;
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--canvas-bg);
+            color: var(--primary-text);
+            display: flex;
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 360px;
+            min-width: 360px;
+            background-color: var(--sidebar-bg);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* Panels */
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: background-color 120ms ease;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            cursor: pointer;
+            user-select: none;
             position: relative;
         }
-        
-        header h1 {
-            margin: 0;
-            font-size: clamp(2rem, 4vw, 3rem);
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #fff, #94a3b8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+
+        .panel-header:hover {
+            background-color: rgba(255, 255, 255, 0.03);
         }
-        
-        header p {
-            margin: 10px 0 0;
-            color: var(--text-secondary);
-            font-size: clamp(0.95rem, 2vw, 1.1rem);
+
+        .panel-caret {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            transition: transform 160ms ease;
+            color: var(--secondary-text);
         }
-        
-        .language-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: var(--text-primary);
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
+
+        .panel.collapsed .panel-caret {
+            transform: rotate(-90deg);
+        }
+
+        .panel-title {
+            font-size: 14px;
             font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
-        }
-        
-        .language-toggle:hover {
-            background: rgba(99, 102, 241, 0.25);
-            transform: translateY(-1px);
-        }
-        
-        /* Main Content */
-        main {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-        
-        @media (min-width: 1024px) {
-            main {
-                grid-template-columns: minmax(500px, 1fr) minmax(450px, 0.9fr);
-            }
-        }
-        
-        /* Panel */
-        .panel {
-            background: linear-gradient(145deg, rgba(17,24,39,0.95), rgba(30,41,59,0.95));
-            border: 1px solid rgba(99,102,241,0.15);
-            border-radius: 20px;
-            padding: 28px;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 30px 70px -25px rgba(15,23,42,0.9);
-        }
-        
-        /* Form Elements */
-        .form-section {
-            margin-bottom: 24px;
-        }
-        
-        .form-section:last-child {
-            margin-bottom: 0;
-        }
-        
-        .form-section-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin: 0 0 14px 0;
-            color: var(--text-primary);
-        }
-        
-        .field {
-            margin-bottom: 18px;
-        }
-        
-        label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.95rem;
-            margin-bottom: 6px;
-            color: var(--text-primary);
-        }
-        
-        .required {
-            color: var(--error);
-            margin-left: 4px;
-        }
-        
-        .hint {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            display: block;
-        }
-        
-        input[type="text"],
-        input[type="number"],
-        input[type="password"],
-        select,
-        textarea {
-            width: 100%;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 11px 14px;
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            font-family: inherit;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-            line-height: 1.5;
-        }
-        
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
-        }
-        
-        input::placeholder,
-        textarea::placeholder {
-            color: rgba(148,163,184,0.5);
-        }
-        
-        /* Grid Layouts */
-        .grid-2 {
-            display: grid;
-            gap: 16px;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        }
-        
-        /* Checkbox Group */
-        .checkbox-group {
-            display: grid;
-            gap: 10px;
-        }
-        
-        .checkbox-item {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-            padding: 12px 14px;
-            border-radius: 10px;
-            background: rgba(148,163,184,0.06);
-            border: 1px solid rgba(148,163,184,0.1);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .checkbox-item:hover {
-            background: rgba(148,163,184,0.1);
-            border-color: rgba(99,102,241,0.3);
-        }
-        
-        .checkbox-item input[type="checkbox"] {
-            margin-top: 3px;
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        
-        .checkbox-item-content {
+            color: var(--primary-text);
             flex: 1;
         }
-        
-        .checkbox-item strong {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 2px;
+
+        .panel-content {
+            padding: 12px;
+            border-top: 1px solid var(--border-color);
+            transition: all 160ms ease;
         }
-        
-        .checkbox-item span {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
+
+        .panel.collapsed .panel-content {
+            display: none;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--secondary-text);
+            margin-bottom: 6px;
+        }
+
+        /* Dropdown */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-trigger {
+            background-color: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: border-color 120ms ease, box-shadow 120ms ease;
+        }
+
+        .dropdown-trigger:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .dropdown-trigger.active {
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .dropdown-badge {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 4px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .dropdown-value {
+            flex: 1;
+            font-size: 13px;
+            color: var(--primary-text);
+        }
+
+        .dropdown-arrow {
+            width: 14px;
+            height: 14px;
+            color: var(--secondary-text);
+        }
+
+        .dropdown-popover {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background-color: var(--popover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            z-index: 100;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .dropdown-popover.visible {
             display: block;
         }
-        
-        /* Range Slider */
+
+        .dropdown-option {
+            padding: 10px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            color: var(--primary-text);
+            transition: background-color 120ms ease;
+            position: relative;
+        }
+
+        .dropdown-option:hover {
+            background-color: var(--popover-hover);
+        }
+
+        .dropdown-option.selected {
+            background-color: rgba(37, 99, 235, 0.1);
+        }
+
+        .dropdown-option.selected::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: var(--primary-accent);
+        }
+
+        .dropdown-option-icon {
+            width: 20px;
+            height: 14px;
+            border: 1.5px solid var(--secondary-text);
+            border-radius: 2px;
+            margin-right: 10px;
+        }
+
+        .dropdown-option-check {
+            margin-left: auto;
+            color: var(--primary-accent);
+        }
+
+        /* Toggle Buttons */
+        .toggle-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #3a3a3a;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            color: var(--secondary-text);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 120ms ease;
+        }
+
+        .toggle-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .toggle-btn.active {
+            background-color: rgba(37, 99, 235, 0.15);
+            border-color: var(--primary-accent);
+            color: var(--primary-accent);
+        }
+
+        .toggle-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Slider */
+        .slider-container {
+            padding: 8px 0;
+        }
+
         input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 5px;
-            background: var(--bg-tertiary);
-            outline: none;
             -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #3a3a3a;
+            border-radius: 2px;
+            outline: none;
         }
-        
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            background: var(--accent);
+            background: #FFFFFF;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 120ms ease, box-shadow 120ms ease;
         }
-        
+
         input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
         }
-        
+
         input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            background: var(--accent);
+            background: #FFFFFF;
             cursor: pointer;
             border: none;
-            transition: transform 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
-        
-        input[type="range"]::-moz-range-thumb:hover {
-            transform: scale(1.2);
-        }
-        
-        /* Buttons */
-        .btn {
-            border: none;
-            border-radius: 12px;
-            padding: 12px 20px;
-            font-size: 1rem;
-            font-weight: 600;
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--upload-border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: inherit;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-            color: #fff;
-            width: 100%;
-            padding: 14px 24px;
-            font-size: 1.05rem;
-        }
-        
-        .btn-primary:not(:disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -10px rgba(99,102,241,0.5);
-        }
-        
-        .btn-primary:disabled {
-            cursor: not-allowed;
-            filter: grayscale(0.4);
-            opacity: 0.6;
-        }
-        
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-        }
-        
-        .btn-secondary:hover {
-            border-color: var(--accent);
-            color: var(--text-primary);
-            background: rgba(99,102,241,0.1);
-        }
-        
-        .btn-link {
-            background: rgba(99,102,241,0.12);
-            color: var(--text-primary);
-            border: 1px solid rgba(99,102,241,0.2);
-            text-decoration: none;
-            padding: 10px 18px;
-        }
-        
-        .btn-link:hover {
-            background: rgba(99,102,241,0.25);
-            transform: translateY(-1px);
-        }
-        
-        /* Status Messages */
-        .status {
-            font-size: 0.9rem;
-            padding: 10px 14px;
-            border-radius: 10px;
-            margin-top: 12px;
-            min-height: 0;
-            display: none;
-            align-items: center;
-        }
-        
-        .status.info {
-            display: flex;
-            background: rgba(56,189,248,0.1);
-            color: var(--info);
-            border: 1px solid rgba(56,189,248,0.2);
-        }
-        
-        .status.success {
-            display: flex;
-            background: rgba(52,211,153,0.1);
-            color: var(--success);
-            border: 1px solid rgba(52,211,153,0.2);
-        }
-        
-        .status.error {
-            display: flex;
-            background: rgba(248,113,113,0.1);
-            color: var(--error);
-            border: 1px solid rgba(248,113,113,0.2);
-        }
-        
-        /* Result Panel */
-        .result-container {
-            position: relative;
-            width: 100%;
-            background: rgba(15,23,42,0.7);
-            border: 1px solid rgba(99,102,241,0.2);
-            border-radius: 16px;
-            overflow: hidden;
-            aspect-ratio: 1 / 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .result-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: none;
-        }
-        
-        .result-container img.visible {
-            display: block;
-        }
-        
-        .placeholder {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 1rem;
-            padding: 24px;
-        }
-        
-        .loader {
-            width: 56px;
-            height: 56px;
-            border: 5px solid rgba(99,102,241,0.2);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            position: absolute;
-            z-index: 2;
-            display: none;
-        }
-        
-        .loader.visible {
-            display: block;
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .loading-status {
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            min-height: 24px;
-            margin-top: 12px;
-            margin-bottom: -8px;
-        }
-        
-        .result-panel-container {
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        
-        .btn-primary {
-            margin-top: 16px;
-        }
-        
-        .result-actions {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 16px;
-        }
-        
-        .result-actions.hidden {
-            display: none;
-        }
-        
-        .footer {
-            text-align: center;
-            margin-top: auto;
-            padding-top: 16px;
-            border-top: 1px solid rgba(148,163,184,0.1);
-            font-size: 0.75rem;
-            color: rgba(203, 213, 229, 0.6);
-        }
-        
-        .footer a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .footer a:hover {
-            text-decoration: underline;
-        }
-        
-        /* API Key Info */
-        .api-key-info {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 8px;
-        }
-        
-        .api-key-info a {
-            color: var(--warning);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        
-        .api-key-info a:hover {
-            text-decoration: underline;
-        }
-        
-        /* Balance Display */
-        .balance-display {
-            margin-top: 8px;
-            padding: 8px 12px;
-            background: rgba(52, 211, 153, 0.1);
-            border: 1px solid rgba(52, 211, 153, 0.2);
-            border-radius: 8px;
-            font-size: 0.85rem;
-            color: var(--success);
-            font-weight: 500;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        
-        .balance-text {
-            display: block;
-        }
-        
-        /* Responsive */
-        @media (max-width: 1023px) {
-            .language-toggle {
-                position: static;
-                display: block;
-                width: fit-content;
-                margin: 15px auto 0;
-            }
-            
-            header {
-                padding-bottom: 20px;
-            }
-        }
-        
-        @media (max-width: 640px) {
-            body {
-                padding: 12px;
-            }
-
-            .panel {
-                padding: 20px;
-            }
-
-            header h1 {
-                font-size: 1.8rem;
-            }
-
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-
-            .image-history-grid {
-                grid-template-columns: repeat(3, 1fr);
-                grid-template-rows: repeat(6, 1fr);
-                aspect-ratio: 3/6;
-            }
-        }
-        
-        /* Utility */
-        .hidden {
-            display: none !important;
-        }
-        
-        /* Scrollbar */
-        .form-panel {
-            max-height: calc(100vh - 200px);
-            overflow-y: auto;
-            padding-right: 4px;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(148,163,184,0.3) transparent;
-        }
-        
-        .form-panel::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .form-panel::-webkit-scrollbar-thumb {
-            background: rgba(148,163,184,0.3);
-            border-radius: 999px;
-        }
-        
-        .form-panel::-webkit-scrollbar-track {
-            background: transparent;
+            transition: all 120ms ease;
+            margin-bottom: 12px;
         }
 
-        /* Image Modal */
-        .image-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            backdrop-filter: blur(4px);
+        .upload-area:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background-color: rgba(255, 255, 255, 0.02);
         }
 
-        .image-modal-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(10, 14, 26, 0.95);
-        }
-
-        .image-modal-container {
-            position: relative;
-            max-height: 90vh;
-            max-width: 90vw;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
-        }
-
-        .image-modal-container img {
-            max-height: 90vh;
-            max-width: 90vw;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-
-        .image-modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(91, 141, 255, 0.2);
-            border: 1px solid rgba(91, 141, 255, 0.4);
-            color: #f1f5f9;
+        .upload-icon {
             width: 40px;
             height: 40px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 200ms ease;
-            z-index: 10001;
+            margin: 0 auto 10px;
+            color: var(--secondary-text);
         }
 
-        .image-modal-close:hover {
-            background: rgba(91, 141, 255, 0.3);
-            transform: scale(1.1);
+        .upload-button {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--primary-text);
+            margin-bottom: 4px;
         }
 
-        #result-image {
-            cursor: pointer;
+        .upload-hint {
+            font-size: 11px;
+            color: var(--muted-text);
         }
 
-        /* Image History */
-        .image-history-section {
-            margin-top: 24px;
-        }
-
-        .image-history-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin: 0 0 12px 0;
-            color: var(--text-primary);
-        }
-
-        .image-history-grid {
+        /* Gallery Grid */
+        .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 8px;
-            width: 100%;
-            aspect-ratio: 6/3;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
         }
 
-        .image-history-item {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-            border-radius: 6px;
+        .thumbnail {
+            aspect-ratio: 1;
+            background-color: #1e1e1e;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             overflow: hidden;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(99, 102, 241, 0.1);
-            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+            transition: all 120ms ease;
         }
 
-        .image-history-item:hover {
-            border-color: rgba(99, 102, 241, 0.4);
-            transform: scale(1.05);
-            z-index: 2;
+        .thumbnail:hover {
+            border-color: rgba(255, 255, 255, 0.3);
         }
 
-        .image-history-item img {
+        .thumbnail img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        .thumbnail.selected {
+            border: 2px solid var(--primary-accent);
+        }
+
+        .thumbnail-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 120ms ease;
+        }
+
+        .thumbnail:hover .thumbnail-overlay {
+            opacity: 1;
+        }
+
+        .thumbnail-remove {
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Canvas Area */
+        .canvas {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--canvas-bg);
+            overflow: hidden;
+        }
+
+        .canvas-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+            overflow: hidden;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary-text);
+            margin-bottom: 12px;
+        }
+
+        .empty-state-text {
+            font-size: 13px;
+            color: var(--secondary-text);
+            line-height: 1.6;
+        }
+
+        .empty-state-link {
+            color: var(--primary-accent);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        /* Generated Image Display */
+        .image-display {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        .image-display.visible {
             display: block;
+        }
+
+        .image-display img {
+            max-width: 100%;
+            max-height: calc(100vh - 200px);
+            object-fit: contain;
+        }
+
+        .image-utilities {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .utility-btn {
+            width: 36px;
+            height: 36px;
+            background-color: rgba(30, 30, 30, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--secondary-text);
+            transition: all 120ms ease;
+        }
+
+        .utility-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--primary-text);
+        }
+
+        /* Prompt Bar */
+        .prompt-bar {
+            height: 72px;
+            background-color: #1e1e1f;
+            border-top: 1px solid var(--border-color);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .prompt-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .prompt-label {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--secondary-text);
+            pointer-events: none;
+            transition: all 120ms ease;
+        }
+
+        .prompt-input {
+            width: 100%;
+            height: 48px;
+            background-color: #2a2a2c;
+            border: 1px solid #3a3a3a;
+            border-radius: 999px;
+            padding: 0 14px 0 70px;
+            font-size: 14px;
+            color: var(--primary-text);
+            font-family: inherit;
+            transition: border-color 120ms ease, box-shadow 120ms ease;
+        }
+
+        .prompt-input:focus {
+            outline: none;
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .prompt-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .prompt-input:not(:placeholder-shown) + .prompt-label,
+        .prompt-input:focus + .prompt-label {
+            opacity: 0;
+        }
+
+        .cost-display {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--secondary-text);
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .cost-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .generate-btn {
+            height: 48px;
+            padding: 0 24px;
+            background: linear-gradient(135deg, #2563EB, #1d4ed8);
+            border: none;
+            border-radius: 999px;
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
+            transition: all 120ms ease;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .generate-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .generate-btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* API Key Input (hidden by default) */
+        .api-key-section {
+            padding: 12px;
+            background-color: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            color: var(--primary-text);
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .api-key-input:focus {
+            outline: none;
+            border-color: rgba(251, 191, 36, 0.5);
+        }
+
+        .api-key-hint {
+            font-size: 11px;
+            color: var(--secondary-text);
+            margin-top: 6px;
+        }
+
+        .api-key-hint a {
+            color: #fbbf24;
+            text-decoration: none;
+        }
+
+        .api-key-hint a:hover {
+            text-decoration: underline;
+        }
+
+        .balance-display {
+            display: none;
+            padding: 8px 12px;
+            background-color: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+            border-radius: 8px;
+            font-size: 12px;
+            color: #34d399;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .balance-display.visible {
+            display: block;
+        }
+
+        /* Hidden inputs for form handling */
+        .hidden-inputs {
+            display: none;
+        }
+
+        /* Status Messages */
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 350px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            animation: slideIn 200ms ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .status-message.visible {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-message.success {
+            background-color: rgba(52, 211, 153, 0.15);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            color: #34d399;
+        }
+
+        .status-message.error {
+            background-color: rgba(248, 113, 113, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #f87171;
+        }
+
+        .status-message.info {
+            background-color: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                min-width: auto;
+                max-height: 40vh;
+            }
+
+            .canvas-content {
+                padding: 24px;
+            }
+        }
+
+        /* Download Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 200ms ease;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+        }
+
+        .modal-content img {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 8px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 data-i18n="pageTitle">Pollinations Image Generator</h1>
-            <p data-i18n="pageDescription">Create high-quality images with dynamic models and custom parameters.</p>
-            <button type="button" id="language-toggle" class="language-toggle">EN</button>
-        </header>
-        
-        <main>
-            <!-- Form Panel -->
-            <div class="panel form-panel">
-                <form id="generation-form">
-                    <!-- API Key Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="api-key">
-                                <span data-i18n="apiKeyLabel">API Key</span>
-                                <span class="required">*</span>
-                            </label>
-                            <input 
-                                type="password" 
-                                id="api-key" 
-                                name="api-key"
-                                data-i18n-placeholder="apiKeyPlaceholder"
-                                placeholder="Enter your Pollinations API key"
-                                required
-                            >
-                            <div class="balance-display hidden" id="balance-display">
-                                <span class="balance-text" id="balance-text"></span>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Language Toggle -->
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+                <button id="language-toggle" style="background: rgba(37, 99, 235, 0.15); border: 1px solid rgba(37, 99, 235, 0.3); color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: all 0.2s ease; font-family: inherit;">EN</button>
+            </div>
+
+            <!-- API Key Section -->
+            <div class="api-key-section" id="api-key-section">
+                <input type="password" id="api-key-input" class="api-key-input" placeholder="Enter your API key">
+                <div class="api-key-hint" id="api-key-hint">
+                    Get your free API key from <a href="https://enter.pollinations.ai" target="_blank">pollinations.ai</a>
+                </div>
+            </div>
+
+            <div class="balance-display" id="balance-display"></div>
+
+            <!-- Panel 1: General Settings -->
+            <div class="panel" id="panel-general">
+                <div class="panel-header" data-panel="general">
+                    <svg class="panel-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                    <span class="panel-title" data-i18n="generalSettings">General Settings</span>
+                </div>
+                <div class="panel-content">
+                    <div class="form-group">
+                        <label data-i18n="modelLabel">Model</label>
+                        <div class="dropdown" id="model-dropdown">
+                            <div class="dropdown-trigger">
+                                <div class="dropdown-badge">AI</div>
+                                <span class="dropdown-value" id="model-value" data-i18n="selectModel">Select model...</span>
+                                <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M6 9l6 6 6-6"/>
+                                </svg>
                             </div>
-                            <div class="api-key-info">
-                                <span data-i18n="apiKeyHint">Get your free API key from</span>
-                                <a href="https://enter.pollinations.ai" target="_blank" rel="noopener">pollinations.ai</a>
-                            </div>
+                            <div class="dropdown-popover" id="model-popover"></div>
                         </div>
                     </div>
-                    
-                    <!-- Prompt Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="prompt">
-                                <span data-i18n="promptLabel">Image Description</span>
-                                <span class="required">*</span>
-                            </label>
-                            <textarea 
-                                id="prompt" 
-                                name="prompt"
-                                data-i18n-placeholder="promptPlaceholder"
-                                placeholder="Describe your desired image in detail..."
-                                required
-                            ></textarea>
-                        </div>
-                    </div>
-                    
-                    <!-- Model Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="model">
-                                <span data-i18n="modelLabel">Model</span>
-                                <span class="required">*</span>
-                            </label>
-                            <select id="model" name="model" required>
-                                <option value="" disabled selected data-i18n="modelPlaceholder">Select a model...</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Dimensions & Settings -->
-                    <div class="form-section">
-                        <h3 class="form-section-title" data-i18n="optionsLabel">Generation Options</h3>
-                        
-                        <div class="grid-2">
-                            <div class="field">
-                                <label for="width" data-i18n="widthLabel">Width (px)</label>
-                                <input type="number" id="width" name="width" min="64" max="2048" step="1" value="1024">
+                    <div class="form-group">
+                        <label data-i18n="aspectRatioLabel">Aspect Ratio</label>
+                        <div class="dropdown" id="aspect-dropdown">
+                            <div class="dropdown-trigger">
+                                <div class="dropdown-option-icon" style="width: 20px; height: 14px;"></div>
+                                <span class="dropdown-value" id="aspect-value" data-i18n="landscape">Landscape (4:3)</span>
+                                <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M6 9l6 6 6-6"/>
+                                </svg>
                             </div>
-                            <div class="field">
-                                <label for="height" data-i18n="heightLabel">Height (px)</label>
-                                <input type="number" id="height" name="height" min="64" max="2048" step="1" value="1024">
-                            </div>
-                        </div>
-                        
-                        <div class="field">
-                            <label for="aspect-ratio" data-i18n="formatLabel">Format</label>
-                            <select id="aspect-ratio" name="aspect-ratio">
-                                <option value="" disabled selected data-i18n="selectFormat">Select format...</option>
-                                <option value="Ultrabreit (21:9)" data-i18n="formatUltrabreit"></option>
-                                <option value="Breitbild (16:9)" data-i18n="formatBreitbild"></option>
-                                <option value="Klassisch (5:4)" data-i18n="formatKlassisch"></option>
-                                <option value="Querformat (4:3)" data-i18n="formatQuerformat"></option>
-                                <option value="Breit (3:2)" data-i18n="formatBreit"></option>
-                                <option value="Quadratisch (1:1)" data-i18n="formatQuadratisch"></option>
-                                <option value="Standard (4:5)" data-i18n="formatStandard"></option>
-                                <option value="Hochformat (3:4)" data-i18n="formatHochformat"></option>
-                                <option value="Hoch (2:3)" data-i18n="formatHoch"></option>
-                                <option value="Vertikal (9:16)" data-i18n="formatVertikal"></option>
-                                <option value="custom" data-i18n="customFormat">Custom</option>
-                            </select>
-                        </div>
-                        
-                        <div class="grid-2">
-                            <div class="field">
-                                <label for="seed">
-                                    <span data-i18n="seedLabel">Seed</span>
-                                </label>
-                                <input type="number" id="seed" name="seed" value="0">
-                                <small class="hint" data-i18n="seedHint">0 = random</small>
-                            </div>
-                            <div class="field">
-                                <label for="quality" data-i18n="qualityLabel">Quality</label>
-                                <select id="quality" name="quality">
-                                    <option value="low" data-i18n="qualityLow">Low</option>
-                                    <option value="medium" data-i18n="qualityMedium">Medium</option>
-                                    <option value="high" data-i18n="qualityHigh">High</option>
-                                    <option value="hd" selected data-i18n="qualityHD">HD</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="field">
-                            <label for="guidance_scale">
-                                <span data-i18n="guidanceLabel">Guidance Scale</span>
-                                <span id="guidance-value">7</span>
-                            </label>
-                            <input type="range" id="guidance_scale" name="guidance_scale" min="1" max="20" step="0.5" value="7">
-                            <small class="hint" data-i18n="guidanceHint">Determines how closely the result follows the description</small>
+                            <div class="dropdown-popover" id="aspect-popover"></div>
                         </div>
                     </div>
-                    
-                    <!-- Negative Prompt -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="negative_prompt" data-i18n="negativePromptLabel">Negative Prompt</label>
-                            <textarea 
-                                id="negative_prompt" 
-                                name="negative_prompt"
-                                data-i18n-placeholder="negativePromptPlaceholder"
-                                placeholder="What to avoid in the image..."
-                                style="min-height: 80px;"
-                            ></textarea>
-                            <small class="hint" data-i18n="negativePromptHint">Optional: Describe what you don't want</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Advanced Options -->
-                    <div class="form-section">
-                        <h3 class="form-section-title" data-i18n="optionsLabel">Advanced Options</h3>
-                        <div class="checkbox-group">
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="enhance" name="enhance">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="enhanceLabel">Enhance</strong>
-                                    <span data-i18n="enhanceDesc">Let AI optimize the prompt</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="private" name="private" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="privateLabel">Private</strong>
-                                    <span data-i18n="privateDesc">Hide from public feeds</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="nologo" name="nologo" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="nologoLabel">No Logo</strong>
-                                    <span data-i18n="nologoDesc">Remove watermark</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="nofeed" name="nofeed" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="nofeedLabel">No Feed</strong>
-                                    <span data-i18n="nofeedDesc">Don't share in public feed</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="safe" name="safe">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="safeLabel">Safe</strong>
-                                    <span data-i18n="safeDesc">Enable safety filters</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="transparent" name="transparent">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="transparentLabel">Transparent</strong>
-                                    <span data-i18n="transparentDesc">Transparent background</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Actions -->
-                    <div class="form-section">
-                        <button type="button" class="btn btn-secondary" id="reset-btn">
-                            <span data-i18n="resetBtn">Reset Form</span>
+                </div>
+            </div>
+
+            <!-- Panel 2: Content Type -->
+            <div class="panel" id="panel-content">
+                <div class="panel-header" data-panel="content">
+                    <svg class="panel-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                    <span class="panel-title" data-i18n="contentType">Content Type</span>
+                </div>
+                <div class="panel-content">
+                    <div class="toggle-group" id="content-type-toggles">
+                        <button class="toggle-btn" data-type="photo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            <span data-i18n="photo">Photo</span>
+                        </button>
+                        <button class="toggle-btn" data-type="art">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                                <path d="M2 2l7.586 7.586"/>
+                                <circle cx="11" cy="11" r="2"/>
+                            </svg>
+                            <span data-i18n="art">Art</span>
+                        </button>
+                        <button class="toggle-btn active" data-type="auto">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                            <span data-i18n="auto">Auto</span>
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
-            
-            <!-- Result Panel -->
-            <div class="panel result-panel-container">
-                <div class="result-container" id="result-container">
-                    <div class="loader" id="result-loader"></div>
-                    <div class="placeholder" id="placeholder" data-i18n="placeholderText">
-                        Your generated images will appear here
-                    </div>
-                    <img id="result-image" alt="Generated Image">
+
+            <!-- Panel 3: Visual Intensity -->
+            <div class="panel" id="panel-intensity">
+                <div class="panel-header" data-panel="intensity">
+                    <svg class="panel-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                    <span class="panel-title" data-i18n="visualIntensity">Visual Intensity</span>
                 </div>
-                <div class="loading-status" id="loading-status"></div>
-                
-                <button type="submit" form="generation-form" class="btn btn-primary" id="generate-btn">
-                    <span data-i18n="generateBtn">Generate Image</span>
+                <div class="panel-content">
+                    <div class="slider-container">
+                        <input type="range" id="guidance-scale" min="1" max="20" step="0.5" value="7">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel 4: Composition -->
+            <div class="panel" id="panel-composition">
+                <div class="panel-header" data-panel="composition">
+                    <svg class="panel-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                    <span class="panel-title" data-i18n="composition">Composition</span>
+                </div>
+                <div class="panel-content">
+                    <div class="upload-area" id="composition-upload">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 4"/>
+                            <path d="M12 8v8"/>
+                            <path d="M8 12l4 4 4-4"/>
+                        </svg>
+                        <div class="upload-button" data-i18n="addImage">Add Image</div>
+                        <div class="upload-hint" data-i18n="searchGallery">Search in gallery</div>
+                    </div>
+                    <div class="gallery-grid" id="composition-gallery">
+                        <!-- Thumbnails will be added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel 5: Styles -->
+            <div class="panel" id="panel-styles">
+                <div class="panel-header" data-panel="styles">
+                    <svg class="panel-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                    <span class="panel-title" data-i18n="styles">Styles</span>
+                </div>
+                <div class="panel-content">
+                    <div class="upload-area" id="styles-upload">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 4"/>
+                            <path d="M12 8v8"/>
+                            <path d="M8 12l4 4 4-4"/>
+                        </svg>
+                        <div class="upload-button" data-i18n="addImage">Add Image</div>
+                        <div class="upload-hint" data-i18n="searchGallery">Search in gallery</div>
+                    </div>
+                    <div class="gallery-grid" id="styles-gallery">
+                        <!-- Thumbnails will be added here -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Canvas -->
+        <main class="canvas">
+            <div class="canvas-content" id="canvas-content">
+                <!-- Empty State -->
+                <div class="empty-state" id="empty-state">
+                    <svg class="empty-state-icon" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#ec4899;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="12" y="8" width="40" height="40" rx="8" fill="url(#gradient)" opacity="0.2"/>
+                        <rect x="16" y="12" width="32" height="32" rx="6" fill="url(#gradient)" opacity="0.4"/>
+                        <path d="M28 28h8v8h-8z" fill="url(#gradient)"/>
+                        <circle cx="40" cy="20" r="4" fill="url(#gradient)" opacity="0.8"/>
+                        <path d="M20 36l4-4 4 4" stroke="url(#gradient)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                    <h2 class="empty-state-title" data-i18n="generateImagesNow">Generate Images Now</h2>
+                    <p class="empty-state-text">
+                        <span data-i18n="emptyStateText">Describe your desired image in the prompt field. Get inspired by the gallery or</span>
+                        <a href="https://pollinations.ai" target="_blank" class="empty-state-link" data-i18n="learnMore">learn more about prompting</a>
+                    </p>
+                </div>
+
+                <!-- Image Display -->
+                <div class="image-display" id="image-display">
+                    <img id="generated-image" src="" alt="Generated image">
+                    <div class="image-utilities">
+                        <button class="utility-btn" id="download-btn" title="Download">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7,10 12,15 17,10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </button>
+                        <button class="utility-btn" id="fullscreen-btn" title="Fullscreen">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15,3 21,3 21,9"/>
+                                <polyline points="9,21 3,21 3,15"/>
+                                <line x1="21" y1="3" x2="14" y2="10"/>
+                                <line x1="3" y1="21" x2="10" y2="14"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prompt Bar -->
+            <div class="prompt-bar">
+                <div class="prompt-input-wrapper">
+                    <input type="text" class="prompt-input" id="prompt-input" placeholder=" " data-i18n-placeholder="promptPlaceholder">
+                    <label class="prompt-label" data-i18n="promptLabel">Prompt</label>
+                </div>
+                <div class="cost-display">
+                    <svg class="cost-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="12" r="10" fill="#fbbf24" opacity="0.8"/>
+                        <path d="M12 6v6l4 2" stroke="#1f1f21" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                    </svg>
+                    <span id="cost-text">0.002 pollen</span>
+                </div>
+                <button class="generate-btn" id="generate-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8l1.4 1.4M17.8 6.2l1.4-1.4M3 21h18M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/>
+                    </svg>
+                    <span data-i18n="generateImage">Generate Image</span>
                 </button>
-
-                <div id="status" class="status"></div>
-
-                <div class="result-actions hidden" id="result-actions">
-                    <a id="download-link" class="btn btn-link" download="pollinations-image.png">
-                        <span data-i18n="downloadBtn">Download Image</span>
-                    </a>
-                </div>
-
-                <!-- Image History -->
-                <div class="image-history-section">
-                    <h4 class="image-history-title" data-i18n="imageHistoryTitle">Image History</h4>
-                    <div class="image-history-grid" id="image-history-grid">
-                        <!-- Generated images will be added here -->
-                    </div>
-                </div>
-
-                <footer class="footer">
-                    Powered by <a href="https://pollinations.ai" target="_blank" rel="noopener">Pollinations</a> ✨
-                </footer>
             </div>
         </main>
     </div>
-    
+
+    <!-- Hidden Form Inputs -->
+    <div class="hidden-inputs">
+        <input type="hidden" id="model-input">
+        <input type="hidden" id="aspect-ratio-input" value="Querformat (4:3)">
+        <input type="hidden" id="width-input" value="1366">
+        <input type="hidden" id="height-input" value="1025">
+        <input type="hidden" id="content-type-input" value="auto">
+        <input type="hidden" id="negative-prompt-input">
+        <input type="hidden" id="seed-input" value="0">
+        <input type="hidden" id="quality-input" value="hd">
+        <input type="hidden" id="enhance-input">
+        <input type="hidden" id="private-input" value="true">
+        <input type="hidden" id="nologo-input" value="true">
+        <input type="hidden" id="nofeed-input" value="true">
+        <input type="hidden" id="safe-input">
+        <input type="hidden" id="transparent-input">
+    </div>
+
+    <!-- Status Message -->
+    <div class="status-message" id="status-message"></div>
+
+    <!-- Fullscreen Modal -->
+    <div class="modal-overlay" id="fullscreen-modal">
+        <button class="modal-close" id="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+        <div class="modal-content">
+            <img id="modal-image" src="" alt="Fullscreen image">
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/i18n.js"></script>
     <script src="js/app.js"></script>
-
-    <!-- Image Modal -->
-    <div id="image-modal" class="image-modal" style="display: none;">
-        <div class="image-modal-overlay"></div>
-        <div class="image-modal-container">
-            <button id="image-modal-close" class="image-modal-close" aria-label="Close image">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-            <img id="image-modal-image" src="" alt="Enlarged image">
-        </div>
-    </div>
 </body>
 </html>

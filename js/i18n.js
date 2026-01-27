@@ -7,215 +7,135 @@ const translations = {
   en: {
     // Page
     pageTitle: 'PollGen',
-    pageDescription: 'Create high-quality images with AI',
 
-    // API Key
-    apiKeyLabel: 'API Key',
-    apiKeyPlaceholder: 'Enter your Pollinations API key',
-    apiKeyHint: 'Get your free API key from',
-    apiKeyStored: 'API key saved',
-    apiKeyMissing: 'Please enter your API key',
+    // Sidebar Sections
+    generalSettings: 'General Settings',
+    contentType: 'Content Type',
+    visualIntensity: 'Visual Intensity',
+    composition: 'Composition',
+    styles: 'Styles',
 
-    // Form Fields
-    promptLabel: 'Prompt',
-    promptPlaceholder: 'Describe the image you want to generate...',
-    formatLabel: 'Format',
-    advancedOptions: 'Advanced Options',
-    selectFormat: 'Select format...',
-    customFormat: 'Custom',
-    widthLabel: 'Width (px)',
-    heightLabel: 'Height (px)',
+    // Labels
     modelLabel: 'Model',
+    aspectRatioLabel: 'Aspect Ratio',
+    selectModel: 'Select model...',
 
-    // Image Format Presets
-    formatUltrabreit: 'Ultrabreit (21:9) - 2394 × 1026 px',
-    formatBreitbild: 'Breitbild (16:9) - 1824 × 1026 px',
-    formatKlassisch: 'Klassisch (5:4) - 1280 × 1024 px',
-    formatQuerformat: 'Querformat (4:3) - 1366 × 1025 px',
-    formatBreit: 'Breit (3:2) - 1536 × 1024 px',
-    formatQuadratisch: 'Quadratisch (1:1) - 1024 × 1024 px',
-    formatStandard: 'Standard (4:5) - 1024 × 1280 px',
-    formatHochformat: 'Hochformat (3:4) - 1025 × 1366 px',
-    formatHoch: 'Hoch (2:3) - 1024 × 1536 px',
-    formatVertikal: 'Vertikal (9:16) - 1026 × 1824 px',
+    // Aspect Ratios
+    ultraWide: 'Ultra-wide (21:9)',
+    widescreen: 'Widescreen (16:9)',
+    classic: 'Classic (5:4)',
+    landscape: 'Landscape (4:3)',
+    wide: 'Wide (3:2)',
+    square: 'Square (1:1)',
+    standard: 'Standard (4:5)',
+    portrait: 'Portrait (3:4)',
+    tall: 'Tall (2:3)',
+    vertical: 'Vertical (9:16)',
 
-    // Advanced Options Fields
-    seedLabel: 'Seed',
-    seedHint: '0 = random',
-    qualityLabel: 'Quality',
-    qualityLow: 'Low',
-    qualityMedium: 'Medium',
-    qualityHigh: 'High',
-    qualityHD: 'HD',
-    guidanceScaleLabel: 'Guidance Scale',
-    guidanceLabel: 'Guidance Scale',
-    guidanceHint: 'Determines how closely the result follows the description (1 = free, 20 = strict)',
-    negativePromptLabel: 'Negative Prompt',
-    negativePromptPlaceholder: 'What to avoid in the image...',
-    negativePromptHint: 'Optional: Describe what you don\'t want in the image',
-    enhanceLabel: 'Enhance',
-    enhanceDesc: 'Let AI optimize the prompt for better results',
-    privateLabel: 'Private',
-    privateDesc: 'Hide image from public feeds',
-    noLogoLabel: 'No Logo',
-    nologoLabel: 'No Logo',
-    nologoDesc: 'Remove the Pollinations watermark',
-    noFeedLabel: 'No Feed',
-    nofeedLabel: 'No Feed',
-    nofeedDesc: 'Prevent sharing in the public feed',
-    safeLabel: 'Safe',
-    safeDesc: 'Enable safety content filters',
-    transparentLabel: 'Transparent',
-    transparentDesc: 'Create transparent background (if supported)',
+    // Content Types
+    photo: 'Photo',
+    art: 'Art',
+    auto: 'Auto',
 
-    // Buttons
-    generateButton: 'Generate Image',
-    generateBtn: 'Generate Image',
-    downloadButton: 'Download',
-    downloadBtn: 'Download Image',
-    copyLinkButton: 'Copy Link',
-    generateNewButton: 'Generate New',
-    resetBtn: 'Reset Form',
-    optionsLabel: 'Advanced Options',
-    imageHistoryTitle: 'Image History',
+    // Upload & Gallery
+    addImage: 'Add Image',
+    searchGallery: 'Search in gallery',
+
+    // Main Canvas
+    generateImagesNow: 'Generate Images Now',
+    emptyStateText: 'Describe your desired image in the prompt field. Get inspired by the gallery or',
+    learnMore: 'learn more about prompting',
+
+    // Prompt Bar
+    promptLabel: 'Prompt',
+    promptPlaceholder: 'Describe the image you want to generate',
+    generateImage: 'Generate Image',
 
     // Status Messages
-    statusPromptMissing: 'Please enter a prompt',
-    statusModelMissing: 'Please select a model',
-    statusDimensionsMissing: 'Please set dimensions',
-    statusGenerating: 'Generating image...',
-    statusSuccess: 'Image generated successfully',
-    statusError: 'An error occurred',
-
-    // Model Loading
-    modelLoading: 'Loading models...',
-    modelLoadError: 'Failed to load models. Using cached data.',
-    modelPlaceholder: 'Select a model...',
-
-    // API Key
     apiKeyStored: 'API key saved',
-
-    // Generation
-    placeholderGenerating: 'Please wait, generating image...',
-    placeholderText: 'Your generated image will appear here',
-    errorGeneration: 'Image generation failed',
+    apiKeyMissing: 'Please enter your API key',
+    promptMissing: 'Please enter a prompt',
+    modelMissing: 'Please select a model',
+    generatingImage: 'Generating image...',
+    generationSuccess: 'Image generated successfully',
+    generationError: 'An error occurred during generation',
+    modelLoading: 'Loading models...',
+    modelLoadError: 'Failed to load models',
 
     // Balance
-    balanceRemaining: 'pollen remaining.',
+    balanceRemaining: 'pollen remaining',
 
-    // Validation
-    noInternetConnection: 'No internet connection. Please connect and try again.',
-    invalidDomain: 'This domain does not appear to be a valid instance.',
-
-    // Preview
-    previewPlaceholder: 'Your generated image will appear here'
+    // Utility
+    download: 'Download',
+    fullscreen: 'Fullscreen',
+    close: 'Close'
   },
 
   de: {
     // Page
     pageTitle: 'PollGen',
-    pageDescription: 'Erstellen Sie hochwertige Bilder mit KI',
 
-    // API Key
-    apiKeyLabel: 'API-Schlüssel',
-    apiKeyPlaceholder: 'Geben Sie Ihren Pollinations-API-Schlüssel ein',
-    apiKeyHint: 'Holen Sie sich Ihren kostenlosen API-Schlüssel von',
-    apiKeyStored: 'API-Schlüssel gespeichert',
-    apiKeyMissing: 'Bitte geben Sie Ihren API-Schlüssel ein',
+    // Sidebar Sections
+    generalSettings: 'Allgemeine Einstellungen',
+    contentType: 'Inhaltstyp',
+    visualIntensity: 'Visuelle Intensität',
+    composition: 'Komposition',
+    styles: 'Stile',
 
-    // Form Fields
-    promptLabel: 'Prompt',
-    promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten...',
-    formatLabel: 'Format',
-    advancedOptions: 'Erweiterte Optionen',
-    selectFormat: 'Format auswählen...',
-    customFormat: 'Benutzerdefiniert',
-    widthLabel: 'Breite (px)',
-    heightLabel: 'Höhe (px)',
+    // Labels
     modelLabel: 'Modell',
+    aspectRatioLabel: 'Seitenverhältnis',
+    selectModel: 'Modell auswählen...',
 
-    // Image Format Presets
-    formatUltrabreit: 'Ultrabreit (21:9) - 2394 × 1026 px',
-    formatBreitbild: 'Breitbild (16:9) - 1824 × 1026 px',
-    formatKlassisch: 'Klassisch (5:4) - 1280 × 1024 px',
-    formatQuerformat: 'Querformat (4:3) - 1366 × 1025 px',
-    formatBreit: 'Breit (3:2) - 1536 × 1024 px',
-    formatQuadratisch: 'Quadratisch (1:1) - 1024 × 1024 px',
-    formatStandard: 'Standard (4:5) - 1024 × 1280 px',
-    formatHochformat: 'Hochformat (3:4) - 1025 × 1366 px',
-    formatHoch: 'Hoch (2:3) - 1024 × 1536 px',
-    formatVertikal: 'Vertikal (9:16) - 1026 × 1824 px',
+    // Aspect Ratios
+    ultraWide: 'Ultrabreit (21:9)',
+    widescreen: 'Breitbild (16:9)',
+    classic: 'Klassisch (5:4)',
+    landscape: 'Querformat (4:3)',
+    wide: 'Breit (3:2)',
+    square: 'Quadratisch (1:1)',
+    standard: 'Standard (4:5)',
+    portrait: 'Hochformat (3:4)',
+    tall: 'Hoch (2:3)',
+    vertical: 'Vertikal (9:16)',
 
-    // Advanced Options Fields
-    seedLabel: 'Seed',
-    seedHint: '0 = zufällig',
-    qualityLabel: 'Qualität',
-    qualityLow: 'Niedrig',
-    qualityMedium: 'Mittel',
-    qualityHigh: 'Hoch',
-    qualityHD: 'HD',
-    guidanceScaleLabel: 'Leitfaden-Skalierung',
-    guidanceLabel: 'Leitfaden-Skalierung',
-    guidanceHint: 'Bestimmt, wie genau das Ergebnis der Beschreibung folgt (1 = frei, 20 = strikt)',
-    negativePromptLabel: 'Negativer Prompt',
-    negativePromptPlaceholder: 'Was im Bild vermieden werden soll...',
-    negativePromptHint: 'Optional: Beschreibe, was du nicht im Bild haben möchtest',
-    enhanceLabel: 'Verbessern',
-    enhanceDesc: 'Lass die KI den Prompt für bessere Ergebnisse optimieren',
-    privateLabel: 'Privat',
-    privateDesc: 'Bild aus öffentlichen Feeds ausblenden',
-    noLogoLabel: 'Kein Logo',
-    nologoLabel: 'Kein Logo',
-    nologoDesc: 'Entferne das Pollinations Wasserzeichen',
-    noFeedLabel: 'Kein Feed',
-    nofeedLabel: 'Kein Feed',
-    nofeedDesc: 'Verhindere das Teilen im öffentlichen Feed',
-    safeLabel: 'Sicher',
-    safeDesc: 'Aktiviere Sicherheits-Inhaltsfilter',
-    transparentLabel: 'Transparent',
-    transparentDesc: 'Erstelle transparenten Hintergrund (falls unterstützt)',
+    // Content Types
+    photo: 'Foto',
+    art: 'Kunst',
+    auto: 'Auto',
 
-    // Buttons
-    generateButton: 'Bild generieren',
-    generateBtn: 'Bild generieren',
-    downloadButton: 'Herunterladen',
-    downloadBtn: 'Bild herunterladen',
-    copyLinkButton: 'Link kopieren',
-    generateNewButton: 'Neues generieren',
-    resetBtn: 'Formular zurücksetzen',
-    optionsLabel: 'Erweiterte Optionen',
-    imageHistoryTitle: 'Bildhistorie',
+    // Upload & Gallery
+    addImage: 'Bild hinzufügen',
+    searchGallery: 'In Galerie suchen',
+
+    // Main Canvas
+    generateImagesNow: 'Jetzt Bilder generieren',
+    emptyStateText: 'Beschreiben Sie Ihr gewünschtes Bild im Prompt-Feld. Lassen Sie sich von der Galerie inspirieren oder',
+    learnMore: 'erfahren Sie mehr über Prompts',
+
+    // Prompt Bar
+    promptLabel: 'Prompt',
+    promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten',
+    generateImage: 'Bild generieren',
 
     // Status Messages
-    statusPromptMissing: 'Bitte geben Sie einen Prompt ein',
-    statusModelMissing: 'Bitte wählen Sie ein Modell',
-    statusDimensionsMissing: 'Bitte stellen Sie die Abmessungen ein',
-    statusGenerating: 'Bild wird generiert...',
-    statusSuccess: 'Bild erfolgreich generiert',
-    statusError: 'Ein Fehler ist aufgetreten',
-
-    // Model Loading
-    modelLoading: 'Lade Modelle...',
-    modelLoadError: 'Fehler beim Laden der Modelle. Verwende gecachte Daten.',
-    modelPlaceholder: 'Wähle ein Modell...',
-
-    // API Key
     apiKeyStored: 'API-Schlüssel gespeichert',
-
-    // Generation
-    placeholderGenerating: 'Bitte warten, Bild wird erstellt...',
-    placeholderText: 'Ihr generiertes Bild wird hier angezeigt',
-    errorGeneration: 'Bildgenerierung fehlgeschlagen',
+    apiKeyMissing: 'Bitte geben Sie Ihren API-Schlüssel ein',
+    promptMissing: 'Bitte geben Sie einen Prompt ein',
+    modelMissing: 'Bitte wählen Sie ein Modell',
+    generatingImage: 'Bild wird generiert...',
+    generationSuccess: 'Bild erfolgreich generiert',
+    generationError: 'Ein Fehler ist aufgetreten',
+    modelLoading: 'Modelle werden geladen...',
+    modelLoadError: 'Fehler beim Laden der Modelle',
 
     // Balance
-    balanceRemaining: 'Pollen verbleibend.',
+    balanceRemaining: 'Pollen verbleibend',
 
-    // Validation
-    noInternetConnection: 'Keine Internetverbindung. Bitte verbinden Sie sich und versuchen Sie es erneut.',
-    invalidDomain: 'Diese Domain scheint keine gültige Instanz zu sein.',
-
-    // Preview
-    previewPlaceholder: 'Ihr generiertes Bild wird hier angezeigt'
+    // Utility
+    download: 'Herunterladen',
+    fullscreen: 'Vollbild',
+    close: 'Schließen'
   }
 };
 
