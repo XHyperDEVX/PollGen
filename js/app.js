@@ -545,6 +545,14 @@ function setupEventListeners() {
           guidanceValue.textContent = guidanceScale.value;
       });
   }
+
+  // Handle language change event
+  window.addEventListener('languageChanged', () => {
+      // Re-render models to update price formatting/language if necessary
+      renderModelOptions(state.models);
+      // Re-format balance if visible
+      if (state.apiKey) updateBalance(state.apiKey);
+  });
 }
 
 // ============================================================================
@@ -553,6 +561,13 @@ function setupEventListeners() {
 
 function init() {
   i18n.updatePageLanguage();
+  
+  // Set initial language button state
+  const lang = i18n.getCurrentLanguage();
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+  const activeBtn = document.getElementById(`lang-${lang}`);
+  if (activeBtn) activeBtn.classList.add('active');
+
   loadApiKey();
   if (state.apiKey) {
     const apiKeyInput = document.getElementById('api-key');

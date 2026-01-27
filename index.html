@@ -412,6 +412,7 @@
             font-size: 14px;
             outline: none;
             width: 100%;
+            padding: 0;
         }
 
         #prompt::placeholder {
@@ -498,6 +499,31 @@
             background-color: rgba(37,99,235,0.1);
         }
 
+        /* Language Toggle */
+        .language-toggle {
+            display: flex;
+            justify-content: flex-end;
+            padding: 8px;
+            gap: 8px;
+        }
+
+        .lang-btn {
+            background: #1a1a1c;
+            border: 1px solid #2a2a2c;
+            color: var(--text-muted);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 120ms ease;
+        }
+
+        .lang-btn.active {
+            color: var(--text-primary);
+            border-color: var(--accent);
+            background: rgba(37,99,235,0.1);
+        }
+
         .ratio-icon {
             width: 16px;
             height: 12px;
@@ -558,6 +584,10 @@
 </head>
 <body>
     <aside class="sidebar">
+        <div class="language-toggle">
+            <button class="lang-btn active" id="lang-en" onclick="changeLanguage('en')">EN</button>
+            <button class="lang-btn" id="lang-de" onclick="changeLanguage('de')">DE</button>
+        </div>
         <!-- Panel 1: General Settings -->
         <div class="panel open" id="panel-general">
             <div class="panel-header" onclick="togglePanel('panel-general')">
@@ -565,7 +595,6 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
                 </span>
                 <h3 data-i18n="modelLabel">General Settings</h3>
-                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="panel-content">
                 <div class="form-group">
@@ -603,7 +632,6 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
                 </span>
                 <h3 data-i18n="visualIntensityLabel">Visual Intensity</h3>
-                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="panel-content">
                 <div class="slider-container">
@@ -624,7 +652,6 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
                 </span>
                 <h3 data-i18n="parametersLabel">Parameters</h3>
-                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="panel-content">
                 <div class="grid-2">
@@ -637,7 +664,7 @@
                         <select id="quality" name="quality" style="display: block;">
                             <option value="">Default</option>
                             <option value="standard">Standard</option>
-                            <option value="hd">HD</option>
+                            <option value="hd" selected>HD</option>
                         </select>
                     </div>
                 </div>
@@ -651,7 +678,6 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
                 </span>
                 <h3 data-i18n="refinementLabel">Refinement</h3>
-                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="panel-content">
                 <div class="form-group">
@@ -668,7 +694,6 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
                 </span>
                 <h3 data-i18n="advancedLabel">Advanced Options</h3>
-                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="panel-content">
                 <div class="checkbox-group">
@@ -677,15 +702,15 @@
                         <span data-i18n="enhanceLabel">Enhance Prompt</span>
                     </label>
                     <label class="checkbox-item">
-                        <input type="checkbox" id="private" name="private">
+                        <input type="checkbox" id="private" name="private" checked>
                         <span data-i18n="privateLabel">Private Mode</span>
                     </label>
                     <label class="checkbox-item">
-                        <input type="checkbox" id="nologo" name="nologo">
+                        <input type="checkbox" id="nologo" name="nologo" checked>
                         <span data-i18n="nologoLabel">No Watermark</span>
                     </label>
                     <label class="checkbox-item">
-                        <input type="checkbox" id="nofeed" name="nofeed">
+                        <input type="checkbox" id="nofeed" name="nofeed" checked>
                         <span data-i18n="nofeedLabel">No Public Feed</span>
                     </label>
                     <label class="checkbox-item">
@@ -807,6 +832,12 @@
             document.getElementById(id).classList.toggle('open');
         }
 
+        function changeLanguage(lang) {
+            i18n.setLanguage(lang);
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`lang-${lang}`).classList.add('active');
+        }
+
         // Initialize aspect ratio popover
         const aspectBtn = document.getElementById('aspect-ratio-btn');
         const aspectPopover = document.getElementById('aspect-ratio-popover');
@@ -814,7 +845,7 @@
         function positionPopover(btn, popover) {
             const rect = btn.getBoundingClientRect();
             popover.style.left = rect.left + 'px';
-            popover.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+            popover.style.top = (rect.bottom + 8) + 'px';
         }
 
         aspectBtn.onclick = (e) => {

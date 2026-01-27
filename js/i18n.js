@@ -1,6 +1,6 @@
 /**
  * Internationalization (i18n) System
- * Supports English (default)
+ * Supports English (default) and German
  */
 
 const translations = {
@@ -56,13 +56,76 @@ const translations = {
 
     // Balance
     balanceRemaining: 'pollen remaining.',
+  },
+  de: {
+    // Page
+    pageTitle: 'PollGen',
+    pageDescription: 'Erstellen Sie hochwertige Bilder mit KI',
+
+    // API Key
+    apiKeyLabel: 'API-Schlüssel',
+    apiKeyPlaceholder: 'Geben Sie Ihren Pollinations-API-Schlüssel ein',
+    apiKeyHint: 'Holen Sie sich Ihren kostenlosen API-Schlüssel von',
+    apiKeyStored: 'API-Schlüssel gespeichert',
+    apiKeyMissing: 'Bitte geben Sie Ihren API-Schlüssel ein',
+
+    // Form Fields
+    promptLabel: 'Prompt',
+    promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten',
+    modelLabel: 'Modell',
+    aspectRatioLabel: 'Seitenverhältnis',
+    visualIntensityLabel: 'Visuelle Intensität',
+    intensityLow: 'Kreativ',
+    intensityHigh: 'Strikt',
+    parametersLabel: 'Parameter',
+    seedLabel: 'Seed',
+    seedPlaceholder: 'Zufällig',
+    qualityLabel: 'Qualität',
+    refinementLabel: 'Verfeinerung',
+    negativePromptLabel: 'Negativer Prompt',
+    negativePromptPlaceholder: 'Was aus dem Bild ausgeschlossen werden soll',
+    advancedLabel: 'Erweiterte Optionen',
+    enhanceLabel: 'Prompt verbessern',
+    privateLabel: 'Privater Modus',
+    nologoLabel: 'Kein Wasserzeichen',
+    nofeedLabel: 'Kein öffentlicher Feed',
+    safeLabel: 'Sicherheitsfilter',
+    transparentLabel: 'Transparenter HG',
+
+    // Buttons
+    generateBtn: 'Bild generieren',
+
+    // Status Messages
+    statusPromptMissing: 'Bitte geben Sie einen Prompt ein',
+    statusModelMissing: 'Bitte wählen Sie ein Modell',
+    statusGenerating: 'Bild wird generiert...',
+    statusSuccess: 'Bild erfolgreich generiert',
+    statusError: 'Ein Fehler ist aufgetreten',
+
+    // Model Loading
+    modelLoading: 'Modelle werden geladen...',
+    modelLoadError: 'Fehler beim Laden der Modelle.',
+    modelPlaceholder: 'Wählen Sie ein Modell...',
+
+    // Balance
+    balanceRemaining: 'Pollen verbleibend.',
   }
 };
 
 class I18n {
   constructor() {
-    this.currentLanguage = 'en';
+    this.currentLanguage = localStorage.getItem('pollgen_lang') || 'en';
     this.translations = translations;
+  }
+
+  setLanguage(lang) {
+    if (this.translations[lang]) {
+      this.currentLanguage = lang;
+      localStorage.setItem('pollgen_lang', lang);
+      this.updatePageLanguage();
+      // Trigger a custom event so app.js can respond if needed
+      window.dispatchEvent(new CustomEvent('languageChanged', { detail: lang }));
+    }
   }
 
   t(key) {
