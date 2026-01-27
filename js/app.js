@@ -39,14 +39,10 @@ function formatBalanceDisplay(balance) {
 async function updateBalance(apiKey) {
   const balanceDisplay = document.getElementById('balance-display');
   const balanceText = document.getElementById('balance-text');
-  const apiKeyInfo = document.querySelector('.api-key-info');
   
   if (!apiKey || !apiKey.trim()) {
     if (balanceDisplay) {
       balanceDisplay.classList.add('hidden');
-    }
-    if (apiKeyInfo) {
-      apiKeyInfo.classList.remove('hidden');
     }
     return;
   }
@@ -60,12 +56,8 @@ async function updateBalance(apiKey) {
     });
     
     if (!response.ok) {
-      // Silently hide display on API failure
       if (balanceDisplay) {
         balanceDisplay.classList.add('hidden');
-      }
-      if (apiKeyInfo) {
-        apiKeyInfo.classList.remove('hidden');
       }
       return;
     }
@@ -83,28 +75,15 @@ async function updateBalance(apiKey) {
       if (balanceDisplay) {
         balanceDisplay.classList.remove('hidden');
       }
-      
-      // Hide the API key info when balance is displayed
-      if (apiKeyInfo) {
-        apiKeyInfo.classList.add('hidden');
-      }
     } else {
-      // Silently hide display if balance is invalid
       if (balanceDisplay) {
         balanceDisplay.classList.add('hidden');
       }
-      if (apiKeyInfo) {
-        apiKeyInfo.classList.remove('hidden');
-      }
     }
   } catch (error) {
-    // Silently hide display on network errors
     console.log('Balance API call failed:', error.message);
     if (balanceDisplay) {
       balanceDisplay.classList.add('hidden');
-    }
-    if (apiKeyInfo) {
-      apiKeyInfo.classList.remove('hidden');
     }
   }
 }
@@ -161,13 +140,12 @@ async function fetchModelsFromAPI() {
     }
     const data = await response.json();
     
-    // Filter for image models only (exclude video models)
+    // Filter for image models only
     const imageModels = data.filter(model => {
       const modalities = model.output_modalities || [];
       return modalities.includes('image') && !modalities.includes('video');
     });
     
-    // Cache the models
     localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify(imageModels));
     localStorage.setItem(MODELS_CACHE_TIMESTAMP_KEY, Date.now().toString());
     
@@ -182,17 +160,9 @@ function getCachedModels() {
   try {
     const cached = localStorage.getItem(MODELS_CACHE_KEY);
     const timestamp = localStorage.getItem(MODELS_CACHE_TIMESTAMP_KEY);
-    
-    if (!cached || !timestamp) {
-      return null;
-    }
-    
+    if (!cached || !timestamp) return null;
     const age = Date.now() - parseInt(timestamp, 10);
-    if (age > CACHE_DURATION_MS) {
-      // Cache expired
-      return null;
-    }
-    
+    if (age > CACHE_DURATION_MS) return null;
     return JSON.parse(cached);
   } catch (error) {
     console.error('Error reading cached models:', error);
@@ -202,23 +172,19 @@ function getCachedModels() {
 
 async function loadModels() {
   setStatus(i18n.t('modelLoading'), 'info');
-  
   try {
-    // Try to fetch from API
     const models = await fetchModelsFromAPI();
     state.models = models;
     renderModelOptions(models);
-    setStatus('', ''); // Clear status message
+    setStatus('', '');
   } catch (error) {
-    // If API fetch fails, try cache
     const cached = getCachedModels();
     if (cached && cached.length > 0) {
       state.models = cached;
       renderModelOptions(cached);
-      setStatus('', ''); // Clear status message
+      setStatus('', '');
     } else {
       setStatus(i18n.t('modelLoadError'), 'error');
-      console.error('No cached models available');
     }
   }
 }
@@ -226,81 +192,107 @@ async function loadModels() {
 function formatModelPrice(model) {
   const pricing = model.pricing || {};
   let completionTokens = pricing.completionImageTokens || pricing.completion || 0;
+  if (typeof completionTokens === 'string') completionTokens = parseFloat(completionTokens);
+  if (!completionTokens || completionTokens === 0) return '0 pollen';
   
-  // Handle different pricing formats
-  if (typeof completionTokens === 'string') {
-    completionTokens = parseFloat(completionTokens);
-  }
-  
-  if (!completionTokens || completionTokens === 0) {
-    return '0 pollen';
-  }
-  
-  // Format the number appropriately
   let priceStr;
-  if (completionTokens < 0.000001) {
-    priceStr = completionTokens.toExponential(2);
-  } else if (completionTokens < 0.01) {
-    priceStr = completionTokens.toFixed(6).replace(/\.?0+$/, '');
-  } else if (completionTokens < 1) {
-    priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
-  } else {
-    priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
-  }
+  if (completionTokens < 0.000001) priceStr = completionTokens.toExponential(2);
+  else if (completionTokens < 0.01) priceStr = completionTokens.toFixed(6).replace(/\.?0+$/, '');
+  else if (completionTokens < 1) priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
+  else priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
   
   return `${priceStr} pollen`;
 }
 
 function renderModelOptions(models) {
   const select = document.getElementById('model');
-  if (!select) return;
+  const modelPopover = document.getElementById('model-popover');
+  const currentModelName = document.getElementById('current-model-name');
+  if (!select || !modelPopover) return;
   
   const previousValue = select.value;
   select.innerHTML = '';
+  modelPopover.innerHTML = '';
   
-  // Add placeholder option
-  const placeholderOption = document.createElement('option');
-  placeholderOption.value = '';
-  placeholderOption.textContent = i18n.t('modelPlaceholder');
-  placeholderOption.disabled = true;
-  placeholderOption.selected = true;
-  select.appendChild(placeholderOption);
-  
-  // Sort models by price (cheapest first)
   const sortedModels = [...models].sort((a, b) => {
     let priceA = a.pricing?.completionImageTokens || a.pricing?.completion || 0;
     let priceB = b.pricing?.completionImageTokens || b.pricing?.completion || 0;
-    
-    // Handle string prices
     if (typeof priceA === 'string') priceA = parseFloat(priceA) || 0;
     if (typeof priceB === 'string') priceB = parseFloat(priceB) || 0;
-    
     return priceA - priceB;
   });
   
   sortedModels.forEach(model => {
-    const option = document.createElement('option');
-    option.value = model.name;
-    
     const name = model.name || 'Unknown';
     const description = model.description || model.name || '';
     const price = formatModelPrice(model);
     
-    // Format: "Model Name - price"
-    let label = name;
-    if (price) {
-      label += ` - ${price}`;
-    }
-    
-    option.textContent = label;
-    // Always set tooltip with description (or name if no description)
-    option.title = description || name;
+    const option = document.createElement('option');
+    option.value = model.name;
+    option.textContent = name;
     select.appendChild(option);
+
+    const item = document.createElement('div');
+    item.className = 'popover-item';
+    if (model.name === previousValue) item.classList.add('selected');
+    
+    let label = name;
+    if (price) label += ` - ${price}`;
+    
+    item.innerHTML = `
+      <div class="model-badge" style="background-color: ${stringToColor(name)}"></div>
+      <span>${label}</span>
+    `;
+    item.title = description;
+    
+    item.onclick = (e) => {
+      e.stopPropagation();
+      select.value = model.name;
+      currentModelName.textContent = name;
+      const btnBadge = document.querySelector('#model-select-btn .model-badge');
+      if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
+      modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      updateCostDisplay(model);
+      modelPopover.classList.remove('visible');
+    };
+    
+    modelPopover.appendChild(item);
   });
   
-  // Restore previous selection if valid
   if (previousValue && [...select.options].some(opt => opt.value === previousValue)) {
     select.value = previousValue;
+    const model = sortedModels.find(m => m.name === previousValue);
+    if (model) {
+      currentModelName.textContent = model.name;
+      const btnBadge = document.querySelector('#model-select-btn .model-badge');
+      if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
+      updateCostDisplay(model);
+    }
+  } else if (sortedModels.length > 0) {
+    select.value = sortedModels[0].name;
+    currentModelName.textContent = sortedModels[0].name;
+    const btnBadge = document.querySelector('#model-select-btn .model-badge');
+    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
+    updateCostDisplay(sortedModels[0]);
+    modelPopover.querySelector('.popover-item')?.classList.add('selected');
+  }
+}
+
+function stringToColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+  return '#' + '00000'.substring(0, 6 - c.length) + c;
+}
+
+function updateCostDisplay(model) {
+  const costText = document.getElementById('cost-text');
+  if (costText) {
+    const price = formatModelPrice(model);
+    costText.textContent = `Costs ${price}`;
   }
 }
 
@@ -309,12 +301,9 @@ function renderModelOptions(models) {
 // ============================================================================
 
 async function generateImage(payload) {
-  if (!state.apiKey) {
-    throw new Error(i18n.t('apiKeyMissing'));
-  }
+  if (!state.apiKey) throw new Error(i18n.t('apiKeyMissing'));
   
   const endpoint = `https://gen.pollinations.ai/image/${encodeURIComponent(payload.prompt)}`;
-  
   const params = new URLSearchParams();
   if (payload.model) params.append('model', payload.model);
   if (payload.width) params.append('width', payload.width);
@@ -331,11 +320,8 @@ async function generateImage(payload) {
   if (payload.transparent) params.append('transparent', 'true');
   
   const url = `${endpoint}?${params.toString()}`;
-  
   const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${state.apiKey}`
-    }
+    headers: { 'Authorization': `Bearer ${state.apiKey}` }
   });
   
   if (!response.ok) {
@@ -360,52 +346,40 @@ function generateRandomSeed() {
 
 function collectPayload() {
   const form = document.getElementById('generation-form');
-  if (!form) return {};
+  const promptInput = document.getElementById('prompt');
+  if (!form || !promptInput) return {};
   
   const formData = new FormData(form);
-  
+  let prompt = promptInput.value.trim();
+
+  // Add content type to prompt if not Auto
+  const activeType = document.querySelector('.toggle-btn.active');
+  if (activeType && activeType.id === 'type-photo') {
+      prompt += ', photo';
+  } else if (activeType && activeType.id === 'type-art') {
+      prompt += ', art';
+  }
+
   const payload = {
-    prompt: (formData.get('prompt') || '').toString().trim(),
+    prompt: prompt,
     model: (formData.get('model') || '').toString()
   };
   
-  const width = Number(formData.get('width'));
-  if (!isNaN(width) && width > 0) {
-    payload.width = width;
-  }
+  const width = Number(document.getElementById('width').value);
+  if (!isNaN(width) && width > 0) payload.width = width;
+  const height = Number(document.getElementById('height').value);
+  if (!isNaN(height) && height > 0) payload.height = height;
   
-  const height = Number(formData.get('height'));
-  if (!isNaN(height) && height > 0) {
-    payload.height = height;
-  }
-  
-  let seed = Number(formData.get('seed'));
-  if (isNaN(seed) || seed === 0) {
-    seed = generateRandomSeed();
-  }
+  let seed = generateRandomSeed();
   payload.seed = seed;
   
-  const guidance = Number(formData.get('guidance_scale'));
-  if (!isNaN(guidance)) {
-    payload.guidance_scale = guidance;
-  }
+  const guidance = Number(document.getElementById('guidance_scale').value);
+  if (!isNaN(guidance)) payload.guidance_scale = guidance;
   
-  const negativePrompt = (formData.get('negative_prompt') || '').toString().trim();
-  if (negativePrompt) {
-    payload.negative_prompt = negativePrompt;
-  }
-  
-  const quality = (formData.get('quality') || '').toString();
-  if (quality) {
-    payload.quality = quality;
-  }
-  
-  // Boolean flags
+  // Boolean flags from hidden form
   ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
     const checkbox = document.getElementById(flag);
-    if (checkbox && checkbox.checked) {
-      payload[flag] = true;
-    }
+    if (checkbox && checkbox.checked) payload[flag] = true;
   });
   
   return payload;
@@ -418,246 +392,84 @@ function collectPayload() {
 function setStatus(message, type = 'info') {
   const statusBox = document.getElementById('status');
   if (!statusBox) return;
-  
+  if (!message) {
+    statusBox.style.display = 'none';
+    return;
+  }
   statusBox.textContent = message;
-  statusBox.className = `status ${type}`;
+  statusBox.className = `status-msg ${type}`;
+  statusBox.style.display = 'block';
+  if (type !== 'error') {
+    setTimeout(() => { statusBox.style.display = 'none'; }, 5000);
+  }
 }
 
 function toggleLoading(isLoading) {
   state.isGenerating = isLoading;
-  
   const generateBtn = document.getElementById('generate-btn');
   const resultLoader = document.getElementById('result-loader');
-  const loadingStatus = document.getElementById('loading-status');
   const placeholder = document.getElementById('placeholder');
+  const resultImageContainer = document.getElementById('result-container');
   const resultImage = document.getElementById('result-image');
   
   if (generateBtn) {
     generateBtn.disabled = isLoading;
+    if (isLoading) {
+        generateBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> Generating...';
+    } else {
+        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg> Generate Image';
+    }
   }
   
   if (resultLoader) {
-    if (isLoading) {
-      resultLoader.classList.add('visible');
-    } else {
-      resultLoader.classList.remove('visible');
-    }
+    if (isLoading) resultLoader.classList.add('visible');
+    else resultLoader.classList.remove('visible');
   }
   
-  // Show loading text below the loader, not in the placeholder
-  if (loadingStatus) {
-    if (isLoading) {
-      loadingStatus.textContent = i18n.t('placeholderGenerating');
-    } else {
-      loadingStatus.textContent = '';
+  if (isLoading) {
+    if (placeholder) placeholder.style.display = 'none';
+    if (resultImageContainer) resultImageContainer.classList.add('visible');
+    if (resultImage) resultImage.style.opacity = '0.3';
+  } else {
+    if (resultImage) resultImage.style.opacity = '1';
+    if (!resultImage || !resultImage.src) {
+        if (placeholder) placeholder.style.display = 'block';
+        if (resultImageContainer) resultImageContainer.classList.remove('visible');
     }
-  }
-  
-  if (placeholder) {
-    if (isLoading) {
-      // Keep placeholder hidden during loading
-      placeholder.style.display = 'none';
-    } else if (!resultImage || !resultImage.classList.contains('visible')) {
-      placeholder.style.display = 'flex';
-      placeholder.textContent = i18n.t('placeholderText');
-    } else {
-      placeholder.style.display = 'none';
-    }
-  }
-  
-  if (isLoading && resultImage) {
-    resultImage.classList.remove('visible');
   }
 }
 
 function displayResult(data) {
   const resultImage = document.getElementById('result-image');
+  const resultContainer = document.getElementById('result-container');
   const placeholder = document.getElementById('placeholder');
-  const downloadLink = document.getElementById('download-link');
-  const downloadActions = document.getElementById('result-actions');
-
-  if (!resultImage || !placeholder || !downloadLink || !downloadActions) {
-    return;
-  }
+  if (!resultImage || !placeholder || !resultContainer) return;
 
   if (data.imageData) {
     resultImage.src = data.imageData;
-    resultImage.classList.add('visible');
+    resultContainer.classList.add('visible');
     placeholder.style.display = 'none';
-
-    downloadActions.classList.remove('hidden');
-    downloadLink.href = data.imageData;
-
-    if (data.contentType && typeof data.contentType === 'string') {
-      const ext = data.contentType.split('/')[1]?.split(';')[0] || 'png';
-      downloadLink.setAttribute('download', `pollinations-image.${ext}`);
-    }
-
     state.currentImage = data;
-
-    // Add to image history
     addToImageHistory(data);
-
-    // Update balance after successful image generation
-    updateBalance(state.apiKey);
+    if (state.apiKey) updateBalance(state.apiKey);
   }
 }
 
-// ============================================================================
-// IMAGE HISTORY FUNCTIONS
-// ============================================================================
-
-function addToImageHistory(imageData) {
-  // Create a copy of the image data for history
-  const historyItem = {
-    imageData: imageData.imageData,
-    contentType: imageData.contentType,
-    sourceUrl: imageData.sourceUrl,
-    timestamp: Date.now()
-  };
-
-  // Add to beginning of history array (newest first)
+function addToImageHistory(historyItem) {
+  if (!historyItem || !historyItem.imageData) return;
   state.imageHistory.unshift(historyItem);
-
-  // Limit to 18 images (6 columns x 3 rows)
-  if (state.imageHistory.length > 18) {
-    state.imageHistory.pop();
-  }
-
-  // Render the history grid
-  renderImageHistory();
-}
-
-function renderImageHistory() {
-  const historyGrid = document.getElementById('image-history-grid');
-  if (!historyGrid) return;
-
-  // Clear existing content
-  historyGrid.innerHTML = '';
-
-  // Render each history item
-  state.imageHistory.forEach((item, index) => {
-    const historyItem = document.createElement('div');
-    historyItem.className = 'image-history-item';
-    historyItem.title = `Click to view image ${index + 1}`;
-
-    const img = document.createElement('img');
-    img.src = item.imageData;
-    img.alt = `Generated image ${index + 1}`;
-
-    historyItem.appendChild(img);
-
-    // Add click event to display image in main view
-    historyItem.addEventListener('click', () => {
-      displayInMainView(item);
-    });
-
-    historyGrid.appendChild(historyItem);
-  });
+  if (state.imageHistory.length > 18) state.imageHistory.pop();
 }
 
 function displayInMainView(historyItem) {
   const resultImage = document.getElementById('result-image');
+  const resultContainer = document.getElementById('result-container');
   const placeholder = document.getElementById('placeholder');
-  const downloadLink = document.getElementById('download-link');
-  const downloadActions = document.getElementById('result-actions');
-
-  if (!resultImage || !placeholder || !downloadLink || !downloadActions) {
-    return;
-  }
-
+  if (!resultImage || !placeholder || !resultContainer) return;
   resultImage.src = historyItem.imageData;
-  resultImage.classList.add('visible');
+  resultContainer.classList.add('visible');
   placeholder.style.display = 'none';
-
-  downloadActions.classList.remove('hidden');
-  downloadLink.href = historyItem.imageData;
-
-  if (historyItem.contentType && typeof historyItem.contentType === 'string') {
-    const ext = historyItem.contentType.split('/')[1]?.split(';')[0] || 'png';
-    downloadLink.setAttribute('download', `pollinations-image.${ext}`);
-  }
-
   state.currentImage = historyItem;
-}
-
-
-function updateDimensionsFromAspectRatio() {
-  const aspectRatioSelect = document.getElementById('aspect-ratio');
-  const widthInput = document.getElementById('width');
-  const heightInput = document.getElementById('height');
-
-  if (!aspectRatioSelect || !widthInput || !heightInput) {
-    return;
-  }
-
-  const ratio = aspectRatioSelect.value;
-  const ratios = {
-    'Ultrabreit (21:9)': { width: 2394, height: 1026 },
-    'Breitbild (16:9)': { width: 1824, height: 1026 },
-    'Klassisch (5:4)': { width: 1280, height: 1024 },
-    'Querformat (4:3)': { width: 1366, height: 1025 },
-    'Breit (3:2)': { width: 1536, height: 1024 },
-    'Quadratisch (1:1)': { width: 1024, height: 1024 },
-    'Standard (4:5)': { width: 1024, height: 1280 },
-    'Hochformat (3:4)': { width: 1025, height: 1366 },
-    'Hoch (2:3)': { width: 1024, height: 1536 },
-    'Vertikal (9:16)': { width: 1026, height: 1824 }
-  };
-
-  if (ratio === 'custom') {
-    return;
-  }
-
-  if (ratios[ratio]) {
-    widthInput.value = ratios[ratio].width;
-    heightInput.value = ratios[ratio].height;
-  }
-}
-
-// ============================================================================
-// IMAGE MODAL FUNCTIONS
-// ============================================================================
-
-function initImageModal() {
-  const modal = document.getElementById('image-modal');
-  const closeBtn = document.getElementById('image-modal-close');
-  const overlay = document.querySelector('.image-modal-overlay');
-  const resultImage = document.getElementById('result-image');
-
-  if (!modal || !closeBtn || !resultImage) return;
-
-  resultImage.addEventListener('click', () => {
-    openImageModal(resultImage.src);
-  });
-
-  closeBtn.addEventListener('click', closeImageModal);
-  overlay.addEventListener('click', closeImageModal);
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeImageModal();
-    }
-  });
-}
-
-function openImageModal(imageSrc) {
-  const modal = document.getElementById('image-modal');
-  const modalImage = document.getElementById('image-modal-image');
-
-  if (modal && modalImage) {
-    modalImage.src = imageSrc;
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  }
-}
-
-function closeImageModal() {
-  const modal = document.getElementById('image-modal');
-  if (modal) {
-    modal.style.display = 'none';
-    document.body.style.overflow = '';
-  }
 }
 
 // ============================================================================
@@ -665,42 +477,6 @@ function closeImageModal() {
 // ============================================================================
 
 function setupEventListeners() {
-  // Initialize image modal
-  initImageModal();
-
-  // Language switcher
-  const languageToggle = document.getElementById('language-toggle');
-  if (languageToggle) {
-    languageToggle.addEventListener('click', () => {
-      const currentLang = i18n.getCurrentLanguage();
-      const newLang = currentLang === 'en' ? 'de' : 'en';
-      i18n.setLanguage(newLang);
-      
-      // Update language toggle button text to show selected language
-      languageToggle.textContent = newLang === 'en' ? 'EN' : 'DE';
-      
-      // Reload models with new language
-      renderModelOptions(state.models);
-      
-      // Update balance display with new language if it exists
-      if (state.apiKey && document.getElementById('balance-display').classList.contains('hidden') === false) {
-        updateBalance(state.apiKey);
-      }
-    });
-    
-    // Set initial button text to show selected language
-    languageToggle.textContent = i18n.getCurrentLanguage() === 'en' ? 'EN' : 'DE';
-  }
-  
-  // Listen for language changes (from i18n system)
-  window.addEventListener('languageChanged', (event) => {
-    // Update balance display with new language if it exists
-    if (state.apiKey && document.getElementById('balance-display').classList.contains('hidden') === false) {
-      updateBalance(state.apiKey);
-    }
-  });
-  
-  // API Key input
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
     apiKeyInput.addEventListener('blur', () => {
@@ -709,39 +485,14 @@ function setupEventListeners() {
     });
     apiKeyInput.addEventListener('input', () => {
       const key = apiKeyInput.value.trim();
-      if (key) {
-        saveApiKey(key);
-        // Clear balance display when typing (will be restored on blur)
-        const balanceDisplay = document.getElementById('balance-display');
-        const apiKeyInfo = document.querySelector('.api-key-info');
-        if (balanceDisplay) {
-          balanceDisplay.classList.add('hidden');
-        }
-        if (apiKeyInfo) {
-          apiKeyInfo.classList.remove('hidden');
-        }
-      } else {
-        // Clear the API key if input is empty
-        state.apiKey = null;
-        const balanceDisplay = document.getElementById('balance-display');
-        const apiKeyInfo = document.querySelector('.api-key-info');
-        if (balanceDisplay) {
-          balanceDisplay.classList.add('hidden');
-        }
-        if (apiKeyInfo) {
-          apiKeyInfo.classList.remove('hidden');
-        }
-      }
+      if (key) saveApiKey(key);
+      else state.apiKey = null;
     });
   }
   
-  // Form submission
-  const form = document.getElementById('generation-form');
-  if (form) {
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      
-      // Validate API key
+  const generateBtn = document.getElementById('generate-btn');
+  if (generateBtn) {
+    generateBtn.addEventListener('click', async () => {
       if (!state.apiKey) {
         validateApiKey();
         if (!state.apiKey) {
@@ -749,10 +500,7 @@ function setupEventListeners() {
           return;
         }
       }
-      
       const payload = collectPayload();
-      
-      // Validation
       if (!payload.prompt) {
         setStatus(i18n.t('statusPromptMissing'), 'error');
         return;
@@ -761,18 +509,11 @@ function setupEventListeners() {
         setStatus(i18n.t('statusModelMissing'), 'error');
         return;
       }
-      if (!payload.width || !payload.height) {
-        setStatus(i18n.t('statusDimensionsMissing'), 'error');
-        return;
-      }
-      
       toggleLoading(true);
-      setStatus('', ''); // Clear status during generation
-      
+      setStatus('', '');
       try {
         const response = await generateImage(payload);
         displayResult(response);
-        setStatus('', ''); // Clear status on success
       } catch (error) {
         setStatus(error.message || i18n.t('statusError'), 'error');
         console.error(error);
@@ -781,41 +522,14 @@ function setupEventListeners() {
       }
     });
   }
-  
-  // Reset button
-  const resetBtn = document.getElementById('reset-btn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (form) {
-        form.reset();
-        
-        // Update guidance value display
-        const guidanceScale = document.getElementById('guidance_scale');
-        const guidanceValue = document.getElementById('guidance-value');
-        if (guidanceScale && guidanceValue) {
-          guidanceValue.textContent = guidanceScale.value;
+
+  const promptInput = document.getElementById('prompt');
+  if (promptInput) {
+    promptInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            generateBtn.click();
         }
-        
-        setStatus('', ''); // Clear status on reset
-      }
     });
-  }
-  
-  // Guidance scale slider
-  const guidanceScale = document.getElementById('guidance_scale');
-  const guidanceValue = document.getElementById('guidance-value');
-  if (guidanceScale && guidanceValue) {
-    guidanceScale.addEventListener('input', () => {
-      guidanceValue.textContent = guidanceScale.value;
-    });
-    // Set initial value
-    guidanceValue.textContent = guidanceScale.value;
-  }
-  
-  // Aspect ratio selector
-  const aspectRatioSelect = document.getElementById('aspect-ratio');
-  if (aspectRatioSelect) {
-    aspectRatioSelect.addEventListener('change', updateDimensionsFromAspectRatio);
   }
 }
 
@@ -824,28 +538,17 @@ function setupEventListeners() {
 // ============================================================================
 
 function init() {
-  // Initialize i18n
   i18n.updatePageLanguage();
-  
-  // Load API key from session
   loadApiKey();
   if (state.apiKey) {
     const apiKeyInput = document.getElementById('api-key');
-    if (apiKeyInput) {
-      apiKeyInput.value = state.apiKey;
-    }
-    // Update balance display with loaded API key
+    if (apiKeyInput) apiKeyInput.value = state.apiKey;
     updateBalance(state.apiKey);
   }
-  
-  // Setup event listeners
   setupEventListeners();
-  
-  // Load models
   loadModels();
 }
 
-// Start the app when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
