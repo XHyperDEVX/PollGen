@@ -413,69 +413,103 @@ function setStatus(message, type = 'info') {
 function toggleLoading(isLoading) {
   state.isGenerating = isLoading;
   const generateBtn = document.getElementById('generate-btn');
-  const resultLoader = document.getElementById('result-loader');
-  const placeholder = document.getElementById('placeholder');
-  const resultImageContainer = document.getElementById('result-container');
-  const resultImage = document.getElementById('result-image');
   
   if (generateBtn) {
     generateBtn.disabled = isLoading;
     if (isLoading) {
-        generateBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> <span data-i18n="statusGenerating">Generating...</span>';
+        generateBtn.innerHTML = '<div class="spinner"></div>';
     } else {
-        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg> <span data-i18n="generateBtn">Generate Image</span>';
-    }
-  }
-  
-  if (resultLoader) {
-    if (isLoading) resultLoader.classList.add('visible');
-    else resultLoader.classList.remove('visible');
-  }
-  
-  if (isLoading) {
-    if (placeholder) placeholder.style.display = 'none';
-    if (resultImageContainer) resultImageContainer.classList.add('visible');
-    if (resultImage) resultImage.style.opacity = '0.3';
-  } else {
-    if (resultImage) resultImage.style.opacity = '1';
-    if (!resultImage || !resultImage.src) {
-        if (placeholder) placeholder.style.display = 'block';
-        if (resultImageContainer) resultImageContainer.classList.remove('visible');
+        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg> <span data-i18n="generateBtn">Generate Image</span>';
     }
   }
 }
 
-function displayResult(data) {
-  const resultImage = document.getElementById('result-image');
-  const resultContainer = document.getElementById('result-container');
-  const placeholder = document.getElementById('placeholder');
-  if (!resultImage || !placeholder || !resultContainer) return;
+function createPlaceholderCard(genId, prompt) {
+    const card = document.createElement('div');
+    card.className = 'image-card';
+    card.id = `gen-card-${genId}`;
+    
+    // Determine aspect ratio for placeholder from hidden inputs
+    const w = Number(document.getElementById('width').value) || 1024;
+    const h = Number(document.getElementById('height').value) || 1024;
+    const ratio = (h / w) * 100;
 
-  if (data.imageData) {
-    resultImage.src = data.imageData;
-    resultContainer.classList.add('visible');
-    placeholder.style.display = 'none';
-    state.currentImage = data;
-    addToImageHistory(data);
-    if (state.apiKey) updateBalance(state.apiKey);
-  }
+    card.innerHTML = `
+        <div class="noise-placeholder" style="padding-bottom: ${ratio}%"></div>
+        <div class="image-card-overlay">
+            <button class="overlay-btn download-btn hidden" title="Download">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+            </button>
+            <button class="overlay-btn menu-btn" title="More">
+                <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </button>
+        </div>
+    `;
+    return card;
+}
+
+function displayResultInCard(genId, data) {
+    const card = document.getElementById(`gen-card-${genId}`);
+    if (!card) return;
+    
+    const placeholder = card.querySelector('.noise-placeholder');
+    const overlay = card.querySelector('.image-card-overlay');
+    const downloadBtn = card.querySelector('.download-btn');
+    
+    const img = new Image();
+    img.src = data.imageData;
+    img.onload = () => {
+        placeholder.remove();
+        card.insertBefore(img, overlay);
+        // Force reflow for transition
+        img.offsetHeight;
+        img.classList.add('loaded');
+        downloadBtn.classList.remove('hidden');
+        downloadBtn.onclick = (e) => {
+            e.stopPropagation();
+            downloadImage(data.imageData, `pollgen-${genId}.png`);
+        };
+
+        const menuBtn = card.querySelector('.menu-btn');
+        if (menuBtn) {
+            menuBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (confirm(i18n.getCurrentLanguage() === 'de' ? 'Bild löschen?' : 'Delete this image?')) {
+                    card.remove();
+                    const galleryFeed = document.getElementById('gallery-feed');
+                    const emptyState = document.getElementById('placeholder');
+                    if (galleryFeed && galleryFeed.children.length === 0 && emptyState) {
+                        emptyState.style.display = 'block';
+                    }
+                }
+            };
+        }
+    };
+}
+
+async function downloadImage(url, filename) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+        console.error("Download failed", e);
+        // Fallback to opening in new tab
+        window.open(url, '_blank');
+    }
 }
 
 function addToImageHistory(historyItem) {
   if (!historyItem || !historyItem.imageData) return;
   state.imageHistory.unshift(historyItem);
   if (state.imageHistory.length > 18) state.imageHistory.pop();
-}
-
-function displayInMainView(historyItem) {
-  const resultImage = document.getElementById('result-image');
-  const resultContainer = document.getElementById('result-container');
-  const placeholder = document.getElementById('placeholder');
-  if (!resultImage || !placeholder || !resultContainer) return;
-  resultImage.src = historyItem.imageData;
-  resultContainer.classList.add('visible');
-  placeholder.style.display = 'none';
-  state.currentImage = historyItem;
 }
 
 // ============================================================================
@@ -497,6 +531,9 @@ function setupEventListeners() {
   }
   
   const generateBtn = document.getElementById('generate-btn');
+  const galleryFeed = document.getElementById('gallery-feed');
+  const emptyState = document.getElementById('placeholder');
+
   if (generateBtn) {
     generateBtn.addEventListener('click', async () => {
       if (!state.apiKey) {
@@ -515,14 +552,26 @@ function setupEventListeners() {
         setStatus(i18n.t('statusModelMissing'), 'error');
         return;
       }
+
+      const genId = Date.now();
+      const card = createPlaceholderCard(genId, payload.prompt);
+      
+      if (emptyState) emptyState.style.display = 'none';
+      galleryFeed.appendChild(card);
+      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
       toggleLoading(true);
       setStatus('', '');
       try {
         const response = await generateImage(payload);
-        displayResult(response);
+        displayResultInCard(genId, response);
+        addToImageHistory(response);
+        if (state.apiKey) updateBalance(state.apiKey);
       } catch (error) {
         setStatus(error.message || i18n.t('statusError'), 'error');
         console.error(error);
+        card.remove();
+        if (galleryFeed.children.length === 0 && emptyState) emptyState.style.display = 'block';
       } finally {
         toggleLoading(false);
       }
@@ -548,9 +597,7 @@ function setupEventListeners() {
 
   // Handle language change event
   window.addEventListener('languageChanged', () => {
-      // Re-render models to update price formatting/language if necessary
       renderModelOptions(state.models);
-      // Re-format balance if visible
       if (state.apiKey) updateBalance(state.apiKey);
   });
 }
