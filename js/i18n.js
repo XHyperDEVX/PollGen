@@ -5,38 +5,41 @@
 
 const translations = {
   en: {
-    // Header
-    pageTitle: 'Pollinations Image Generator',
-    pageDescription: 'Create high-quality images with dynamic models and custom parameters.',
-    
-    // Language
-    language: 'Language',
-    
-    // API Key Section
+    // Page
+    pageTitle: 'PollGen',
+    pageDescription: 'Create high-quality images with AI',
+
+    // API Key
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'Enter your Pollinations API key',
-    apiKeyRequired: 'Required',
-    apiKeyHint: 'Get your free API key from ',
-    apiKeyLink: 'pollinations.ai',
-    apiKeyStored: 'API key stored locally for this session',
-    apiKeyMissing: 'Please enter an API key',
-    
-    // Prompt Section
-    promptLabel: 'Image Description',
-    promptPlaceholder: 'Describe your desired image in detail...',
-    promptRequired: 'Required',
-    
-    // Model Section
-    modelLabel: 'Model',
-    modelPlaceholder: 'Select a model...',
-    modelLoading: 'Loading models...',
-    modelLoadSuccess: 'Models loaded successfully',
-    modelLoadError: 'Failed to load models. Using cached data.',
-    modelCached: 'Using cached models',
-    
-    // Dimensions & Options
+    apiKeyHint: 'Get your free API key from',
+    apiKeyStored: 'API key saved',
+    apiKeyMissing: 'Please enter your API key',
+
+    // Form Fields
+    promptLabel: 'Prompt',
+    promptPlaceholder: 'Describe the image you want to generate...',
+    formatLabel: 'Format',
+    advancedOptions: 'Advanced Options',
+    selectFormat: 'Select format...',
+    customFormat: 'Custom',
     widthLabel: 'Width (px)',
     heightLabel: 'Height (px)',
+    modelLabel: 'Model',
+
+    // Image Format Presets
+    formatUltrabreit: 'Ultrabreit (21:9) - 2394 × 1026 px',
+    formatBreitbild: 'Breitbild (16:9) - 1824 × 1026 px',
+    formatKlassisch: 'Klassisch (5:4) - 1280 × 1024 px',
+    formatQuerformat: 'Querformat (4:3) - 1366 × 1025 px',
+    formatBreit: 'Breit (3:2) - 1536 × 1024 px',
+    formatQuadratisch: 'Quadratisch (1:1) - 1024 × 1024 px',
+    formatStandard: 'Standard (4:5) - 1024 × 1280 px',
+    formatHochformat: 'Hochformat (3:4) - 1025 × 1366 px',
+    formatHoch: 'Hoch (2:3) - 1024 × 1536 px',
+    formatVertikal: 'Vertikal (9:16) - 1026 × 1824 px',
+
+    // Advanced Options Fields
     seedLabel: 'Seed',
     seedHint: '0 = random',
     qualityLabel: 'Quality',
@@ -44,123 +47,106 @@ const translations = {
     qualityMedium: 'Medium',
     qualityHigh: 'High',
     qualityHD: 'HD',
-    aspectRatioLabel: 'Aspect Ratio',
-    aspectCustom: 'Custom',
-    aspectUltrawide: 'Ultrawide (21:9)',
-    aspectWidescreen: 'Widescreen (16:9)',
-    aspectClassic: 'Classic (5:4)',
-    aspectLandscape: 'Landscape (4:3)',
-    aspectWide: 'Wide (3:2)',
-    aspectSquare: 'Square (1:1)',
-    aspectPortrait: 'Portrait (4:5)',
-    aspectStandard: 'Standard (3:4)',
-    aspectTall: 'Tall (2:3)',
-    aspectVertical: 'Vertical (9:16)',
-    // Aspect Ratio Dimensions
-    aspectUltrawideDims: '4788 × 2052 px',
-    aspectWidescreenDims: '3648 × 2052 px',
-    aspectClassicDims: '2560 × 2048 px',
-    aspectLandscapeDims: '2732 × 2049 px',
-    aspectWideDims: '3072 × 2048 px',
-    aspectSquareDims: '2048 × 2048 px',
-    aspectPortraitDims: '2048 × 2560 px',
-    aspectStandardDims: '2049 × 2732 px',
-    aspectTallDims: '2048 × 3072 px',
-    aspectVerticalDims: '2052 × 3648 px',
-    
-    // Guidance Scale
+    guidanceScaleLabel: 'Guidance Scale',
     guidanceLabel: 'Guidance Scale',
     guidanceHint: 'Determines how closely the result follows the description (1 = free, 20 = strict)',
-    
-    // Negative Prompt
     negativePromptLabel: 'Negative Prompt',
     negativePromptPlaceholder: 'What to avoid in the image...',
     negativePromptHint: 'Optional: Describe what you don\'t want in the image',
-    
-    // Advanced Options
-    optionsLabel: 'Advanced Options',
     enhanceLabel: 'Enhance',
     enhanceDesc: 'Let AI optimize the prompt for better results',
     privateLabel: 'Private',
     privateDesc: 'Hide image from public feeds',
+    noLogoLabel: 'No Logo',
     nologoLabel: 'No Logo',
     nologoDesc: 'Remove the Pollinations watermark',
+    noFeedLabel: 'No Feed',
     nofeedLabel: 'No Feed',
     nofeedDesc: 'Prevent sharing in the public feed',
     safeLabel: 'Safe',
     safeDesc: 'Enable safety content filters',
     transparentLabel: 'Transparent',
     transparentDesc: 'Create transparent background (if supported)',
-    
+
     // Buttons
+    generateButton: 'Generate Image',
     generateBtn: 'Generate Image',
-    resetBtn: 'Reset Form',
+    downloadButton: 'Download',
     downloadBtn: 'Download Image',
-    openSourceBtn: 'Open Source Link',
-    
+    copyLinkButton: 'Copy Link',
+    generateNewButton: 'Generate New',
+    resetBtn: 'Reset Form',
+    optionsLabel: 'Advanced Options',
+    imageHistoryTitle: 'Image History',
+
     // Status Messages
-    statusGenerating: 'Generating image...',
-    statusSuccess: 'Image generated successfully!',
-    statusError: 'An error occurred',
-    statusReset: 'Form reset',
-    statusPromptMissing: 'Please enter an image description',
+    statusPromptMissing: 'Please enter a prompt',
     statusModelMissing: 'Please select a model',
-    statusDimensionsMissing: 'Please specify width and height',
-    
-    // Placeholder
-    placeholderText: 'Your generated images will appear here',
+    statusDimensionsMissing: 'Please set dimensions',
+    statusGenerating: 'Generating image...',
+    statusSuccess: 'Image generated successfully',
+    statusError: 'An error occurred',
+
+    // Model Loading
+    modelLoading: 'Loading models...',
+    modelLoadError: 'Failed to load models. Using cached data.',
+    modelPlaceholder: 'Select a model...',
+
+    // API Key
+    apiKeyStored: 'API key saved',
+
+    // Generation
     placeholderGenerating: 'Please wait, generating image...',
-    
-    // Errors
+    placeholderText: 'Your generated image will appear here',
     errorGeneration: 'Image generation failed',
-    errorApiKey: 'API key could not be loaded',
-    errorModels: 'Failed to load models',
-    errorNetwork: 'Network error occurred',
-    
-    // Model Pricing
-    pricePerImage: 'per image',
-    pricePerMillion: 'per million tokens',
-    
-    // Balance Display
+
+    // Balance
     balanceRemaining: 'pollen remaining.',
 
-    // Image History
-    imageHistoryTitle: 'Image History'
+    // Validation
+    noInternetConnection: 'No internet connection. Please connect and try again.',
+    invalidDomain: 'This domain does not appear to be a valid instance.',
+
+    // Preview
+    previewPlaceholder: 'Your generated image will appear here'
   },
-  
+
   de: {
-    // Header
-    pageTitle: 'Pollinations Bildgenerator',
-    pageDescription: 'Erstelle hochwertige Bilder mit dynamischen Modellen und benutzerdefinierten Parametern.',
-    
-    // Language
-    language: 'Sprache',
-    
-    // API Key Section
+    // Page
+    pageTitle: 'PollGen',
+    pageDescription: 'Erstellen Sie hochwertige Bilder mit KI',
+
+    // API Key
     apiKeyLabel: 'API-Schlüssel',
-    apiKeyPlaceholder: 'Gib deinen Pollinations API-Schlüssel ein',
-    apiKeyRequired: 'Erforderlich',
-    apiKeyHint: 'Hol dir deinen kostenlosen API-Schlüssel von ',
-    apiKeyLink: 'pollinations.ai',
-    apiKeyStored: 'API-Schlüssel lokal für diese Sitzung gespeichert',
-    apiKeyMissing: 'Bitte gib einen API-Schlüssel ein',
-    
-    // Prompt Section
-    promptLabel: 'Bildbeschreibung',
-    promptPlaceholder: 'Beschreibe dein gewünschtes Bild im Detail...',
-    promptRequired: 'Erforderlich',
-    
-    // Model Section
-    modelLabel: 'Modell',
-    modelPlaceholder: 'Wähle ein Modell...',
-    modelLoading: 'Lade Modelle...',
-    modelLoadSuccess: 'Modelle erfolgreich geladen',
-    modelLoadError: 'Fehler beim Laden der Modelle. Verwende gecachte Daten.',
-    modelCached: 'Verwende gecachte Modelle',
-    
-    // Dimensions & Options
+    apiKeyPlaceholder: 'Geben Sie Ihren Pollinations-API-Schlüssel ein',
+    apiKeyHint: 'Holen Sie sich Ihren kostenlosen API-Schlüssel von',
+    apiKeyStored: 'API-Schlüssel gespeichert',
+    apiKeyMissing: 'Bitte geben Sie Ihren API-Schlüssel ein',
+
+    // Form Fields
+    promptLabel: 'Prompt',
+    promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten...',
+    formatLabel: 'Format',
+    advancedOptions: 'Erweiterte Optionen',
+    selectFormat: 'Format auswählen...',
+    customFormat: 'Benutzerdefiniert',
     widthLabel: 'Breite (px)',
     heightLabel: 'Höhe (px)',
+    modelLabel: 'Modell',
+
+    // Image Format Presets
+    formatUltrabreit: 'Ultrabreit (21:9) - 2394 × 1026 px',
+    formatBreitbild: 'Breitbild (16:9) - 1824 × 1026 px',
+    formatKlassisch: 'Klassisch (5:4) - 1280 × 1024 px',
+    formatQuerformat: 'Querformat (4:3) - 1366 × 1025 px',
+    formatBreit: 'Breit (3:2) - 1536 × 1024 px',
+    formatQuadratisch: 'Quadratisch (1:1) - 1024 × 1024 px',
+    formatStandard: 'Standard (4:5) - 1024 × 1280 px',
+    formatHochformat: 'Hochformat (3:4) - 1025 × 1366 px',
+    formatHoch: 'Hoch (2:3) - 1024 × 1536 px',
+    formatVertikal: 'Vertikal (9:16) - 1026 × 1824 px',
+
+    // Advanced Options Fields
     seedLabel: 'Seed',
     seedHint: '0 = zufällig',
     qualityLabel: 'Qualität',
@@ -168,88 +154,68 @@ const translations = {
     qualityMedium: 'Mittel',
     qualityHigh: 'Hoch',
     qualityHD: 'HD',
-    aspectRatioLabel: 'Seitenverhältnis',
-    aspectCustom: 'Benutzerdefiniert',
-    aspectUltrawide: 'Ultrabreit (21:9)',
-    aspectWidescreen: 'Breitbild (16:9)',
-    aspectClassic: 'Klassisch (5:4)',
-    aspectLandscape: 'Querformat (4:3)',
-    aspectWide: 'Breit (3:2)',
-    aspectSquare: 'Quadratisch (1:1)',
-    aspectPortrait: 'Standard (4:5)',
-    aspectStandard: 'Hochformat (3:4)',
-    aspectTall: 'Hoch (2:3)',
-    aspectVertical: 'Vertikal (9:16)',
-    // Aspect Ratio Dimensions
-    aspectUltrawideDims: '4788 × 2052 px',
-    aspectWidescreenDims: '3648 × 2052 px',
-    aspectClassicDims: '2560 × 2048 px',
-    aspectLandscapeDims: '2732 × 2049 px',
-    aspectWideDims: '3072 × 2048 px',
-    aspectSquareDims: '2048 × 2048 px',
-    aspectPortraitDims: '2048 × 2560 px',
-    aspectStandardDims: '2049 × 2732 px',
-    aspectTallDims: '2048 × 3072 px',
-    aspectVerticalDims: '2052 × 3648 px',
-    
-    // Guidance Scale
-    guidanceLabel: 'Guidance Scale',
+    guidanceScaleLabel: 'Leitfaden-Skalierung',
+    guidanceLabel: 'Leitfaden-Skalierung',
     guidanceHint: 'Bestimmt, wie genau das Ergebnis der Beschreibung folgt (1 = frei, 20 = strikt)',
-    
-    // Negative Prompt
     negativePromptLabel: 'Negativer Prompt',
     negativePromptPlaceholder: 'Was im Bild vermieden werden soll...',
     negativePromptHint: 'Optional: Beschreibe, was du nicht im Bild haben möchtest',
-    
-    // Advanced Options
-    optionsLabel: 'Erweiterte Optionen',
     enhanceLabel: 'Verbessern',
     enhanceDesc: 'Lass die KI den Prompt für bessere Ergebnisse optimieren',
     privateLabel: 'Privat',
     privateDesc: 'Bild aus öffentlichen Feeds ausblenden',
+    noLogoLabel: 'Kein Logo',
     nologoLabel: 'Kein Logo',
     nologoDesc: 'Entferne das Pollinations Wasserzeichen',
+    noFeedLabel: 'Kein Feed',
     nofeedLabel: 'Kein Feed',
     nofeedDesc: 'Verhindere das Teilen im öffentlichen Feed',
     safeLabel: 'Sicher',
     safeDesc: 'Aktiviere Sicherheits-Inhaltsfilter',
     transparentLabel: 'Transparent',
     transparentDesc: 'Erstelle transparenten Hintergrund (falls unterstützt)',
-    
+
     // Buttons
+    generateButton: 'Bild generieren',
     generateBtn: 'Bild generieren',
-    resetBtn: 'Formular zurücksetzen',
+    downloadButton: 'Herunterladen',
     downloadBtn: 'Bild herunterladen',
-    openSourceBtn: 'Quell-Link öffnen',
-    
+    copyLinkButton: 'Link kopieren',
+    generateNewButton: 'Neues generieren',
+    resetBtn: 'Formular zurücksetzen',
+    optionsLabel: 'Erweiterte Optionen',
+    imageHistoryTitle: 'Bildhistorie',
+
     // Status Messages
-    statusGenerating: 'Generiere Bild...',
-    statusSuccess: 'Bild erfolgreich generiert!',
+    statusPromptMissing: 'Bitte geben Sie einen Prompt ein',
+    statusModelMissing: 'Bitte wählen Sie ein Modell',
+    statusDimensionsMissing: 'Bitte stellen Sie die Abmessungen ein',
+    statusGenerating: 'Bild wird generiert...',
+    statusSuccess: 'Bild erfolgreich generiert',
     statusError: 'Ein Fehler ist aufgetreten',
-    statusReset: 'Formular zurückgesetzt',
-    statusPromptMissing: 'Bitte gib eine Bildbeschreibung ein',
-    statusModelMissing: 'Bitte wähle ein Modell aus',
-    statusDimensionsMissing: 'Bitte gib Breite und Höhe an',
-    
-    // Placeholder
-    placeholderText: 'Deine generierten Bilder erscheinen hier',
+
+    // Model Loading
+    modelLoading: 'Lade Modelle...',
+    modelLoadError: 'Fehler beim Laden der Modelle. Verwende gecachte Daten.',
+    modelPlaceholder: 'Wähle ein Modell...',
+
+    // API Key
+    apiKeyStored: 'API-Schlüssel gespeichert',
+
+    // Generation
     placeholderGenerating: 'Bitte warten, Bild wird erstellt...',
-    
-    // Errors
+    placeholderText: 'Ihr generiertes Bild wird hier angezeigt',
     errorGeneration: 'Bildgenerierung fehlgeschlagen',
-    errorApiKey: 'API-Schlüssel konnte nicht geladen werden',
-    errorModels: 'Fehler beim Laden der Modelle',
-    errorNetwork: 'Netzwerkfehler aufgetreten',
-    
-    // Model Pricing
-    pricePerImage: 'pro Bild',
-    pricePerMillion: 'pro Million Tokens',
-    
-    // Balance Display
+
+    // Balance
     balanceRemaining: 'Pollen verbleibend.',
 
-    // Image History
-    imageHistoryTitle: 'Bildhistorie'
+    // Validation
+    noInternetConnection: 'Keine Internetverbindung. Bitte verbinden Sie sich und versuchen Sie es erneut.',
+    invalidDomain: 'Diese Domain scheint keine gültige Instanz zu sein.',
+
+    // Preview
+    previewPlaceholder: 'Ihr generiertes Bild wird hier angezeigt'
   }
 };
 
@@ -258,7 +224,7 @@ class I18n {
     this.currentLanguage = this.loadLanguage();
     this.translations = translations;
   }
-  
+
   loadLanguage() {
     const saved = localStorage.getItem('language');
     if (saved && (saved === 'en' || saved === 'de')) {
@@ -267,7 +233,7 @@ class I18n {
     // Default to English
     return 'en';
   }
-  
+
   setLanguage(lang) {
     if (lang !== 'en' && lang !== 'de') {
       console.error('Unsupported language:', lang);
@@ -277,7 +243,7 @@ class I18n {
     localStorage.setItem('language', lang);
     this.updatePageLanguage();
   }
-  
+
   t(key) {
     const translation = this.translations[this.currentLanguage]?.[key];
     if (!translation) {
@@ -286,7 +252,7 @@ class I18n {
     }
     return translation;
   }
-  
+
   updatePageLanguage() {
     // Update document language
     document.documentElement.lang = this.currentLanguage;
@@ -295,13 +261,7 @@ class I18n {
     document.querySelectorAll('[data-i18n]').forEach(element => {
       const key = element.getAttribute('data-i18n');
       if (key) {
-        // Check if this is an option element with dimensions
-        if (element.tagName === 'OPTION' && element.hasAttribute('data-i18n-dims')) {
-          const dimsKey = element.getAttribute('data-i18n-dims');
-          element.textContent = `${this.t(key)} - ${this.t(dimsKey)}`;
-        } else {
-          element.textContent = this.t(key);
-        }
+        element.textContent = this.t(key);
       }
     });
 
@@ -319,7 +279,7 @@ class I18n {
     // Trigger custom event for components that need to update
     window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: this.currentLanguage } }));
   }
-  
+
   getCurrentLanguage() {
     return this.currentLanguage;
   }
