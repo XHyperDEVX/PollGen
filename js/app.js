@@ -354,6 +354,10 @@ async function generateImage(payload) {
   };
 }
 
+function generateRandomSeed() {
+  return Math.floor(100000 + Math.random() * 900000);
+}
+
 function collectPayload() {
   const form = document.getElementById('generation-form');
   if (!form) return {};
@@ -375,10 +379,11 @@ function collectPayload() {
     payload.height = height;
   }
   
-  const seed = Number(formData.get('seed'));
-  if (!isNaN(seed)) {
-    payload.seed = seed;
+  let seed = Number(formData.get('seed'));
+  if (isNaN(seed) || seed === 0) {
+    seed = generateRandomSeed();
   }
+  payload.seed = seed;
   
   const guidance = Number(formData.get('guidance_scale'));
   if (!isNaN(guidance)) {
