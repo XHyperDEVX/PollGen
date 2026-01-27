@@ -159,6 +159,9 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
 
         .model-badge {
@@ -166,50 +169,27 @@
             height: 16px;
             border-radius: 4px;
             background-color: #ff9d00;
+            flex-shrink: 0;
         }
 
         .select-arrow {
             width: 12px;
             height: 12px;
             color: var(--text-muted);
-        }
-
-        /* Toggle Buttons */
-        .toggle-group {
-            display: flex;
-            gap: 8px;
-        }
-
-        .toggle-btn {
-            flex: 1;
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: all 120ms ease;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .toggle-btn.active {
-            background-color: #3a3a3a;
-            border-color: var(--accent);
-            color: var(--text-primary);
-        }
-
-        .toggle-btn svg {
-            width: 14px;
-            height: 14px;
+            flex-shrink: 0;
         }
 
         /* Slider */
         .slider-container {
             padding: 8px 0;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
         input[type="range"] {
@@ -241,69 +221,85 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
-        /* Grid */
-        .thumbnail-grid {
+        /* Inputs */
+        input[type="text"], 
+        input[type="number"], 
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 120ms ease;
+            appearance: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--accent);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .grid-2 {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* Checkbox Group */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
             gap: 10px;
         }
 
-        .upload-tile {
-            grid-column: span 3;
-            border: 1px dashed var(--border-subtle);
-            border-radius: 8px;
-            padding: 20px;
+        .checkbox-item {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
+            gap: 10px;
             cursor: pointer;
-            transition: all 120ms ease;
+            font-size: 13px;
+            color: var(--text-secondary);
+            user-select: none;
         }
 
-        .upload-tile:hover {
-            background-color: rgba(255,255,255,0.02);
-            border-color: var(--text-muted);
+        .checkbox-item input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
         }
 
-        .upload-icon {
-            width: 24px;
-            height: 24px;
-            color: var(--text-muted);
+        /* API Key Section */
+        .api-key-container {
+            margin-top: auto;
+            padding: 12px;
+            border-top: 1px solid var(--border-subtle);
         }
 
-        .upload-text {
-            font-size: 12px;
-            color: var(--text-primary);
-        }
-
-        .upload-subtext {
+        .balance-box {
             font-size: 11px;
-            color: #2563EB;
+            color: var(--text-muted);
+            margin-bottom: 8px;
         }
 
-        .thumbnail {
-            width: 86px;
-            height: 86px;
-            background-color: #1a1a1a;
-            border-radius: 8px;
-            cursor: pointer;
+        .api-key-wrapper {
             position: relative;
-            overflow: hidden;
         }
 
-        .thumbnail img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .thumbnail:hover::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-color: rgba(0,0,0,0.4);
+        .api-key-wrapper input {
+            padding-right: 32px;
+            font-size: 11px;
+            background: #1a1a1c;
+            border-color: #2a2a2c;
         }
 
         /* Main Canvas */
@@ -402,20 +398,23 @@
 
         .prompt-label {
             font-size: 12px;
+            font-weight: 600;
             color: var(--text-muted);
             margin-right: 12px;
+            white-space: nowrap;
         }
 
-        #prompt-input {
+        #prompt {
             flex: 1;
             background: transparent;
             border: none;
             color: var(--text-primary);
             font-size: 14px;
             outline: none;
+            width: 100%;
         }
 
-        #prompt-input::placeholder {
+        #prompt::placeholder {
             color: var(--text-muted);
         }
 
@@ -425,6 +424,7 @@
             gap: 6px;
             font-size: 11px;
             color: var(--text-muted);
+            white-space: nowrap;
         }
 
         .cost-icon {
@@ -447,6 +447,7 @@
             cursor: pointer;
             transition: all 120ms ease;
             box-shadow: 0 6px 16px rgba(37,99,235,0.2);
+            white-space: nowrap;
         }
 
         .generate-btn:hover:not(:disabled) {
@@ -461,16 +462,16 @@
 
         /* Popovers */
         .popover {
-            position: absolute;
-            bottom: 80px;
-            left: 372px;
-            width: 260px;
+            position: fixed;
             background-color: #252526;
             border-radius: 8px;
             padding: 8px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.6);
             display: none;
             z-index: 100;
+            width: 260px;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .popover.visible {
@@ -502,6 +503,7 @@
             height: 12px;
             border: 1px solid var(--text-secondary);
             border-radius: 2px;
+            flex-shrink: 0;
         }
 
         /* Utility */
@@ -546,6 +548,7 @@
             z-index: 1000;
             display: none;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            max-width: 300px;
         }
         .status-msg.info { background: #3b82f6; display: block; }
         .status-msg.success { background: #10b981; display: block; }
@@ -561,12 +564,12 @@
                 <span class="caret">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
                 </span>
-                <h3>General Settings</h3>
+                <h3 data-i18n="modelLabel">General Settings</h3>
                 <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="panel-content">
                 <div class="form-group">
-                    <label class="form-label">Model</label>
+                    <label class="form-label" data-i18n="modelLabel">Model</label>
                     <div class="custom-select" id="model-select-btn">
                         <div class="select-value">
                             <span class="model-badge"></span>
@@ -576,10 +579,10 @@
                             <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg>
                         </span>
                     </div>
-                    <select id="model" style="display: none;"></select>
+                    <select id="model" name="model" style="display: none;"></select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Aspect Ratio</label>
+                    <label class="form-label" data-i18n="aspectRatioLabel">Aspect Ratio</label>
                     <div class="custom-select" id="aspect-ratio-btn">
                         <div class="select-value">
                             <div class="ratio-icon" style="width: 14px; height: 10px;"></div>
@@ -593,100 +596,116 @@
             </div>
         </div>
 
-        <!-- Panel 2: Content Type -->
-        <div class="panel open" id="panel-content-type">
-            <div class="panel-header" onclick="togglePanel('panel-content-type')">
-                <span class="caret">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
-                </span>
-                <h3>Content Type</h3>
-                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            </div>
-            <div class="panel-content">
-                <div class="toggle-group">
-                    <div class="toggle-btn" id="type-photo">
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                        Photo
-                    </div>
-                    <div class="toggle-btn" id="type-art">
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l5 2"></path><path d="M2 2l2 5"></path></svg>
-                        Art
-                    </div>
-                    <div class="toggle-btn active" id="type-auto">
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                        Auto
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Panel 3: Visual Intensity -->
+        <!-- Panel 2: Visual Intensity -->
         <div class="panel open" id="panel-intensity">
             <div class="panel-header" onclick="togglePanel('panel-intensity')">
                 <span class="caret">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
                 </span>
-                <h3>Visual Intensity</h3>
+                <h3 data-i18n="visualIntensityLabel">Visual Intensity</h3>
                 <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="panel-content">
                 <div class="slider-container">
-                    <input type="range" id="guidance_scale" min="1" max="20" value="7.5" step="0.5">
-                </div>
-            </div>
-        </div>
-
-        <!-- Panel 4: Composition -->
-        <div class="panel" id="panel-composition">
-            <div class="panel-header" onclick="togglePanel('panel-composition')">
-                <span class="caret">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
-                </span>
-                <h3>Composition</h3>
-                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            </div>
-            <div class="panel-content">
-                <div class="thumbnail-grid">
-                    <div class="upload-tile">
-                        <svg class="upload-icon" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        <span class="upload-text">Add Image</span>
-                        <span class="upload-subtext">Search in gallery</span>
+                    <input type="range" id="guidance_scale" name="guidance_scale" min="1" max="20" value="7.5" step="0.5">
+                    <div class="slider-labels">
+                        <span data-i18n="intensityLow">Creative</span>
+                        <span id="guidance-value">7.5</span>
+                        <span data-i18n="intensityHigh">Strict</span>
                     </div>
-                    <!-- Mock thumbnails -->
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/1/86/86" alt=""></div>
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/2/86/86" alt=""></div>
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/3/86/86" alt=""></div>
                 </div>
             </div>
         </div>
 
-        <!-- Panel 5: Styles -->
-        <div class="panel" id="panel-styles">
-            <div class="panel-header" onclick="togglePanel('panel-styles')">
+        <!-- Panel 3: Parameters -->
+        <div class="panel" id="panel-parameters">
+            <div class="panel-header" onclick="togglePanel('panel-parameters')">
                 <span class="caret">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
                 </span>
-                <h3>Styles</h3>
+                <h3 data-i18n="parametersLabel">Parameters</h3>
                 <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="panel-content">
-                <div class="thumbnail-grid">
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/4/86/86" alt=""></div>
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/5/86/86" alt=""></div>
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/6/86/86" alt=""></div>
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/7/86/86" alt=""></div>
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/8/86/86" alt=""></div>
-                    <div class="thumbnail"><img src="https://picsum.photos/seed/9/86/86" alt=""></div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="seedLabel">Seed</label>
+                        <input type="number" id="seed" name="seed" data-i18n-placeholder="seedPlaceholder" placeholder="Random">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="qualityLabel">Quality</label>
+                        <select id="quality" name="quality" style="display: block;">
+                            <option value="">Default</option>
+                            <option value="standard">Standard</option>
+                            <option value="hd">HD</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div style="margin-top: auto; padding: 12px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-subtle);">
-            <div id="balance-display" class="hidden">
+        <!-- Panel 4: Refinement -->
+        <div class="panel" id="panel-refinement">
+            <div class="panel-header" onclick="togglePanel('panel-refinement')">
+                <span class="caret">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
+                </span>
+                <h3 data-i18n="refinementLabel">Refinement</h3>
+                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </div>
+            <div class="panel-content">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="negativePromptLabel">Negative Prompt</label>
+                    <textarea id="negative_prompt" name="negative_prompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="What to exclude..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 5: Advanced Options -->
+        <div class="panel" id="panel-advanced">
+            <div class="panel-header" onclick="togglePanel('panel-advanced')">
+                <span class="caret">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
+                </span>
+                <h3 data-i18n="advancedLabel">Advanced Options</h3>
+                <svg class="panel-info-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </div>
+            <div class="panel-content">
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="enhance" name="enhance">
+                        <span data-i18n="enhanceLabel">Enhance Prompt</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="private" name="private">
+                        <span data-i18n="privateLabel">Private Mode</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="nologo" name="nologo">
+                        <span data-i18n="nologoLabel">No Watermark</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="nofeed" name="nofeed">
+                        <span data-i18n="nofeedLabel">No Public Feed</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="safe" name="safe">
+                        <span data-i18n="safeLabel">Safety Filter</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="transparent" name="transparent">
+                        <span data-i18n="transparentLabel">Transparent BG</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-key-container">
+            <div id="balance-display" class="balance-box hidden">
                 <span id="balance-text">0.000 pollen remaining.</span>
             </div>
-            <div class="api-key-section" style="margin-top: 8px;">
-                <input type="password" id="api-key" placeholder="API Key" style="width: 100%; background: var(--input-bg); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 8px; font-size: 10px; color: white;">
+            <div class="api-key-wrapper">
+                <input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key">
             </div>
         </div>
     </aside>
@@ -698,7 +717,7 @@
                 <div class="empty-icon">
                     <svg viewBox="0 0 24 24" width="32" height="32" stroke="white" stroke-width="2" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 </div>
-                <h2>Generate Images Now</h2>
+                <h2 data-i18n="pageTitle">Generate Images Now</h2>
                 <p>Describe your desired image in the prompt field. Get inspired by the gallery or <a href="#">learn more about prompting</a>.</p>
             </div>
 
@@ -714,8 +733,8 @@
         <!-- Prompt Bar -->
         <div class="prompt-bar">
             <div class="prompt-input-wrapper">
-                <span class="prompt-label">Prompt</span>
-                <input type="text" id="prompt" placeholder="Describe the image you want to generate">
+                <span class="prompt-label" data-i18n="promptLabel">Prompt</span>
+                <input type="text" id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate">
             </div>
             <div class="cost-display">
                 <svg class="cost-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"></path></svg>
@@ -723,7 +742,7 @@
             </div>
             <button class="generate-btn" id="generate-btn">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
-                Generate Image
+                <span data-i18n="generateBtn">Generate Image</span>
             </button>
         </div>
 
@@ -771,7 +790,7 @@
             </div>
         </div>
 
-        <div class="popover" id="model-popover" style="max-height: 400px; overflow-y: auto;">
+        <div class="popover" id="model-popover">
             <!-- Will be populated by JS -->
         </div>
     </main>
@@ -781,12 +800,6 @@
     <form id="generation-form" style="display: none;">
         <input type="hidden" name="width" id="width" value="1366">
         <input type="hidden" name="height" id="height" value="1025">
-        <input type="checkbox" id="enhance">
-        <input type="checkbox" id="private">
-        <input type="checkbox" id="nologo">
-        <input type="checkbox" id="nofeed">
-        <input type="checkbox" id="safe">
-        <input type="checkbox" id="transparent">
     </form>
 
     <script>
@@ -797,28 +810,43 @@
         // Initialize aspect ratio popover
         const aspectBtn = document.getElementById('aspect-ratio-btn');
         const aspectPopover = document.getElementById('aspect-ratio-popover');
+        
+        function positionPopover(btn, popover) {
+            const rect = btn.getBoundingClientRect();
+            popover.style.left = rect.left + 'px';
+            popover.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+        }
+
         aspectBtn.onclick = (e) => {
             e.stopPropagation();
-            aspectPopover.classList.toggle('visible');
-            modelPopover.classList.remove('visible');
+            const isVisible = aspectPopover.classList.contains('visible');
+            document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
+            if (!isVisible) {
+                aspectPopover.classList.add('visible');
+                positionPopover(aspectBtn, aspectPopover);
+            }
         };
 
         const modelBtn = document.getElementById('model-select-btn');
         const modelPopover = document.getElementById('model-popover');
         modelBtn.onclick = (e) => {
             e.stopPropagation();
-            modelPopover.classList.toggle('visible');
-            aspectPopover.classList.remove('visible');
+            const isVisible = modelPopover.classList.contains('visible');
+            document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
+            if (!isVisible) {
+                modelPopover.classList.add('visible');
+                positionPopover(modelBtn, modelPopover);
+            }
         };
 
         document.onclick = () => {
-            aspectPopover.classList.remove('visible');
-            modelPopover.classList.remove('visible');
+            document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
         };
 
         aspectPopover.querySelectorAll('.popover-item').forEach(item => {
-            item.onclick = () => {
-                aspectPopover.querySelector('.selected').classList.remove('selected');
+            item.onclick = (e) => {
+                e.stopPropagation();
+                aspectPopover.querySelector('.selected')?.classList.remove('selected');
                 item.classList.add('selected');
                 document.getElementById('current-ratio-label').textContent = item.textContent.trim();
                 document.getElementById('width').value = item.dataset.w;
@@ -828,14 +856,7 @@
                 const btnIcon = aspectBtn.querySelector('.ratio-icon');
                 btnIcon.style.width = item.querySelector('.ratio-icon').style.width;
                 btnIcon.style.height = item.querySelector('.ratio-icon').style.height;
-            };
-        });
-
-        // Content type toggles
-        document.querySelectorAll('.toggle-btn').forEach(btn => {
-            btn.onclick = () => {
-                btn.parentElement.querySelector('.active').classList.remove('active');
-                btn.classList.add('active');
+                aspectPopover.classList.remove('visible');
             };
         });
     </script>

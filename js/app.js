@@ -345,38 +345,44 @@ function generateRandomSeed() {
 }
 
 function collectPayload() {
-  const form = document.getElementById('generation-form');
   const promptInput = document.getElementById('prompt');
-  if (!form || !promptInput) return {};
+  const modelInput = document.getElementById('model');
+  const widthInput = document.getElementById('width');
+  const heightInput = document.getElementById('height');
+  const seedInput = document.getElementById('seed');
+  const qualityInput = document.getElementById('quality');
+  const guidanceInput = document.getElementById('guidance_scale');
+  const negativePromptInput = document.getElementById('negative_prompt');
   
-  const formData = new FormData(form);
-  let prompt = promptInput.value.trim();
-
-  // Add content type to prompt if not Auto
-  const activeType = document.querySelector('.toggle-btn.active');
-  if (activeType && activeType.id === 'type-photo') {
-      prompt += ', photo';
-  } else if (activeType && activeType.id === 'type-art') {
-      prompt += ', art';
-  }
-
+  if (!promptInput) return {};
+  
   const payload = {
-    prompt: prompt,
-    model: (formData.get('model') || '').toString()
+    prompt: promptInput.value.trim(),
+    model: modelInput ? modelInput.value : ''
   };
   
-  const width = Number(document.getElementById('width').value);
-  if (!isNaN(width) && width > 0) payload.width = width;
-  const height = Number(document.getElementById('height').value);
-  if (!isNaN(height) && height > 0) payload.height = height;
+  if (widthInput) payload.width = Number(widthInput.value);
+  if (heightInput) payload.height = Number(heightInput.value);
   
-  let seed = generateRandomSeed();
-  payload.seed = seed;
+  if (seedInput && seedInput.value.trim() !== "") {
+      payload.seed = Number(seedInput.value);
+  } else {
+      payload.seed = generateRandomSeed();
+  }
   
-  const guidance = Number(document.getElementById('guidance_scale').value);
-  if (!isNaN(guidance)) payload.guidance_scale = guidance;
+  if (qualityInput && qualityInput.value) {
+      payload.quality = qualityInput.value;
+  }
   
-  // Boolean flags from hidden form
+  if (guidanceInput) {
+      payload.guidance_scale = Number(guidanceInput.value);
+  }
+  
+  if (negativePromptInput && negativePromptInput.value.trim()) {
+      payload.negative_prompt = negativePromptInput.value.trim();
+  }
+  
+  // Boolean flags
   ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
@@ -415,9 +421,9 @@ function toggleLoading(isLoading) {
   if (generateBtn) {
     generateBtn.disabled = isLoading;
     if (isLoading) {
-        generateBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> Generating...';
+        generateBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> <span data-i18n="statusGenerating">Generating...</span>';
     } else {
-        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg> Generate Image';
+        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg> <span data-i18n="generateBtn">Generate Image</span>';
     }
   }
   
@@ -530,6 +536,14 @@ function setupEventListeners() {
             generateBtn.click();
         }
     });
+  }
+
+  const guidanceScale = document.getElementById('guidance_scale');
+  const guidanceValue = document.getElementById('guidance-value');
+  if (guidanceScale && guidanceValue) {
+      guidanceScale.addEventListener('input', () => {
+          guidanceValue.textContent = guidanceScale.value;
+      });
   }
 }
 
