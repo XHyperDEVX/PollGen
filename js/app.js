@@ -292,7 +292,7 @@ function updateCostDisplay(model) {
   const costText = document.getElementById('cost-text');
   if (costText) {
     const price = formatModelPrice(model);
-    costText.textContent = `Costs ${price}`;
+    costText.textContent = i18n.t('costsLabel', price);
   }
 }
 
@@ -419,7 +419,7 @@ function toggleLoading(isLoading) {
     if (isLoading) {
         generateBtn.innerHTML = '<div class="spinner"></div>';
     } else {
-        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg> <span data-i18n="generateBtn">Generate Image</span>';
+        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg> <span data-i18n="generateBtn">Generate Image</span>';
     }
   }
 }
@@ -429,7 +429,6 @@ function createPlaceholderCard(genId, prompt) {
     card.className = 'image-card';
     card.id = `gen-card-${genId}`;
     
-    // Determine aspect ratio for placeholder from hidden inputs
     const w = Number(document.getElementById('width').value) || 1024;
     const h = Number(document.getElementById('height').value) || 1024;
     const ratio = (h / w) * 100;
@@ -439,9 +438,6 @@ function createPlaceholderCard(genId, prompt) {
         <div class="image-card-overlay">
             <button class="overlay-btn download-btn hidden" title="Download">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
-            </button>
-            <button class="overlay-btn menu-btn" title="More">
-                <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>
             </button>
         </div>
     `;
@@ -458,10 +454,10 @@ function displayResultInCard(genId, data) {
     
     const img = new Image();
     img.src = data.imageData;
+    img.onclick = () => openLightbox(data.imageData);
     img.onload = () => {
         placeholder.remove();
         card.insertBefore(img, overlay);
-        // Force reflow for transition
         img.offsetHeight;
         img.classList.add('loaded');
         downloadBtn.classList.remove('hidden');
@@ -469,22 +465,35 @@ function displayResultInCard(genId, data) {
             e.stopPropagation();
             downloadImage(data.imageData, `pollgen-${genId}.png`);
         };
+        addThumbnailToMiniView(genId, data.imageData);
+    };
+}
 
-        const menuBtn = card.querySelector('.menu-btn');
-        if (menuBtn) {
-            menuBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (confirm(i18n.getCurrentLanguage() === 'de' ? 'Bild löschen?' : 'Delete this image?')) {
-                    card.remove();
-                    const galleryFeed = document.getElementById('gallery-feed');
-                    const emptyState = document.getElementById('placeholder');
-                    if (galleryFeed && galleryFeed.children.length === 0 && emptyState) {
-                        emptyState.style.display = 'block';
-                    }
-                }
-            };
+function openLightbox(src) {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-image');
+    if (lightbox && lightboxImg) {
+        lightboxImg.src = src;
+        lightbox.classList.remove('hidden');
+    }
+}
+
+function addThumbnailToMiniView(genId, src) {
+    const miniView = document.getElementById('mini-view');
+    if (!miniView) return;
+    
+    miniView.classList.add('visible');
+    const thumb = document.createElement('img');
+    thumb.className = 'mini-thumb';
+    thumb.src = src;
+    thumb.onclick = () => {
+        const card = document.getElementById(`gen-card-${genId}`);
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     };
+    miniView.appendChild(thumb);
+    miniView.scrollLeft = miniView.scrollWidth;
 }
 
 async function downloadImage(url, filename) {
@@ -501,7 +510,6 @@ async function downloadImage(url, filename) {
         URL.revokeObjectURL(blobUrl);
     } catch (e) {
         console.error("Download failed", e);
-        // Fallback to opening in new tab
         window.open(url, '_blank');
     }
 }
@@ -595,7 +603,6 @@ function setupEventListeners() {
       });
   }
 
-  // Handle language change event
   window.addEventListener('languageChanged', () => {
       renderModelOptions(state.models);
       if (state.apiKey) updateBalance(state.apiKey);
@@ -609,7 +616,6 @@ function setupEventListeners() {
 function init() {
   i18n.updatePageLanguage();
   
-  // Set initial language button state
   const lang = i18n.getCurrentLanguage();
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
   const activeBtn = document.getElementById(`lang-${lang}`);

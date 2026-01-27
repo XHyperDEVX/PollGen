@@ -56,6 +56,7 @@ const translations = {
 
     // Balance
     balanceRemaining: 'pollen remaining.',
+    costsLabel: 'Costs %s Pollen',
   },
   de: {
     // Page
@@ -109,6 +110,7 @@ const translations = {
 
     // Balance
     balanceRemaining: 'Pollen verbleibend.',
+    costsLabel: 'Kostet %s Pollen',
   }
 };
 
@@ -128,11 +130,14 @@ class I18n {
     }
   }
 
-  t(key) {
-    const translation = this.translations[this.currentLanguage]?.[key];
+  t(key, replacement = null) {
+    let translation = this.translations[this.currentLanguage]?.[key];
     if (!translation) {
       console.warn(`Translation missing for key: ${key}`);
       return key;
+    }
+    if (replacement !== null) {
+        translation = translation.replace('%s', replacement);
     }
     return translation;
   }
