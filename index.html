@@ -7,7 +7,7 @@
     <style>
         :root {
             --sidebar-bg: #1f1f21;
-            --canvas-bg: #2f2f31; /* Gray background as requested */
+            --canvas-bg: #2f2f31;
             --panel-bg: #242427;
             --input-bg: #1e1e1e;
             --text-primary: #FFFFFF;
@@ -52,20 +52,10 @@
             z-index: 20;
         }
 
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: var(--sidebar-bg); }
+        .sidebar::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
 
-        .sidebar::-webkit-scrollbar-track {
-            background: var(--sidebar-bg);
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: #3a3a3a;
-            border-radius: 3px;
-        }
-
-        /* Panels */
         .panel {
             background-color: var(--panel-bg);
             border-radius: 12px;
@@ -83,9 +73,7 @@
             border-bottom: 1px solid transparent;
         }
 
-        .panel.open .panel-header {
-            border-bottom: 1px solid var(--border-subtle);
-        }
+        .panel.open .panel-header { border-bottom: 1px solid var(--border-subtle); }
 
         .panel-header h3 {
             font-size: 14px;
@@ -104,34 +92,13 @@
             justify-content: center;
         }
 
-        .panel.open .caret {
-            transform: rotate(90deg);
-        }
+        .panel.open .caret { transform: rotate(90deg); }
 
-        .panel-content {
-            padding: 16px;
-            display: none;
-        }
+        .panel-content { padding: 16px; display: none; }
+        .panel.open .panel-content { display: block; }
 
-        .panel.open .panel-content {
-            display: block;
-        }
-
-        /* Form Elements */
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group:last-child {
-            margin-bottom: 0;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
 
         .custom-select {
             background-color: var(--input-bg);
@@ -146,9 +113,7 @@
             transition: border-color 120ms ease;
         }
 
-        .custom-select:hover {
-            border-color: #4a4a4c;
-        }
+        .custom-select:hover { border-color: #4a4a4c; }
 
         .select-value {
             font-size: 13px;
@@ -160,653 +125,88 @@
             text-overflow: ellipsis;
         }
 
-        .model-badge {
-            width: 18px;
-            height: 18px;
-            border-radius: 4px;
-            background-color: #ff9d00;
-            flex-shrink: 0;
-        }
+        .model-badge { width: 18px; height: 18px; border-radius: 4px; background-color: #ff9d00; flex-shrink: 0; }
+        .select-arrow { width: 12px; height: 12px; color: var(--text-muted); flex-shrink: 0; }
 
-        .select-arrow {
-            width: 12px;
-            height: 12px;
-            color: var(--text-muted);
-            flex-shrink: 0;
-        }
+        .slider-container { padding: 8px 0; }
+        .slider-labels { display: flex; justify-content: space-between; margin-top: 12px; font-size: 11px; color: var(--text-muted); }
 
-        /* Slider */
-        .slider-container {
-            padding: 8px 0;
-        }
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #3a3a3a; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb { height: 18px; width: 18px; border-radius: 50%; background: #ffffff; cursor: pointer; -webkit-appearance: none; margin-top: -7px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
 
-        .slider-labels {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 12px;
-            font-size: 11px;
-            color: var(--text-muted);
+        input[type="text"], input[type="number"], input[type="password"], select, textarea {
+            width: 100%; background-color: var(--input-bg); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 12px; color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none; transition: border-color 120ms ease; appearance: none;
         }
+        input:focus, textarea:focus { border-color: var(--accent); }
 
-        input[type="range"] {
-            width: 100%;
-            -webkit-appearance: none;
-            background: transparent;
-        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .checkbox-group { display: flex; flex-direction: column; gap: 12px; }
+        .checkbox-item { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none; }
+        .checkbox-item input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
 
-        input[type="range"]:focus {
-            outline: none;
-        }
+        .language-toggle { display: flex; justify-content: flex-end; padding: 8px; gap: 8px; }
+        .lang-btn { background: #1a1a1c; border: 1px solid #2a2a2c; color: var(--text-muted); border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; transition: all 120ms ease; }
+        .lang-btn.active { color: var(--text-primary); border-color: var(--accent); background: rgba(37,99,235,0.1); }
 
-        input[type="range"]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: #3a3a3a;
-            border-radius: 2px;
-        }
+        .api-key-container { margin-top: auto; padding: 16px 12px; border-top: 1px solid var(--border-subtle); }
+        .balance-box { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; text-align: center; }
 
-        input[type="range"]::-webkit-slider-thumb {
-            height: 18px;
-            width: 18px;
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-            -webkit-appearance: none;
-            margin-top: -7px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-        }
+        .canvas { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: var(--canvas-bg); }
+        .canvas-workspace { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 60px 24px; overflow-y: auto; scroll-behavior: smooth; }
+        .canvas-workspace::-webkit-scrollbar { width: 8px; }
+        .canvas-workspace::-webkit-scrollbar-thumb { background: #4a4a4c; border-radius: 4px; }
 
-        /* Inputs */
-        input[type="text"], 
-        input[type="number"], 
-        input[type="password"],
-        select,
-        textarea {
-            width: 100%;
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            padding: 10px 12px;
-            color: var(--text-primary);
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 120ms ease;
-            appearance: none;
-        }
+        .empty-state { text-align: center; max-width: 400px; margin: auto; }
+        .empty-icon { width: 80px; height: 80px; margin: 0 auto 32px; background: linear-gradient(135deg, #ff9d00, #ff00ff); border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px rgba(255, 157, 0, 0.3); }
 
-        input:focus, textarea:focus {
-            border-color: var(--accent);
-        }
+        .gallery-feed { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 40px; padding-bottom: 40px; }
 
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
+        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 30px 60px rgba(0,0,0,0.6); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
+        .image-card img { width: 100%; height: auto; max-height: 85vh; object-fit: contain; display: block; border-radius: 16px; opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .image-card img.loaded { opacity: 1; }
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
+        .image-card-overlay { position: absolute; top: 20px; right: 20px; display: flex; gap: 12px; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease; transform: translateY(-10px); pointer-events: none; }
+        .image-card:hover .image-card-overlay { opacity: 1; transform: translateY(0); }
+        .overlay-btn { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); color: white; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: auto; }
 
-        /* Checkbox Group */
-        .checkbox-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+        .mini-view { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 10px; background: rgba(31, 31, 33, 0.8); backdrop-filter: blur(20px); border-radius: 16px; max-width: 70%; overflow-x: auto; z-index: 25; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5); visibility: hidden; opacity: 0; transition: all 0.3s; }
+        .mini-view.visible { visibility: visible; opacity: 1; }
+        .mini-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; flex-shrink: 0; }
+        .mini-thumb:hover { border-color: var(--accent); transform: translateY(-4px); }
 
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            font-size: 13px;
-            color: var(--text-secondary);
-            user-select: none;
-        }
+        .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 40px; cursor: zoom-out; }
+        .lightbox-content img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 0 50px rgba(0,0,0,0.5); cursor: default; }
 
-        .checkbox-item input {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: var(--accent);
-        }
-
-        /* Language Toggle */
-        .language-toggle {
-            display: flex;
-            justify-content: flex-end;
-            padding: 8px;
-            gap: 8px;
-        }
-
-        .lang-btn {
-            background: #1a1a1c;
-            border: 1px solid #2a2a2c;
-            color: var(--text-muted);
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 120ms ease;
-        }
-
-        .lang-btn.active {
-            color: var(--text-primary);
-            border-color: var(--accent);
-            background: rgba(37,99,235,0.1);
-        }
-
-        /* API Key Section */
-        .api-key-container {
-            margin-top: auto;
-            padding: 16px 12px;
-            border-top: 1px solid var(--border-subtle);
-        }
-
-        .balance-box {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .api-key-wrapper input {
-            font-size: 11px;
-            background: #1a1a1c;
-            border-color: #2a2a2c;
-            text-align: center;
-        }
-
-        /* Main Canvas */
-        .canvas {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-            background-color: var(--canvas-bg);
-        }
-
-        .canvas-workspace {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 60px 24px;
-            overflow-y: auto;
-            scroll-behavior: smooth;
-        }
-
-        .canvas-workspace::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .canvas-workspace::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .canvas-workspace::-webkit-scrollbar-thumb {
-            background: #4a4a4c;
-            border-radius: 4px;
-        }
-
-        .empty-state {
-            text-align: center;
-            max-width: 400px;
-            margin: auto;
-        }
-
-        .empty-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 32px;
-            background: linear-gradient(135deg, #ff9d00, #ff00ff);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 12px 32px rgba(255, 157, 0, 0.3);
-        }
-
-        .empty-state h2 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #fff;
-        }
-
-        .empty-state p {
-            font-size: 15px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-
-        .empty-state a {
-            color: var(--accent);
-            text-decoration: none;
-            border-bottom: 1px solid rgba(37,99,235,0.3);
-            transition: border-color 0.2s;
-        }
-
-        .empty-state a:hover {
-            border-bottom-color: var(--accent);
-        }
-
-        /* Gallery Feed */
-        .gallery-feed {
-            width: 100%;
-            max-width: 1200px; /* Wider for full screen effect */
-            display: flex;
-            flex-direction: column;
-            gap: 40px;
-            padding-bottom: 40px;
-        }
-
-        .image-card {
-            width: 100%;
-            position: relative;
+        .noise-placeholder { 
+            width: 100%; aspect-ratio: 16/9; background-color: #2a2a2c; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; 
             border-radius: 16px;
-            overflow: hidden;
-            background: #1a1a1c;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-            transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1);
-            cursor: pointer;
         }
+        .noise-placeholder::before { content: ""; position: absolute; inset: -100%; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); opacity: 0.08; animation: noise 0.2s infinite steps(2); }
+        @keyframes noise { 0% { transform: translate(0, 0); } 10% { transform: translate(-5%, -5%); } 20% { transform: translate(-10%, 5%); } 30% { transform: translate(5%, -10%); } 40% { transform: translate(-5%, 15%); } 50% { transform: translate(-10%, 5%); } 60% { transform: translate(15%, 0); } 70% { transform: translate(0, 10%); } 80% { transform: translate(-15%, 0); } 90% { transform: translate(10%, 5%); } 100% { transform: translate(5%, 0); } }
+        .noise-placeholder::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(37,99,235,0.1), rgba(0,0,0,0.4)); animation: pulse 3s infinite ease-in-out; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.05); } }
 
-        .image-card:hover {
-            transform: scale(1.005);
-        }
+        .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: flex-end; gap: 20px; z-index: 30; }
+        .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-end; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
+        .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+        .prompt-label { font-size: 11px; font-weight: 700; color: var(--accent); margin-right: 16px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
 
-        .image-card img {
-            width: 100%;
-            height: auto;
-            max-height: 90vh; /* Scale down to fit viewport */
-            object-fit: contain;
-            display: block;
-            border-radius: 16px;
-            opacity: 0;
-            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: hidden; }
+        #prompt::placeholder { color: #6a6a6c; }
 
-        .image-card img.loaded {
-            opacity: 1;
-        }
+        .generate-btn { height: 52px; padding: 0 32px; background: linear-gradient(135deg, var(--accent) 0%, #1D4ED8 100%); color: white; border: none; border-radius: 26px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 20px rgba(37,99,235,0.3); white-space: nowrap; }
+        .generate-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 24px rgba(37,99,235,0.4); filter: brightness(1.1); }
+        .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(0.5); transform: none !important; }
 
-        .image-card-overlay {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 12px;
-            opacity: 0;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            transform: translateY(-10px);
-            pointer-events: none;
-        }
+        .popover { position: fixed; background-color: #252526; border-radius: 12px; padding: 10px; box-shadow: 0 12px 48px rgba(0,0,0,0.7); display: none; z-index: 100; width: 280px; border: 1px solid rgba(255,255,255,0.1); }
+        .popover.visible { display: block; }
+        .popover-item { padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; color: var(--text-secondary); }
+        .popover-item:hover { background-color: #303033; color: #fff; }
+        .popover-item.selected { background-color: rgba(37,99,235,0.15); color: #fff; font-weight: 500; }
 
-        .image-card:hover .image-card-overlay {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .overlay-btn {
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: white;
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: auto;
-        }
-
-        .overlay-btn:hover {
-            background: rgba(0, 0, 0, 0.9);
-            transform: scale(1.1);
-            border-color: var(--accent);
-        }
-
-        .overlay-btn svg {
-            width: 20px;
-            height: 20px;
-            stroke-width: 2;
-        }
-
-        /* Mini View */
-        .mini-view {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(31, 31, 33, 0.8);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
-            max-width: 70%;
-            overflow-x: auto;
-            z-index: 25;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            visibility: hidden;
-            opacity: 0;
-            transition: all 0.3s;
-        }
-        .mini-view.visible {
-            visibility: visible;
-            opacity: 1;
-        }
-        .mini-view::-webkit-scrollbar {
-            height: 4px;
-        }
-        .mini-view::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.2);
-            border-radius: 2px;
-        }
-        .mini-thumb {
-            width: 60px;
-            height: 60px;
-            border-radius: 8px;
-            object-fit: cover;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-        .mini-thumb:hover {
-            border-color: var(--accent);
-            transform: translateY(-4px);
-        }
-
-        /* Lightbox */
-        .lightbox {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            cursor: zoom-out;
-        }
-        .lightbox-content {
-            position: relative;
-            max-width: 100%;
-            max-height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .lightbox-content img {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 8px;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            cursor: default;
-        }
-        .lightbox-close {
-            position: absolute;
-            top: -40px;
-            right: -40px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 40px;
-            cursor: pointer;
-            line-height: 1;
-        }
-
-        /* Static Noise Placeholder */
-        .noise-placeholder {
-            width: 100%;
-            aspect-ratio: 16/9;
-            background-color: #2a2a2c;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .noise-placeholder::before {
-            content: "";
-            position: absolute;
-            inset: -100%;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-            opacity: 0.08;
-            animation: noise 0.2s infinite steps(2);
-        }
-
-        @keyframes noise {
-            0% { transform: translate(0, 0); }
-            10% { transform: translate(-5%, -5%); }
-            20% { transform: translate(-10%, 5%); }
-            30% { transform: translate(5%, -10%); }
-            40% { transform: translate(-5%, 15%); }
-            50% { transform: translate(-10%, 5%); }
-            60% { transform: translate(15%, 0); }
-            70% { transform: translate(0, 10%); }
-            80% { transform: translate(-15%, 0); }
-            90% { transform: translate(10%, 5%); }
-            100% { transform: translate(5%, 0); }
-        }
-
-        .noise-placeholder::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at center, transparent, rgba(0,0,0,0.6));
-            animation: pulse 2s infinite ease-in-out;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 0.8; }
-        }
-
-        /* Prompt Bar */
-        .prompt-bar {
-            height: 80px;
-            background-color: #1a1a1c;
-            border-top: 1px solid var(--border-subtle);
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            z-index: 30;
-        }
-
-        .prompt-input-wrapper {
-            flex: 1;
-            height: 52px;
-            background-color: #2a2a2c;
-            border-radius: 26px;
-            display: flex;
-            align-items: center;
-            padding: 0 24px;
-            border: 1px solid #3a3a3c;
-            transition: all 0.3s ease;
-        }
-
-        .prompt-input-wrapper:focus-within {
-            border-color: var(--accent);
-            background-color: #303033;
-            box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
-        }
-
-        .prompt-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--accent);
-            margin-right: 16px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            white-space: nowrap;
-        }
-
-        #prompt {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: var(--text-primary);
-            font-size: 15px;
-            outline: none;
-            width: 100%;
-            padding: 0;
-        }
-
-        #prompt::placeholder {
-            color: #6a6a6c;
-        }
-
-        .cost-display {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            color: var(--text-muted);
-            white-space: nowrap;
-            background: rgba(255,255,255,0.03);
-            padding: 6px 12px;
-            border-radius: 12px;
-        }
-
-        .generate-btn {
-            height: 52px;
-            padding: 0 32px;
-            background: linear-gradient(135deg, var(--accent) 0%, #1D4ED8 100%);
-            color: white;
-            border: none;
-            border-radius: 26px;
-            font-weight: 700;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 8px 20px rgba(37,99,235,0.3);
-            white-space: nowrap;
-        }
-
-        .generate-btn:hover:not(:disabled) {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 12px 24px rgba(37,99,235,0.4);
-            filter: brightness(1.1);
-        }
-
-        .generate-btn:active:not(:disabled) {
-            transform: translateY(0) scale(0.98);
-        }
-
-        .generate-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            filter: grayscale(0.5);
-            transform: none !important;
-        }
-
-        /* Popovers */
-        .popover {
-            position: fixed;
-            background-color: #252526;
-            border-radius: 12px;
-            padding: 10px;
-            box-shadow: 0 12px 48px rgba(0,0,0,0.7);
-            display: none;
-            z-index: 100;
-            width: 280px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .popover.visible {
-            display: block;
-        }
-
-        .popover-item {
-            padding: 10px 14px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .popover-item:hover {
-            background-color: #303033;
-            color: #fff;
-        }
-
-        .popover-item.selected {
-            background-color: rgba(37,99,235,0.15);
-            color: #fff;
-            font-weight: 500;
-        }
-
-        .ratio-icon {
-            border: 1.5px solid currentColor;
-            border-radius: 3px;
-            flex-shrink: 0;
-            opacity: 0.7;
-        }
-
-        .popover-item.selected .ratio-icon {
-            opacity: 1;
-            border-color: var(--accent);
-        }
-
-        /* Utility */
-        .hidden { display: none !important; }
-
-        .spinner {
-            width: 24px;
-            height: 24px;
-            border: 3px solid rgba(255,255,255,0.2);
-            border-top: 3px solid white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .status-msg {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            padding: 16px 24px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 500;
-            z-index: 1000;
-            display: none;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-            max-width: 320px;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(50px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
+        .status-msg { position: fixed; top: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; z-index: 1000; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-width: 400px; animation: slideIn 0.3s ease-out; word-break: break-word; }
+        @keyframes slideIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .status-msg.info { background: #2563EB; color: white; display: block; }
         .status-msg.success { background: #059669; color: white; display: block; }
         .status-msg.error { background: #DC2626; color: white; display: block; }
@@ -819,175 +219,105 @@
             <button class="lang-btn active" id="lang-en" onclick="changeLanguage('en')">EN</button>
             <button class="lang-btn" id="lang-de" onclick="changeLanguage('de')">DE</button>
         </div>
-        <!-- Panel 1: General Settings -->
         <div class="panel open" id="panel-general">
             <div class="panel-header" onclick="togglePanel('panel-general')">
-                <span class="caret">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
-                </span>
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="modelLabel">General Settings</h3>
             </div>
             <div class="panel-content">
                 <div class="form-group">
                     <label class="form-label" data-i18n="modelLabel">Model</label>
                     <div class="custom-select" id="model-select-btn">
-                        <div class="select-value">
-                            <span class="model-badge"></span>
-                            <span id="current-model-name">Loading models...</span>
-                        </div>
-                        <span class="select-arrow">
-                            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg>
-                        </span>
+                        <div class="select-value"><span class="model-badge"></span><span id="current-model-name">Loading models...</span></div>
+                        <span class="select-arrow"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg></span>
                     </div>
                     <select id="model" name="model" style="display: none;"></select>
                 </div>
                 <div class="form-group">
                     <label class="form-label" data-i18n="aspectRatioLabel">Aspect Ratio</label>
                     <div class="custom-select" id="aspect-ratio-btn">
-                        <div class="select-value">
-                            <div class="ratio-icon" style="width: 14px; height: 10px;"></div>
-                            <span id="current-ratio-label">Landscape (4:3)</span>
-                        </div>
-                        <span class="select-arrow">
-                            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg>
-                        </span>
+                        <div class="select-value"><div class="ratio-icon" style="width: 14px; height: 10px;"></div><span id="current-ratio-label">Landscape (4:3)</span></div>
+                        <span class="select-arrow"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg></span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Panel 2: Visual Intensity -->
         <div class="panel open" id="panel-intensity">
             <div class="panel-header" onclick="togglePanel('panel-intensity')">
-                <span class="caret">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
-                </span>
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="visualIntensityLabel">Visual Intensity</h3>
             </div>
             <div class="panel-content">
                 <div class="slider-container">
                     <input type="range" id="guidance_scale" name="guidance_scale" min="1" max="20" value="7.5" step="0.5">
-                    <div class="slider-labels">
-                        <span data-i18n="intensityLow">Creative</span>
-                        <span id="guidance-value">7.5</span>
-                        <span data-i18n="intensityHigh">Strict</span>
-                    </div>
+                    <div class="slider-labels"><span data-i18n="intensityLow">Creative</span><span id="guidance-value">7.5</span><span data-i18n="intensityHigh">Strict</span></div>
                 </div>
             </div>
         </div>
 
-        <!-- Panel 3: Parameters -->
         <div class="panel" id="panel-parameters">
             <div class="panel-header" onclick="togglePanel('panel-parameters')">
-                <span class="caret">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
-                </span>
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="parametersLabel">Parameters</h3>
             </div>
             <div class="panel-content">
                 <div class="grid-2">
-                    <div class="form-group">
-                        <label class="form-label" data-i18n="seedLabel">Seed</label>
-                        <input type="number" id="seed" name="seed" data-i18n-placeholder="seedPlaceholder" placeholder="Random">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" data-i18n="qualityLabel">Quality</label>
-                        <select id="quality" name="quality" style="display: block;">
-                            <option value="">Default</option>
-                            <option value="standard">Standard</option>
-                            <option value="hd" selected>HD</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label class="form-label" data-i18n="seedLabel">Seed</label><input type="number" id="seed" name="seed" data-i18n-placeholder="seedPlaceholder" placeholder="Random"></div>
+                    <div class="form-group"><label class="form-label" data-i18n="qualityLabel">Quality</label><select id="quality" name="quality"><option value="">Default</option><option value="standard">Standard</option><option value="hd" selected>HD</option></select></div>
                 </div>
             </div>
         </div>
 
-        <!-- Panel 4: Refinement -->
         <div class="panel" id="panel-refinement">
             <div class="panel-header" onclick="togglePanel('panel-refinement')">
-                <span class="caret">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
-                </span>
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="refinementLabel">Refinement</h3>
             </div>
             <div class="panel-content">
-                <div class="form-group">
-                    <label class="form-label" data-i18n="negativePromptLabel">Negative Prompt</label>
-                    <textarea id="negative_prompt" name="negative_prompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="What to exclude..."></textarea>
-                </div>
+                <div class="form-group"><label class="form-label" data-i18n="negativePromptLabel">Negative Prompt</label><textarea id="negative_prompt" name="negative_prompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="What to exclude..."></textarea></div>
             </div>
         </div>
 
-        <!-- Panel 5: Advanced Options -->
         <div class="panel" id="panel-advanced">
             <div class="panel-header" onclick="togglePanel('panel-advanced')">
-                <span class="caret">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg>
-                </span>
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="advancedLabel">Advanced Options</h3>
             </div>
             <div class="panel-content">
                 <div class="checkbox-group">
-                    <label class="checkbox-item">
-                        <input type="checkbox" id="enhance" name="enhance">
-                        <span data-i18n="enhanceLabel">Enhance Prompt</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <input type="checkbox" id="private" name="private" checked>
-                        <span data-i18n="privateLabel">Private Mode</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <input type="checkbox" id="nologo" name="nologo" checked>
-                        <span data-i18n="nologoLabel">No Watermark</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <input type="checkbox" id="nofeed" name="nofeed" checked>
-                        <span data-i18n="nofeedLabel">No Public Feed</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <input type="checkbox" id="safe" name="safe">
-                        <span data-i18n="safeLabel">Safety Filter</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <input type="checkbox" id="transparent" name="transparent">
-                        <span data-i18n="transparentLabel">Transparent BG</span>
-                    </label>
+                    <label class="checkbox-item"><input type="checkbox" id="enhance" name="enhance"><span data-i18n="enhanceLabel">Enhance Prompt</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="private" name="private" checked><span data-i18n="privateLabel">Private Mode</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="nologo" name="nologo" checked><span data-i18n="nologoLabel">No Watermark</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="nofeed" name="nofeed" checked><span data-i18n="nofeedLabel">No Public Feed</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="safe" name="safe"><span data-i18n="safeLabel">Safety Filter</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="transparent" name="transparent"><span data-i18n="transparentLabel">Transparent BG</span></label>
                 </div>
             </div>
         </div>
 
         <div class="api-key-container">
-            <div id="balance-display" class="balance-box hidden">
-                <span id="balance-text">0.000 pollen remaining.</span>
-            </div>
-            <div class="api-key-wrapper">
-                <input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password">
-            </div>
+            <div id="balance-display" class="balance-box hidden"><span id="balance-text">0.000 pollen remaining.</span></div>
+            <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
         </div>
     </aside>
 
     <main class="canvas">
         <div class="canvas-workspace" id="canvas-workspace">
-            <!-- Empty State -->
             <div class="empty-state" id="placeholder">
-                <div class="empty-icon">
-                    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg>
-                </div>
+                <div class="empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg></div>
                 <h2 data-i18n="pageTitle">Generate Images Now</h2>
                 <p>Describe your desired image in the prompt field. Get inspired by the gallery or <a href="#">learn more about prompting</a>.</p>
             </div>
-
             <div class="gallery-feed" id="gallery-feed"></div>
         </div>
 
-        <!-- Mini Thumbnail View -->
         <div class="mini-view" id="mini-view"></div>
 
-        <!-- Prompt Bar -->
         <div class="prompt-bar">
             <div class="prompt-input-wrapper">
                 <span class="prompt-label" data-i18n="promptLabel">Prompt</span>
-                <input type="text" id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate">
+                <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="1"></textarea>
             </div>
             <div class="cost-display">
                 <svg class="cost-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"></path></svg>
@@ -999,117 +329,46 @@
             </button>
         </div>
 
-        <!-- Popovers -->
         <div class="popover" id="aspect-ratio-popover">
-            <div class="popover-item" data-ratio="21:9" data-w="2394" data-h="1026">
-                <div class="ratio-icon" style="width: 20px; height: 8px;"></div>
-                Ultra-wide (21:9)
-            </div>
-            <div class="popover-item" data-ratio="16:9" data-w="1824" data-h="1026">
-                <div class="ratio-icon" style="width: 18px; height: 10px;"></div>
-                Widescreen (16:9)
-            </div>
-            <div class="popover-item" data-ratio="5:4" data-w="1280" data-h="1024">
-                <div class="ratio-icon" style="width: 14px; height: 11px;"></div>
-                Classic (5:4)
-            </div>
-            <div class="popover-item selected" data-ratio="4:3" data-w="1366" data-h="1025">
-                <div class="ratio-icon" style="width: 14px; height: 10px;"></div>
-                Landscape (4:3)
-            </div>
-            <div class="popover-item" data-ratio="3:2" data-w="1536" data-h="1024">
-                <div class="ratio-icon" style="width: 15px; height: 10px;"></div>
-                Wide (3:2)
-            </div>
-            <div class="popover-item" data-ratio="1:1" data-w="1024" data-h="1024">
-                <div class="ratio-icon" style="width: 12px; height: 12px;"></div>
-                Square (1:1)
-            </div>
-            <div class="popover-item" data-ratio="4:5" data-w="1024" data-h="1280">
-                <div class="ratio-icon" style="width: 10px; height: 13px;"></div>
-                Standard (4:5)
-            </div>
-            <div class="popover-item" data-ratio="3:4" data-w="1025" data-h="1366">
-                <div class="ratio-icon" style="width: 10px; height: 14px;"></div>
-                Portrait (3:4)
-            </div>
-            <div class="popover-item" data-ratio="2:3" data-w="1024" data-h="1536">
-                <div class="ratio-icon" style="width: 10px; height: 15px;"></div>
-                Tall (2:3)
-            </div>
-            <div class="popover-item" data-ratio="9:16" data-w="1026" data-h="1824">
-                <div class="ratio-icon" style="width: 8px; height: 20px;"></div>
-                Vertical (9:16)
-            </div>
+            <div class="popover-item" data-ratio="21:9" data-w="2394" data-h="1026"><div class="ratio-icon" style="width: 20px; height: 8px;"></div>Ultra-wide (21:9)</div>
+            <div class="popover-item" data-ratio="16:9" data-w="1824" data-h="1026"><div class="ratio-icon" style="width: 18px; height: 10px;"></div>Widescreen (16:9)</div>
+            <div class="popover-item" data-ratio="5:4" data-w="1280" data-h="1024"><div class="ratio-icon" style="width: 14px; height: 11px;"></div>Classic (5:4)</div>
+            <div class="popover-item selected" data-ratio="4:3" data-w="1366" data-h="1025"><div class="ratio-icon" style="width: 14px; height: 10px;"></div>Landscape (4:3)</div>
+            <div class="popover-item" data-ratio="3:2" data-w="1536" data-h="1024"><div class="ratio-icon" style="width: 15px; height: 10px;"></div>Wide (3:2)</div>
+            <div class="popover-item" data-ratio="1:1" data-w="1024" data-h="1024"><div class="ratio-icon" style="width: 12px; height: 12px;"></div>Square (1:1)</div>
+            <div class="popover-item" data-ratio="4:5" data-w="1024" data-h="1280"><div class="ratio-icon" style="width: 10px; height: 13px;"></div>Standard (4:5)</div>
+            <div class="popover-item" data-ratio="3:4" data-w="1025" data-h="1366"><div class="ratio-icon" style="width: 10px; height: 14px;"></div>Portrait (3:4)</div>
+            <div class="popover-item" data-ratio="2:3" data-w="1024" data-h="1536"><div class="ratio-icon" style="width: 10px; height: 15px;"></div>Tall (2:3)</div>
+            <div class="popover-item" data-ratio="9:16" data-w="1026" data-h="1824"><div class="ratio-icon" style="width: 8px; height: 20px;"></div>Vertical (9:16)</div>
         </div>
-
-        <div class="popover" id="model-popover">
-            <!-- Will be populated by JS -->
-        </div>
-
-        <!-- Lightbox -->
+        <div class="popover" id="model-popover"></div>
         <div id="lightbox" class="lightbox hidden" onclick="this.classList.add('hidden')">
-            <div class="lightbox-content" onclick="event.stopPropagation()">
-                <img id="lightbox-image" src="" alt="Full size image">
-                <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.add('hidden')">&times;</button>
-            </div>
+            <div class="lightbox-content" onclick="event.stopPropagation()"><img id="lightbox-image" src="" alt="Full size image"></div>
         </div>
     </main>
 
     <div id="status" class="status-msg"></div>
-
-    <form id="generation-form" style="display: none;">
-        <input type="hidden" name="width" id="width" value="1366">
-        <input type="hidden" name="height" id="height" value="1025">
-    </form>
+    <form id="generation-form" style="display: none;"><input type="hidden" name="width" id="width" value="1366"><input type="hidden" name="height" id="height" value="1025"></form>
 
     <script>
-        function togglePanel(id) {
-            document.getElementById(id).classList.toggle('open');
-        }
+        function togglePanel(id) { document.getElementById(id).classList.toggle('open'); }
+        function changeLanguage(lang) { i18n.setLanguage(lang); document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active')); document.getElementById(`lang-${lang}`).classList.add('active'); }
 
-        function changeLanguage(lang) {
-            i18n.setLanguage(lang);
-            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`lang-${lang}`).classList.add('active');
-        }
-
-        // Initialize aspect ratio popover
         const aspectBtn = document.getElementById('aspect-ratio-btn');
         const aspectPopover = document.getElementById('aspect-ratio-popover');
-        
+        const modelBtn = document.getElementById('model-select-btn');
+        const modelPopover = document.getElementById('model-popover');
+
         function positionPopover(btn, popover) {
             const rect = btn.getBoundingClientRect();
             popover.style.left = rect.left + 'px';
             popover.style.top = (rect.bottom + 8) + 'px';
-            popover.style.bottom = 'auto'; // Ensure it doesn't open upwards
+            popover.style.bottom = 'auto';
         }
 
-        aspectBtn.onclick = (e) => {
-            e.stopPropagation();
-            const isVisible = aspectPopover.classList.contains('visible');
-            document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
-            if (!isVisible) {
-                aspectPopover.classList.add('visible');
-                positionPopover(aspectBtn, aspectPopover);
-            }
-        };
-
-        const modelBtn = document.getElementById('model-select-btn');
-        const modelPopover = document.getElementById('model-popover');
-        modelBtn.onclick = (e) => {
-            e.stopPropagation();
-            const isVisible = modelPopover.classList.contains('visible');
-            document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
-            if (!isVisible) {
-                modelPopover.classList.add('visible');
-                positionPopover(modelBtn, modelPopover);
-            }
-        };
-
-        document.onclick = () => {
-            document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
-        };
+        aspectBtn.onclick = (e) => { e.stopPropagation(); const isVisible = aspectPopover.classList.contains('visible'); document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); if (!isVisible) { aspectPopover.classList.add('visible'); positionPopover(aspectBtn, aspectPopover); } };
+        modelBtn.onclick = (e) => { e.stopPropagation(); const isVisible = modelPopover.classList.contains('visible'); document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); if (!isVisible) { modelPopover.classList.add('visible'); positionPopover(modelBtn, modelPopover); } };
+        document.onclick = () => { document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); };
 
         aspectPopover.querySelectorAll('.popover-item').forEach(item => {
             item.onclick = (e) => {
@@ -1119,8 +378,6 @@
                 document.getElementById('current-ratio-label').textContent = item.textContent.trim();
                 document.getElementById('width').value = item.dataset.w;
                 document.getElementById('height').value = item.dataset.h;
-                
-                // Update icon in button
                 const btnIcon = aspectBtn.querySelector('.ratio-icon');
                 btnIcon.style.width = item.querySelector('.ratio-icon').style.width;
                 btnIcon.style.height = item.querySelector('.ratio-icon').style.height;

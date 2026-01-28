@@ -193,7 +193,7 @@ function formatModelPrice(model) {
   const pricing = model.pricing || {};
   let completionTokens = pricing.completionImageTokens || pricing.completion || 0;
   if (typeof completionTokens === 'string') completionTokens = parseFloat(completionTokens);
-  if (!completionTokens || completionTokens === 0) return '0 pollen';
+  if (!completionTokens || completionTokens === 0) return '0';
   
   let priceStr;
   if (completionTokens < 0.000001) priceStr = completionTokens.toExponential(2);
@@ -201,7 +201,7 @@ function formatModelPrice(model) {
   else if (completionTokens < 1) priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
   else priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
   
-  return `${priceStr} pollen`;
+  return priceStr;
 }
 
 function renderModelOptions(models) {
@@ -237,7 +237,7 @@ function renderModelOptions(models) {
     if (model.name === previousValue) item.classList.add('selected');
     
     let label = name;
-    if (price) label += ` - ${price}`;
+    if (price !== '0') label += ` - ${price} pollen`;
     
     item.innerHTML = `
       <div class="model-badge" style="background-color: ${stringToColor(name)}"></div>
@@ -326,7 +326,7 @@ async function generateImage(payload) {
   
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`${i18n.t('errorGeneration')}: ${response.status} - ${errorText}`);
+    throw new Error(parseErrorMessage(errorText, response.status));
   }
   
   const blob = await response.blob();
@@ -338,6 +338,20 @@ async function generateImage(payload) {
     contentType: blob.type,
     sourceUrl: url
   };
+}
+
+function parseErrorMessage(text, status) {
+    try {
+        const json = JSON.parse(text);
+        let msg = json.error?.message || json.message || text;
+        if (typeof msg === 'string' && msg.startsWith('{')) {
+            const inner = JSON.parse(msg);
+            msg = inner.message || inner.error || msg;
+        }
+        return `${i18n.t('errorGeneration')}: ${status} - ${msg}`;
+    } catch (e) {
+        return `${i18n.t('errorGeneration')}: ${status} - ${text}`;
+    }
 }
 
 function generateRandomSeed() {
@@ -382,7 +396,6 @@ function collectPayload() {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
   
-  // Boolean flags
   ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
@@ -424,7 +437,7 @@ function toggleLoading(isLoading) {
   }
 }
 
-function createPlaceholderCard(genId, prompt) {
+function createPlaceholderCard(genId) {
     const card = document.createElement('div');
     card.className = 'image-card';
     card.id = `gen-card-${genId}`;
@@ -520,6 +533,13 @@ function addToImageHistory(historyItem) {
   if (state.imageHistory.length > 18) state.imageHistory.pop();
 }
 
+function adjustPromptHeight() {
+    const prompt = document.getElementById('prompt');
+    if (!prompt) return;
+    prompt.style.height = 'auto';
+    prompt.style.height = prompt.scrollHeight + 'px';
+}
+
 // ============================================================================
 // EVENT HANDLERS
 // ============================================================================
@@ -562,11 +582,17 @@ function setupEventListeners() {
       }
 
       const genId = Date.now();
-      const card = createPlaceholderCard(genId, payload.prompt);
+      const card = createPlaceholderCard(genId);
       
       if (emptyState) emptyState.style.display = 'none';
       galleryFeed.appendChild(card);
-      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      
+      // Extended scroll logic to ensure it hits bottom
+      setTimeout(() => {
+          card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          const scrollContainer = document.getElementById('canvas-workspace');
+          if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }, 50);
 
       toggleLoading(true);
       setStatus('', '');
@@ -588,9 +614,18 @@ function setupEventListeners() {
 
   const promptInput = document.getElementById('prompt');
   if (promptInput) {
+    promptInput.addEventListener('input', adjustPromptHeight);
     promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.ctrlKey) {
+            e.preventDefault();
             generateBtn.click();
+        } else if (e.key === 'Enter' && e.ctrlKey) {
+            // New line on Ctrl+Enter
+            const start = promptInput.selectionStart;
+            const end = promptInput.selectionEnd;
+            promptInput.value = promptInput.value.substring(0, start) + "\n" + promptInput.value.substring(end);
+            promptInput.selectionStart = promptInput.selectionEnd = start + 1;
+            adjustPromptHeight();
         }
     });
   }
@@ -629,6 +664,7 @@ function init() {
   }
   setupEventListeners();
   loadModels();
+  adjustPromptHeight();
 }
 
 if (document.readyState === 'loading') {

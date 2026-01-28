@@ -57,6 +57,7 @@ const translations = {
     // Balance
     balanceRemaining: 'pollen remaining.',
     costsLabel: 'Costs %s Pollen',
+    deleteConfirm: 'Delete this image?',
   },
   de: {
     // Page
@@ -111,6 +112,7 @@ const translations = {
     // Balance
     balanceRemaining: 'Pollen verbleibend.',
     costsLabel: 'Kostet %s Pollen',
+    deleteConfirm: 'Bild löschen?',
   }
 };
 
