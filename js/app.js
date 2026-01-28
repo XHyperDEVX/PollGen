@@ -252,7 +252,7 @@ function renderModelOptions(models) {
     if (model.name === previousValue) item.classList.add('selected');
     
     let label = name;
-    if (price !== '0') label += ` - ${price}`;
+    if (price !== '0') label += ` - ${price} Pollen`;
     
     item.innerHTML = `
       <div class="model-badge" style="background-color: ${stringToColor(name)}"></div>
@@ -446,9 +446,9 @@ function toggleLoading(isLoading) {
   if (generateBtn) {
     generateBtn.disabled = isLoading;
     if (isLoading) {
-        generateBtn.innerHTML = '<div class="spinner"></div>';
+        generateBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div> <span data-i18n="generateBtn">' + i18n.t('generateBtn') + '</span>';
     } else {
-        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg> <span data-i18n="generateBtn">Generate Image</span>';
+        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg> <span data-i18n="generateBtn">' + i18n.t('generateBtn') + '</span>';
     }
   }
 }
@@ -476,7 +476,7 @@ function createPlaceholderCard(genId) {
     const grid = document.createElement('div');
     grid.className = 'mini-pulse';
     
-    const cols = 48; 
+    const cols = 40; 
     const rows = Math.round(cols * (h / w));
     grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
@@ -724,9 +724,13 @@ function setupEventListeners() {
         if (e.key === 'Enter' && !e.ctrlKey) {
             e.preventDefault();
             generateBtn.click();
-        } else if (e.key === 'Enter' && e.ctrlKey) {
-            // New line logic for textarea already handled by default but we force height adjustment
-            setTimeout(adjustPromptHeight, 0);
+        } else if ((e.key === 'Enter' || e.key === '.') && e.ctrlKey) {
+            e.preventDefault();
+            const start = promptInput.selectionStart;
+            const end = promptInput.selectionEnd;
+            promptInput.value = promptInput.value.substring(0, start) + "\n" + promptInput.value.substring(end);
+            promptInput.selectionStart = promptInput.selectionEnd = start + 1;
+            adjustPromptHeight();
         }
     });
   }

@@ -168,7 +168,7 @@
 
         .gallery-feed { width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; gap: 40px; padding-bottom: 40px; }
 
-        .image-card { width: fit-content; max-width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 30px 60px rgba(0,0,0,0.6); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
+        .image-card { width: fit-content; max-width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
         .image-card img { width: auto; height: auto; max-width: 100%; max-height: 85vh; object-fit: contain; display: block; border-radius: 16px; opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .image-card img.loaded { opacity: 1; }
 
@@ -193,7 +193,7 @@
         .lightbox.zoomed img { transform: scale(2.5); cursor: move; }
 
         .noise-placeholder { 
-            width: 100%; aspect-ratio: 16/9; background-color: #2a2a2c; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; 
+            width: 100%; background-color: #2a2a2a; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; 
             border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
         .mini-pulse {
@@ -231,7 +231,7 @@
         .popover-item.selected { background-color: rgba(37,99,235,0.15); color: #fff; font-weight: 500; }
 
         .ratio-icon-container { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .ratio-icon { border: 1.5px solid currentColor; border-radius: 2px; opacity: 0.8; }
+        .ratio-icon { border: 2px solid currentColor; border-radius: 2px; opacity: 0.8; }
 
         .status-msg { position: fixed; top: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; z-index: 1000; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-width: 400px; animation: slideIn 0.3s ease-out; word-break: break-word; }
         @keyframes slideIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -409,10 +409,12 @@
                 document.getElementById('current-ratio-label').textContent = item.textContent.trim();
                 document.getElementById('width').value = item.dataset.w;
                 document.getElementById('height').value = item.dataset.h;
+                
                 const btnIcon = document.getElementById('current-ratio-icon');
                 const itemIcon = item.querySelector('.ratio-icon');
                 btnIcon.style.width = itemIcon.style.width;
                 btnIcon.style.height = itemIcon.style.height;
+                
                 aspectPopover.classList.remove('visible');
             };
         });
