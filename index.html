@@ -168,8 +168,8 @@
 
         .gallery-feed { width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; gap: 40px; padding-bottom: 40px; }
 
-        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 30px 60px rgba(0,0,0,0.6); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
-        .image-card img { width: 100%; height: auto; max-height: 85vh; object-fit: contain; display: block; border-radius: 16px; opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .image-card { width: fit-content; max-width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 30px 60px rgba(0,0,0,0.6); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
+        .image-card img { width: auto; height: auto; max-width: 100%; max-height: 85vh; object-fit: contain; display: block; border-radius: 16px; opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .image-card img.loaded { opacity: 1; }
 
         .image-card-overlay { position: absolute; top: 20px; right: 20px; display: flex; gap: 12px; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease; transform: translateY(-10px); pointer-events: none; }
@@ -190,10 +190,10 @@
             user-select: none;
             object-fit: contain;
         }
-        .lightbox.zoomed img { transform: scale(2.5); cursor: zoom-out; }
+        .lightbox.zoomed img { transform: scale(2.5); cursor: move; }
 
         .noise-placeholder { 
-            width: 100%; background-color: #2a2a2a; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; 
+            width: 100%; aspect-ratio: 16/9; background-color: #2a2a2c; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; 
             border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
         .mini-pulse {
@@ -210,7 +210,7 @@
             50% { background-color: rgba(192, 192, 192, 0.08); }
         }
 
-        .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: flex-end; gap: 20px; z-index: 30; }
+        .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: center; gap: 20px; z-index: 30; }
         .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-end; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
         .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
         .prompt-label { font-size: 11px; font-weight: 700; color: var(--accent); margin-right: 16px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
@@ -218,7 +218,7 @@
         #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: hidden; display: block; }
         #prompt::placeholder { color: #6a6a6c; }
 
-        .cost-display { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 12px; }
+        .cost-display { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 12px; height: fit-content; }
 
         .generate-btn { height: 52px; padding: 0 32px; background: linear-gradient(135deg, var(--accent) 0%, #1D4ED8 100%); color: white; border: none; border-radius: 26px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 20px rgba(37,99,235,0.3); white-space: nowrap; }
         .generate-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 24px rgba(37,99,235,0.4); filter: brightness(1.1); }
@@ -229,6 +229,9 @@
         .popover-item { padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; color: var(--text-secondary); }
         .popover-item:hover { background-color: #303033; color: #fff; }
         .popover-item.selected { background-color: rgba(37,99,235,0.15); color: #fff; font-weight: 500; }
+
+        .ratio-icon-container { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ratio-icon { border: 1.5px solid currentColor; border-radius: 2px; opacity: 0.8; }
 
         .status-msg { position: fixed; top: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; z-index: 1000; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-width: 400px; animation: slideIn 0.3s ease-out; word-break: break-word; }
         @keyframes slideIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -261,7 +264,7 @@
                 <div class="form-group">
                     <label class="form-label" data-i18n="aspectRatioLabel">Aspect Ratio</label>
                     <div class="custom-select" id="aspect-ratio-btn">
-                        <div class="select-value"><div class="ratio-icon" style="width: 14px; height: 10px;"></div><span id="current-ratio-label">Landscape (4:3)</span></div>
+                        <div class="select-value"><div class="ratio-icon-container"><div class="ratio-icon" id="current-ratio-icon" style="width: 14px; height: 10px;"></div></div><span id="current-ratio-label">Landscape (4:3)</span></div>
                         <span class="select-arrow"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg></span>
                     </div>
                 </div>
@@ -356,16 +359,16 @@
         </div>
 
         <div class="popover" id="aspect-ratio-popover">
-            <div class="popover-item" data-ratio="21:9" data-w="2394" data-h="1026"><div class="ratio-icon" style="width: 20px; height: 8px;"></div>Ultra-wide (21:9)</div>
-            <div class="popover-item" data-ratio="16:9" data-w="1824" data-h="1026"><div class="ratio-icon" style="width: 18px; height: 10px;"></div>Widescreen (16:9)</div>
-            <div class="popover-item" data-ratio="5:4" data-w="1280" data-h="1024"><div class="ratio-icon" style="width: 14px; height: 11px;"></div>Classic (5:4)</div>
-            <div class="popover-item selected" data-ratio="4:3" data-w="1366" data-h="1025"><div class="ratio-icon" style="width: 14px; height: 10px;"></div>Landscape (4:3)</div>
-            <div class="popover-item" data-ratio="3:2" data-w="1536" data-h="1024"><div class="ratio-icon" style="width: 15px; height: 10px;"></div>Wide (3:2)</div>
-            <div class="popover-item" data-ratio="1:1" data-w="1024" data-h="1024"><div class="ratio-icon" style="width: 12px; height: 12px;"></div>Square (1:1)</div>
-            <div class="popover-item" data-ratio="4:5" data-w="1024" data-h="1280"><div class="ratio-icon" style="width: 10px; height: 13px;"></div>Standard (4:5)</div>
-            <div class="popover-item" data-ratio="3:4" data-w="1025" data-h="1366"><div class="ratio-icon" style="width: 10px; height: 14px;"></div>Portrait (3:4)</div>
-            <div class="popover-item" data-ratio="2:3" data-w="1024" data-h="1536"><div class="ratio-icon" style="width: 10px; height: 15px;"></div>Tall (2:3)</div>
-            <div class="popover-item" data-ratio="9:16" data-w="1026" data-h="1824"><div class="ratio-icon" style="width: 8px; height: 20px;"></div>Vertical (9:16)</div>
+            <div class="popover-item" data-ratio="21:9" data-w="2394" data-h="1026"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 20px; height: 9px;"></div></div>Ultra-wide (21:9)</div>
+            <div class="popover-item" data-ratio="16:9" data-w="1824" data-h="1026"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 18px; height: 10px;"></div></div>Widescreen (16:9)</div>
+            <div class="popover-item" data-ratio="5:4" data-w="1280" data-h="1024"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 14px; height: 11px;"></div></div>Classic (5:4)</div>
+            <div class="popover-item selected" data-ratio="4:3" data-w="1366" data-h="1025"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 14px; height: 10px;"></div></div>Landscape (4:3)</div>
+            <div class="popover-item" data-ratio="3:2" data-w="1536" data-h="1024"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 15px; height: 10px;"></div></div>Wide (3:2)</div>
+            <div class="popover-item" data-ratio="1:1" data-w="1024" data-h="1024"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 12px; height: 12px;"></div></div>Square (1:1)</div>
+            <div class="popover-item" data-ratio="4:5" data-w="1024" data-h="1280"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 10px; height: 13px;"></div></div>Standard (4:5)</div>
+            <div class="popover-item" data-ratio="3:4" data-w="1025" data-h="1366"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 10px; height: 14px;"></div></div>Portrait (3:4)</div>
+            <div class="popover-item" data-ratio="2:3" data-w="1024" data-h="1536"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 10px; height: 15px;"></div></div>Tall (2:3)</div>
+            <div class="popover-item" data-ratio="9:16" data-w="1026" data-h="1824"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 8px; height: 18px;"></div></div>Vertical (9:16)</div>
         </div>
         <div class="popover" id="model-popover"></div>
         <div id="lightbox" class="lightbox hidden" onclick="this.classList.remove('zoomed'); this.classList.add('hidden');">
@@ -406,9 +409,10 @@
                 document.getElementById('current-ratio-label').textContent = item.textContent.trim();
                 document.getElementById('width').value = item.dataset.w;
                 document.getElementById('height').value = item.dataset.h;
-                const btnIcon = aspectBtn.querySelector('.ratio-icon');
-                btnIcon.style.width = item.querySelector('.ratio-icon').style.width;
-                btnIcon.style.height = item.querySelector('.ratio-icon').style.height;
+                const btnIcon = document.getElementById('current-ratio-icon');
+                const itemIcon = item.querySelector('.ratio-icon');
+                btnIcon.style.width = itemIcon.style.width;
+                btnIcon.style.height = itemIcon.style.height;
                 aspectPopover.classList.remove('visible');
             };
         });
