@@ -12,7 +12,7 @@ const translations = {
     // API Key
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'Enter your Pollinations API key',
-    apiKeyHint: 'Get your API key from <a href="https://pollinations.ai" target="_blank">pollinations</a>',
+    apiKeyHint: 'Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
     apiKeyStored: 'API key saved',
     apiKeyMissing: 'Please enter your API key',
 
@@ -68,7 +68,7 @@ const translations = {
     // API Key
     apiKeyLabel: 'API-Schlüssel',
     apiKeyPlaceholder: 'Geben Sie Ihren Pollinations-API-Schlüssel ein',
-    apiKeyHint: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://pollinations.ai" target="_blank">pollinations</a>',
+    apiKeyHint: 'Holen dir einen API-Schlüssel von <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
     apiKeyStored: 'API-Schlüssel gespeichert',
     apiKeyMissing: 'Bitte geben Sie Ihren API-Schlüssel ein',
 

@@ -43,7 +43,10 @@ async function updateBalance(apiKey) {
   
   if (!apiKey || !apiKey.trim()) {
     if (balanceDisplay) balanceDisplay.classList.add('hidden');
-    if (apiKeyHint) apiKeyHint.classList.remove('hidden');
+    if (apiKeyHint) {
+        apiKeyHint.classList.remove('hidden');
+        apiKeyHint.innerHTML = i18n.t('apiKeyHint');
+    }
     return;
   }
 
@@ -57,9 +60,10 @@ async function updateBalance(apiKey) {
       }
     });
     
-    if (response.status === 401) {
+    if (response.status === 403 || response.status === 401) {
        const data = await response.json();
-       if (data.error?.code === 'UNAUTHORIZED' || data.code === 'UNAUTHORIZED') {
+       const errorMsg = data.error?.message || data.message || "";
+       if (errorMsg.includes('account:balance') || data.error?.code === 'UNAUTHORIZED' || data.code === 'UNAUTHORIZED') {
            if (balanceDisplay && balanceText) {
                balanceText.textContent = i18n.t('balancePermissionError');
                balanceDisplay.classList.remove('hidden');
@@ -248,7 +252,7 @@ function renderModelOptions(models) {
     if (model.name === previousValue) item.classList.add('selected');
     
     let label = name;
-    if (price !== '0') label += ` - ${price} pollen`;
+    if (price !== '0') label += ` - ${price} Pollen`;
     
     item.innerHTML = `
       <div class="model-badge" style="background-color: ${stringToColor(name)}"></div>
@@ -407,6 +411,7 @@ function collectPayload() {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
   
+  // Boolean flags
   ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
@@ -662,7 +667,7 @@ function setupEventListeners() {
 
   window.addEventListener('languageChanged', () => {
       renderModelOptions(state.models);
-      if (state.apiKey) updateBalance(state.apiKey);
+      updateBalance(state.apiKey);
   });
 }
 
