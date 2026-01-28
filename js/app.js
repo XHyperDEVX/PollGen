@@ -39,17 +39,18 @@ function formatBalanceDisplay(balance) {
 async function updateBalance(apiKey) {
   const balanceDisplay = document.getElementById('balance-display');
   const balanceText = document.getElementById('balance-text');
-  const apiKeyInfo = document.querySelector('.api-key-info');
+  const apiKeyHint = document.getElementById('api-key-hint');
   
   if (!apiKey || !apiKey.trim()) {
-    if (balanceDisplay) {
-      balanceDisplay.classList.add('hidden');
-    }
-    if (apiKeyInfo) {
-      apiKeyInfo.classList.remove('hidden');
+    if (balanceDisplay) balanceDisplay.classList.add('hidden');
+    if (apiKeyHint) {
+        apiKeyHint.classList.remove('hidden');
+        apiKeyHint.innerHTML = i18n.t('apiKeyHint');
     }
     return;
   }
+
+  if (apiKeyHint) apiKeyHint.classList.add('hidden');
   
   try {
     const response = await fetch('https://gen.pollinations.ai/account/balance', {
@@ -59,14 +60,20 @@ async function updateBalance(apiKey) {
       }
     });
     
+    if (response.status === 403 || response.status === 401) {
+       const data = await response.json();
+       const errorMsg = data.error?.message || data.message || "";
+       if (errorMsg.includes('account:balance') || data.error?.code === 'UNAUTHORIZED' || data.code === 'UNAUTHORIZED') {
+           if (balanceDisplay && balanceText) {
+               balanceText.textContent = i18n.t('balancePermissionError');
+               balanceDisplay.classList.remove('hidden');
+           }
+           return;
+       }
+    }
+
     if (!response.ok) {
-      // Silently hide display on API failure
-      if (balanceDisplay) {
-        balanceDisplay.classList.add('hidden');
-      }
-      if (apiKeyInfo) {
-        apiKeyInfo.classList.remove('hidden');
-      }
+      if (balanceDisplay) balanceDisplay.classList.add('hidden');
       return;
     }
     
@@ -83,28 +90,15 @@ async function updateBalance(apiKey) {
       if (balanceDisplay) {
         balanceDisplay.classList.remove('hidden');
       }
-      
-      // Hide the API key info when balance is displayed
-      if (apiKeyInfo) {
-        apiKeyInfo.classList.add('hidden');
-      }
     } else {
-      // Silently hide display if balance is invalid
       if (balanceDisplay) {
         balanceDisplay.classList.add('hidden');
       }
-      if (apiKeyInfo) {
-        apiKeyInfo.classList.remove('hidden');
-      }
     }
   } catch (error) {
-    // Silently hide display on network errors
     console.log('Balance API call failed:', error.message);
     if (balanceDisplay) {
       balanceDisplay.classList.add('hidden');
-    }
-    if (apiKeyInfo) {
-      apiKeyInfo.classList.remove('hidden');
     }
   }
 }
@@ -161,13 +155,12 @@ async function fetchModelsFromAPI() {
     }
     const data = await response.json();
     
-    // Filter for image models only (exclude video models)
+    // Filter for image models only
     const imageModels = data.filter(model => {
       const modalities = model.output_modalities || [];
       return modalities.includes('image') && !modalities.includes('video');
     });
     
-    // Cache the models
     localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify(imageModels));
     localStorage.setItem(MODELS_CACHE_TIMESTAMP_KEY, Date.now().toString());
     
@@ -182,17 +175,9 @@ function getCachedModels() {
   try {
     const cached = localStorage.getItem(MODELS_CACHE_KEY);
     const timestamp = localStorage.getItem(MODELS_CACHE_TIMESTAMP_KEY);
-    
-    if (!cached || !timestamp) {
-      return null;
-    }
-    
+    if (!cached || !timestamp) return null;
     const age = Date.now() - parseInt(timestamp, 10);
-    if (age > CACHE_DURATION_MS) {
-      // Cache expired
-      return null;
-    }
-    
+    if (age > CACHE_DURATION_MS) return null;
     return JSON.parse(cached);
   } catch (error) {
     console.error('Error reading cached models:', error);
@@ -202,23 +187,19 @@ function getCachedModels() {
 
 async function loadModels() {
   setStatus(i18n.t('modelLoading'), 'info');
-  
   try {
-    // Try to fetch from API
     const models = await fetchModelsFromAPI();
     state.models = models;
     renderModelOptions(models);
-    setStatus('', ''); // Clear status message
+    setStatus('', '');
   } catch (error) {
-    // If API fetch fails, try cache
     const cached = getCachedModels();
     if (cached && cached.length > 0) {
       state.models = cached;
       renderModelOptions(cached);
-      setStatus('', ''); // Clear status message
+      setStatus('', '');
     } else {
       setStatus(i18n.t('modelLoadError'), 'error');
-      console.error('No cached models available');
     }
   }
 }
@@ -226,81 +207,107 @@ async function loadModels() {
 function formatModelPrice(model) {
   const pricing = model.pricing || {};
   let completionTokens = pricing.completionImageTokens || pricing.completion || 0;
+  if (typeof completionTokens === 'string') completionTokens = parseFloat(completionTokens);
+  if (!completionTokens || completionTokens === 0) return '0';
   
-  // Handle different pricing formats
-  if (typeof completionTokens === 'string') {
-    completionTokens = parseFloat(completionTokens);
-  }
-  
-  if (!completionTokens || completionTokens === 0) {
-    return '0 pollen';
-  }
-  
-  // Format the number appropriately
   let priceStr;
-  if (completionTokens < 0.000001) {
-    priceStr = completionTokens.toExponential(2);
-  } else if (completionTokens < 0.01) {
-    priceStr = completionTokens.toFixed(6).replace(/\.?0+$/, '');
-  } else if (completionTokens < 1) {
-    priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
-  } else {
-    priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
-  }
+  if (completionTokens < 0.000001) priceStr = completionTokens.toExponential(2);
+  else if (completionTokens < 0.01) priceStr = completionTokens.toFixed(6).replace(/\.?0+$/, '');
+  else if (completionTokens < 1) priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
+  else priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
   
-  return `${priceStr} pollen`;
+  return priceStr;
 }
 
 function renderModelOptions(models) {
   const select = document.getElementById('model');
-  if (!select) return;
+  const modelPopover = document.getElementById('model-popover');
+  const currentModelName = document.getElementById('current-model-name');
+  if (!select || !modelPopover) return;
   
   const previousValue = select.value;
   select.innerHTML = '';
+  modelPopover.innerHTML = '';
   
-  // Add placeholder option
-  const placeholderOption = document.createElement('option');
-  placeholderOption.value = '';
-  placeholderOption.textContent = i18n.t('modelPlaceholder');
-  placeholderOption.disabled = true;
-  placeholderOption.selected = true;
-  select.appendChild(placeholderOption);
-  
-  // Sort models by price (cheapest first)
   const sortedModels = [...models].sort((a, b) => {
     let priceA = a.pricing?.completionImageTokens || a.pricing?.completion || 0;
     let priceB = b.pricing?.completionImageTokens || b.pricing?.completion || 0;
-    
-    // Handle string prices
     if (typeof priceA === 'string') priceA = parseFloat(priceA) || 0;
     if (typeof priceB === 'string') priceB = parseFloat(priceB) || 0;
-    
     return priceA - priceB;
   });
   
   sortedModels.forEach(model => {
-    const option = document.createElement('option');
-    option.value = model.name;
-    
     const name = model.name || 'Unknown';
     const description = model.description || model.name || '';
     const price = formatModelPrice(model);
     
-    // Format: "Model Name - price"
-    let label = name;
-    if (price) {
-      label += ` - ${price}`;
-    }
-    
-    option.textContent = label;
-    // Always set tooltip with description (or name if no description)
-    option.title = description || name;
+    const option = document.createElement('option');
+    option.value = model.name;
+    option.textContent = name;
     select.appendChild(option);
+
+    const item = document.createElement('div');
+    item.className = 'popover-item';
+    if (model.name === previousValue) item.classList.add('selected');
+    
+    let label = name;
+    if (price !== '0') label += ` - ${price} Pollen`;
+    
+    item.innerHTML = `
+      <div class="model-badge" style="background-color: ${stringToColor(name)}"></div>
+      <span>${label}</span>
+    `;
+    item.title = description;
+    
+    item.onclick = (e) => {
+      e.stopPropagation();
+      select.value = model.name;
+      currentModelName.textContent = name;
+      const btnBadge = document.querySelector('#model-select-btn .model-badge');
+      if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
+      modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      updateCostDisplay(model);
+      modelPopover.classList.remove('visible');
+    };
+    
+    modelPopover.appendChild(item);
   });
   
-  // Restore previous selection if valid
   if (previousValue && [...select.options].some(opt => opt.value === previousValue)) {
     select.value = previousValue;
+    const model = sortedModels.find(m => m.name === previousValue);
+    if (model) {
+      currentModelName.textContent = model.name;
+      const btnBadge = document.querySelector('#model-select-btn .model-badge');
+      if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
+      updateCostDisplay(model);
+    }
+  } else if (sortedModels.length > 0) {
+    select.value = sortedModels[0].name;
+    currentModelName.textContent = sortedModels[0].name;
+    const btnBadge = document.querySelector('#model-select-btn .model-badge');
+    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
+    updateCostDisplay(sortedModels[0]);
+    modelPopover.querySelector('.popover-item')?.classList.add('selected');
+  }
+}
+
+function stringToColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+  return '#' + '00000'.substring(0, 6 - c.length) + c;
+}
+
+function updateCostDisplay(model) {
+  const costText = document.getElementById('cost-text');
+  if (costText) {
+    const price = formatModelPrice(model);
+    costText.textContent = i18n.t('costsLabel', price);
   }
 }
 
@@ -309,12 +316,9 @@ function renderModelOptions(models) {
 // ============================================================================
 
 async function generateImage(payload) {
-  if (!state.apiKey) {
-    throw new Error(i18n.t('apiKeyMissing'));
-  }
+  if (!state.apiKey) throw new Error(i18n.t('apiKeyMissing'));
   
   const endpoint = `https://gen.pollinations.ai/image/${encodeURIComponent(payload.prompt)}`;
-  
   const params = new URLSearchParams();
   if (payload.model) params.append('model', payload.model);
   if (payload.width) params.append('width', payload.width);
@@ -331,16 +335,13 @@ async function generateImage(payload) {
   if (payload.transparent) params.append('transparent', 'true');
   
   const url = `${endpoint}?${params.toString()}`;
-  
   const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${state.apiKey}`
-    }
+    headers: { 'Authorization': `Bearer ${state.apiKey}` }
   });
   
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`${i18n.t('errorGeneration')}: ${response.status} - ${errorText}`);
+    throw new Error(parseErrorMessage(errorText, response.status));
   }
   
   const blob = await response.blob();
@@ -354,58 +355,66 @@ async function generateImage(payload) {
   };
 }
 
+function parseErrorMessage(text, status) {
+    try {
+        const json = JSON.parse(text);
+        let msg = json.error?.message || json.message || text;
+        if (typeof msg === 'string' && msg.startsWith('{')) {
+            const inner = JSON.parse(msg);
+            msg = inner.message || inner.error || msg;
+        }
+        return `${i18n.t('errorGeneration')}: ${status} - ${msg}`;
+    } catch (e) {
+        return `${i18n.t('errorGeneration')}: ${status} - ${text}`;
+    }
+}
+
 function generateRandomSeed() {
   return Math.floor(100000 + Math.random() * 900000);
 }
 
 function collectPayload() {
-  const form = document.getElementById('generation-form');
-  if (!form) return {};
+  const promptInput = document.getElementById('prompt');
+  const modelInput = document.getElementById('model');
+  const widthInput = document.getElementById('width');
+  const heightInput = document.getElementById('height');
+  const seedInput = document.getElementById('seed');
+  const qualityInput = document.getElementById('quality');
+  const guidanceInput = document.getElementById('guidance_scale');
+  const negativePromptInput = document.getElementById('negative_prompt');
   
-  const formData = new FormData(form);
+  if (!promptInput) return {};
   
   const payload = {
-    prompt: (formData.get('prompt') || '').toString().trim(),
-    model: (formData.get('model') || '').toString()
+    prompt: promptInput.value.trim(),
+    model: modelInput ? modelInput.value : ''
   };
   
-  const width = Number(formData.get('width'));
-  if (!isNaN(width) && width > 0) {
-    payload.width = width;
+  if (widthInput) payload.width = Number(widthInput.value);
+  if (heightInput) payload.height = Number(heightInput.value);
+  
+  if (seedInput && seedInput.value.trim() !== "") {
+      payload.seed = Number(seedInput.value);
+  } else {
+      payload.seed = generateRandomSeed();
   }
   
-  const height = Number(formData.get('height'));
-  if (!isNaN(height) && height > 0) {
-    payload.height = height;
+  if (qualityInput && qualityInput.value) {
+      payload.quality = qualityInput.value;
   }
   
-  let seed = Number(formData.get('seed'));
-  if (isNaN(seed) || seed === 0) {
-    seed = generateRandomSeed();
-  }
-  payload.seed = seed;
-  
-  const guidance = Number(formData.get('guidance_scale'));
-  if (!isNaN(guidance)) {
-    payload.guidance_scale = guidance;
+  if (guidanceInput) {
+      payload.guidance_scale = Number(guidanceInput.value);
   }
   
-  const negativePrompt = (formData.get('negative_prompt') || '').toString().trim();
-  if (negativePrompt) {
-    payload.negative_prompt = negativePrompt;
-  }
-  
-  const quality = (formData.get('quality') || '').toString();
-  if (quality) {
-    payload.quality = quality;
+  if (negativePromptInput && negativePromptInput.value.trim()) {
+      payload.negative_prompt = negativePromptInput.value.trim();
   }
   
   // Boolean flags
   ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
     const checkbox = document.getElementById(flag);
-    if (checkbox && checkbox.checked) {
-      payload[flag] = true;
-    }
+    if (checkbox && checkbox.checked) payload[flag] = true;
   });
   
   return payload;
@@ -418,246 +427,222 @@ function collectPayload() {
 function setStatus(message, type = 'info') {
   const statusBox = document.getElementById('status');
   if (!statusBox) return;
-  
+  if (!message) {
+    statusBox.style.display = 'none';
+    return;
+  }
   statusBox.textContent = message;
-  statusBox.className = `status ${type}`;
+  statusBox.className = `status-msg ${type}`;
+  statusBox.style.display = 'block';
+  if (type !== 'error') {
+    setTimeout(() => { statusBox.style.display = 'none'; }, 5000);
+  }
 }
 
 function toggleLoading(isLoading) {
   state.isGenerating = isLoading;
-  
   const generateBtn = document.getElementById('generate-btn');
-  const resultLoader = document.getElementById('result-loader');
-  const loadingStatus = document.getElementById('loading-status');
-  const placeholder = document.getElementById('placeholder');
-  const resultImage = document.getElementById('result-image');
   
   if (generateBtn) {
     generateBtn.disabled = isLoading;
-  }
-  
-  if (resultLoader) {
     if (isLoading) {
-      resultLoader.classList.add('visible');
+        generateBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div> <span data-i18n="generateBtn">' + i18n.t('generateBtn') + '</span>';
     } else {
-      resultLoader.classList.remove('visible');
+        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg> <span data-i18n="generateBtn">' + i18n.t('generateBtn') + '</span>';
     }
-  }
-  
-  // Show loading text below the loader, not in the placeholder
-  if (loadingStatus) {
-    if (isLoading) {
-      loadingStatus.textContent = i18n.t('placeholderGenerating');
-    } else {
-      loadingStatus.textContent = '';
-    }
-  }
-  
-  if (placeholder) {
-    if (isLoading) {
-      // Keep placeholder hidden during loading
-      placeholder.style.display = 'none';
-    } else if (!resultImage || !resultImage.classList.contains('visible')) {
-      placeholder.style.display = 'flex';
-      placeholder.textContent = i18n.t('placeholderText');
-    } else {
-      placeholder.style.display = 'none';
-    }
-  }
-  
-  if (isLoading && resultImage) {
-    resultImage.classList.remove('visible');
   }
 }
 
-function displayResult(data) {
-  const resultImage = document.getElementById('result-image');
-  const placeholder = document.getElementById('placeholder');
-  const downloadLink = document.getElementById('download-link');
-  const downloadActions = document.getElementById('result-actions');
+function createPlaceholderCard(genId) {
+    const card = document.createElement('div');
+    card.className = 'image-card';
+    card.id = `gen-card-${genId}`;
+    
+    const w = Number(document.getElementById('width').value) || 1024;
+    const h = Number(document.getElementById('height').value) || 1024;
+    const ratio = (h / w) * 100;
 
-  if (!resultImage || !placeholder || !downloadLink || !downloadActions) {
-    return;
-  }
-
-  if (data.imageData) {
-    resultImage.src = data.imageData;
-    resultImage.classList.add('visible');
-    placeholder.style.display = 'none';
-
-    downloadActions.classList.remove('hidden');
-    downloadLink.href = data.imageData;
-
-    if (data.contentType && typeof data.contentType === 'string') {
-      const ext = data.contentType.split('/')[1]?.split(';')[0] || 'png';
-      downloadLink.setAttribute('download', `pollinations-image.${ext}`);
+    // Ensure vertical images don't exceed viewport height
+    if (h > w) {
+        card.style.maxWidth = `calc(85vh * ${w/h})`;
+    } else {
+        card.style.maxWidth = '100%';
     }
 
-    state.currentImage = data;
+    const placeholder = document.createElement('div');
+    placeholder.className = 'noise-placeholder';
+    placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Add to image history
-    addToImageHistory(data);
+    const grid = document.createElement('div');
+    grid.className = 'mini-pulse';
+    
+    const cols = 192; 
+    const rows = Math.round(cols * (h / w));
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    
+    const totalBlocks = cols * rows;
+    for (let i = 0; i < totalBlocks; i++) {
+        const block = document.createElement('div');
+        block.style.animationDelay = (Math.random() * 4).toFixed(2) + 's';
+        grid.appendChild(block);
+    }
+    placeholder.appendChild(grid);
 
-    // Update balance after successful image generation
-    updateBalance(state.apiKey);
-  }
+    card.appendChild(placeholder);
+    const overlay = document.createElement('div');
+    overlay.className = 'image-card-overlay';
+    overlay.innerHTML = `
+        <button class="overlay-btn download-btn hidden" title="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+        </button>
+    `;
+    card.appendChild(overlay);
+    
+    return card;
 }
 
-// ============================================================================
-// IMAGE HISTORY FUNCTIONS
-// ============================================================================
-
-function addToImageHistory(imageData) {
-  // Create a copy of the image data for history
-  const historyItem = {
-    imageData: imageData.imageData,
-    contentType: imageData.contentType,
-    sourceUrl: imageData.sourceUrl,
-    timestamp: Date.now()
-  };
-
-  // Add to beginning of history array (newest first)
-  state.imageHistory.unshift(historyItem);
-
-  // Limit to 18 images (6 columns x 3 rows)
-  if (state.imageHistory.length > 18) {
-    state.imageHistory.pop();
-  }
-
-  // Render the history grid
-  renderImageHistory();
+function displayResultInCard(genId, data) {
+    const card = document.getElementById(`gen-card-${genId}`);
+    if (!card) return;
+    
+    const placeholder = card.querySelector('.noise-placeholder');
+    const overlay = card.querySelector('.image-card-overlay');
+    const downloadBtn = card.querySelector('.download-btn');
+    
+    const img = new Image();
+    img.src = data.imageData;
+    img.onclick = (e) => openLightbox(data.imageData, e);
+    img.onload = () => {
+        placeholder.remove();
+        card.insertBefore(img, overlay);
+        img.offsetHeight;
+        img.classList.add('loaded');
+        downloadBtn.classList.remove('hidden');
+        downloadBtn.onclick = (e) => {
+            e.stopPropagation();
+            downloadImage(data.imageData, `pollgen-${genId}.png`);
+        };
+        addThumbnailToMiniView(genId, data.imageData);
+    };
 }
 
-function renderImageHistory() {
-  const historyGrid = document.getElementById('image-history-grid');
-  if (!historyGrid) return;
+let isZoomed = false;
+let startX, startY, moveX = 0, moveY = 0;
 
-  // Clear existing content
-  historyGrid.innerHTML = '';
+function openLightbox(src, e) {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-image');
+    if (lightbox && lightboxImg) {
+        lightboxImg.src = src;
+        lightbox.classList.remove('hidden');
+        lightbox.classList.remove('zoomed');
+        isZoomed = false;
+        moveX = 0;
+        moveY = 0;
+        lightboxImg.style.transform = 'translate(0, 0)';
+        lightboxImg.style.transformOrigin = 'center center';
+    }
+}
 
-  // Render each history item
-  state.imageHistory.forEach((item, index) => {
-    const historyItem = document.createElement('div');
-    historyItem.className = 'image-history-item';
-    historyItem.title = `Click to view image ${index + 1}`;
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-image');
 
-    const img = document.createElement('img');
-    img.src = item.imageData;
-    img.alt = `Generated image ${index + 1}`;
+if (lightboxImg) {
+    lightboxImg.onclick = (e) => {
+        e.stopPropagation();
+        if (isZoomed) {
+            lightbox.classList.remove('zoomed');
+            isZoomed = false;
+            moveX = 0;
+            moveY = 0;
+            lightboxImg.style.transform = 'translate(0, 0)';
+        } else {
+            const rect = lightboxImg.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            lightboxImg.style.transformOrigin = `${x}% ${y}%`;
+            lightbox.classList.add('zoomed');
+            isZoomed = true;
+        }
+    };
 
-    historyItem.appendChild(img);
-
-    // Add click event to display image in main view
-    historyItem.addEventListener('click', () => {
-      displayInMainView(item);
+    lightbox.addEventListener('mousedown', (e) => {
+        if (!isZoomed) return;
+        startX = e.clientX - moveX;
+        startY = e.clientY - moveY;
+        
+        const onMouseMove = (moveEvent) => {
+            moveX = moveEvent.clientX - startX;
+            moveY = moveEvent.clientY - startY;
+            lightboxImg.style.transform = `scale(2.5) translate(${moveX/2.5}px, ${moveY/2.5}px)`;
+        };
+        
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     });
-
-    historyGrid.appendChild(historyItem);
-  });
 }
 
-function displayInMainView(historyItem) {
-  const resultImage = document.getElementById('result-image');
-  const placeholder = document.getElementById('placeholder');
-  const downloadLink = document.getElementById('download-link');
-  const downloadActions = document.getElementById('result-actions');
-
-  if (!resultImage || !placeholder || !downloadLink || !downloadActions) {
-    return;
-  }
-
-  resultImage.src = historyItem.imageData;
-  resultImage.classList.add('visible');
-  placeholder.style.display = 'none';
-
-  downloadActions.classList.remove('hidden');
-  downloadLink.href = historyItem.imageData;
-
-  if (historyItem.contentType && typeof historyItem.contentType === 'string') {
-    const ext = historyItem.contentType.split('/')[1]?.split(';')[0] || 'png';
-    downloadLink.setAttribute('download', `pollinations-image.${ext}`);
-  }
-
-  state.currentImage = historyItem;
+function addThumbnailToMiniView(genId, src) {
+    const miniView = document.getElementById('mini-view');
+    if (!miniView) return;
+    
+    miniView.classList.add('visible');
+    const thumb = document.createElement('img');
+    thumb.className = 'mini-thumb';
+    thumb.src = src;
+    thumb.onclick = () => {
+        const card = document.getElementById(`gen-card-${genId}`);
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+    miniView.appendChild(thumb);
+    miniView.scrollLeft = miniView.scrollWidth;
 }
 
-
-function updateDimensionsFromAspectRatio() {
-  const aspectRatioSelect = document.getElementById('aspect-ratio');
-  const widthInput = document.getElementById('width');
-  const heightInput = document.getElementById('height');
-
-  if (!aspectRatioSelect || !widthInput || !heightInput) {
-    return;
-  }
-
-  const ratio = aspectRatioSelect.value;
-  const ratios = {
-    'Ultrabreit (21:9)': { width: 2394, height: 1026 },
-    'Breitbild (16:9)': { width: 1824, height: 1026 },
-    'Klassisch (5:4)': { width: 1280, height: 1024 },
-    'Querformat (4:3)': { width: 1366, height: 1025 },
-    'Breit (3:2)': { width: 1536, height: 1024 },
-    'Quadratisch (1:1)': { width: 1024, height: 1024 },
-    'Standard (4:5)': { width: 1024, height: 1280 },
-    'Hochformat (3:4)': { width: 1025, height: 1366 },
-    'Hoch (2:3)': { width: 1024, height: 1536 },
-    'Vertikal (9:16)': { width: 1026, height: 1824 }
-  };
-
-  if (ratio === 'custom') {
-    return;
-  }
-
-  if (ratios[ratio]) {
-    widthInput.value = ratios[ratio].width;
-    heightInput.value = ratios[ratio].height;
-  }
-}
-
-// ============================================================================
-// IMAGE MODAL FUNCTIONS
-// ============================================================================
-
-function initImageModal() {
-  const modal = document.getElementById('image-modal');
-  const closeBtn = document.getElementById('image-modal-close');
-  const overlay = document.querySelector('.image-modal-overlay');
-  const resultImage = document.getElementById('result-image');
-
-  if (!modal || !closeBtn || !resultImage) return;
-
-  resultImage.addEventListener('click', () => {
-    openImageModal(resultImage.src);
-  });
-
-  closeBtn.addEventListener('click', closeImageModal);
-  overlay.addEventListener('click', closeImageModal);
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeImageModal();
+async function downloadImage(url, filename) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+        console.error("Download failed", e);
+        window.open(url, '_blank');
     }
-  });
 }
 
-function openImageModal(imageSrc) {
-  const modal = document.getElementById('image-modal');
-  const modalImage = document.getElementById('image-modal-image');
-
-  if (modal && modalImage) {
-    modalImage.src = imageSrc;
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  }
+function addToImageHistory(historyItem) {
+  if (!historyItem || !historyItem.imageData) return;
+  state.imageHistory.unshift(historyItem);
+  if (state.imageHistory.length > 18) state.imageHistory.pop();
 }
 
-function closeImageModal() {
-  const modal = document.getElementById('image-modal');
-  if (modal) {
-    modal.style.display = 'none';
-    document.body.style.overflow = '';
-  }
+function adjustPromptHeight() {
+    const prompt = document.getElementById('prompt');
+    if (!prompt) return;
+    prompt.style.height = 'auto';
+    const newHeight = Math.min(prompt.scrollHeight, 200);
+    prompt.style.height = newHeight + 'px';
+    
+    // Adjust mini view position
+    const miniView = document.getElementById('mini-view');
+    if (miniView) {
+        const barHeight = document.querySelector('.prompt-bar').offsetHeight;
+        miniView.style.bottom = (barHeight + 20) + 'px';
+    }
 }
 
 // ============================================================================
@@ -665,42 +650,6 @@ function closeImageModal() {
 // ============================================================================
 
 function setupEventListeners() {
-  // Initialize image modal
-  initImageModal();
-
-  // Language switcher
-  const languageToggle = document.getElementById('language-toggle');
-  if (languageToggle) {
-    languageToggle.addEventListener('click', () => {
-      const currentLang = i18n.getCurrentLanguage();
-      const newLang = currentLang === 'en' ? 'de' : 'en';
-      i18n.setLanguage(newLang);
-      
-      // Update language toggle button text to show selected language
-      languageToggle.textContent = newLang === 'en' ? 'EN' : 'DE';
-      
-      // Reload models with new language
-      renderModelOptions(state.models);
-      
-      // Update balance display with new language if it exists
-      if (state.apiKey && document.getElementById('balance-display').classList.contains('hidden') === false) {
-        updateBalance(state.apiKey);
-      }
-    });
-    
-    // Set initial button text to show selected language
-    languageToggle.textContent = i18n.getCurrentLanguage() === 'en' ? 'EN' : 'DE';
-  }
-  
-  // Listen for language changes (from i18n system)
-  window.addEventListener('languageChanged', (event) => {
-    // Update balance display with new language if it exists
-    if (state.apiKey && document.getElementById('balance-display').classList.contains('hidden') === false) {
-      updateBalance(state.apiKey);
-    }
-  });
-  
-  // API Key input
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
     apiKeyInput.addEventListener('blur', () => {
@@ -709,39 +658,18 @@ function setupEventListeners() {
     });
     apiKeyInput.addEventListener('input', () => {
       const key = apiKeyInput.value.trim();
-      if (key) {
-        saveApiKey(key);
-        // Clear balance display when typing (will be restored on blur)
-        const balanceDisplay = document.getElementById('balance-display');
-        const apiKeyInfo = document.querySelector('.api-key-info');
-        if (balanceDisplay) {
-          balanceDisplay.classList.add('hidden');
-        }
-        if (apiKeyInfo) {
-          apiKeyInfo.classList.remove('hidden');
-        }
-      } else {
-        // Clear the API key if input is empty
-        state.apiKey = null;
-        const balanceDisplay = document.getElementById('balance-display');
-        const apiKeyInfo = document.querySelector('.api-key-info');
-        if (balanceDisplay) {
-          balanceDisplay.classList.add('hidden');
-        }
-        if (apiKeyInfo) {
-          apiKeyInfo.classList.remove('hidden');
-        }
-      }
+      if (key) saveApiKey(key);
+      else state.apiKey = null;
+      updateBalance(state.apiKey);
     });
   }
   
-  // Form submission
-  const form = document.getElementById('generation-form');
-  if (form) {
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      
-      // Validate API key
+  const generateBtn = document.getElementById('generate-btn');
+  const galleryFeed = document.getElementById('gallery-feed');
+  const emptyState = document.getElementById('placeholder');
+
+  if (generateBtn) {
+    generateBtn.addEventListener('click', async () => {
       if (!state.apiKey) {
         validateApiKey();
         if (!state.apiKey) {
@@ -749,10 +677,7 @@ function setupEventListeners() {
           return;
         }
       }
-      
       const payload = collectPayload();
-      
-      // Validation
       if (!payload.prompt) {
         setStatus(i18n.t('statusPromptMissing'), 'error');
         return;
@@ -761,62 +686,67 @@ function setupEventListeners() {
         setStatus(i18n.t('statusModelMissing'), 'error');
         return;
       }
-      if (!payload.width || !payload.height) {
-        setStatus(i18n.t('statusDimensionsMissing'), 'error');
-        return;
-      }
+
+      const genId = Date.now();
+      const card = createPlaceholderCard(genId);
       
+      if (emptyState) emptyState.style.display = 'none';
+      galleryFeed.appendChild(card);
+      
+      // Full scroll to bottom
+      setTimeout(() => {
+          const scrollContainer = document.getElementById('canvas-workspace');
+          if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }, 50);
+
       toggleLoading(true);
-      setStatus('', ''); // Clear status during generation
-      
+      setStatus('', '');
       try {
         const response = await generateImage(payload);
-        displayResult(response);
-        setStatus('', ''); // Clear status on success
+        displayResultInCard(genId, response);
+        addToImageHistory(response);
+        if (state.apiKey) updateBalance(state.apiKey);
       } catch (error) {
         setStatus(error.message || i18n.t('statusError'), 'error');
         console.error(error);
+        card.remove();
+        if (galleryFeed.children.length === 0 && emptyState) emptyState.style.display = 'block';
       } finally {
         toggleLoading(false);
       }
     });
   }
-  
-  // Reset button
-  const resetBtn = document.getElementById('reset-btn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (form) {
-        form.reset();
-        
-        // Update guidance value display
-        const guidanceScale = document.getElementById('guidance_scale');
-        const guidanceValue = document.getElementById('guidance-value');
-        if (guidanceScale && guidanceValue) {
-          guidanceValue.textContent = guidanceScale.value;
+
+  const promptInput = document.getElementById('prompt');
+  if (promptInput) {
+    promptInput.addEventListener('input', adjustPromptHeight);
+    promptInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.ctrlKey) {
+            e.preventDefault();
+            generateBtn.click();
+        } else if ((e.key === 'Enter' || e.key === '.') && e.ctrlKey) {
+            e.preventDefault();
+            const start = promptInput.selectionStart;
+            const end = promptInput.selectionEnd;
+            promptInput.value = promptInput.value.substring(0, start) + "\n" + promptInput.value.substring(end);
+            promptInput.selectionStart = promptInput.selectionEnd = start + 1;
+            adjustPromptHeight();
         }
-        
-        setStatus('', ''); // Clear status on reset
-      }
     });
   }
-  
-  // Guidance scale slider
+
   const guidanceScale = document.getElementById('guidance_scale');
   const guidanceValue = document.getElementById('guidance-value');
   if (guidanceScale && guidanceValue) {
-    guidanceScale.addEventListener('input', () => {
-      guidanceValue.textContent = guidanceScale.value;
-    });
-    // Set initial value
-    guidanceValue.textContent = guidanceScale.value;
+      guidanceScale.addEventListener('input', () => {
+          guidanceValue.textContent = guidanceScale.value;
+      });
   }
-  
-  // Aspect ratio selector
-  const aspectRatioSelect = document.getElementById('aspect-ratio');
-  if (aspectRatioSelect) {
-    aspectRatioSelect.addEventListener('change', updateDimensionsFromAspectRatio);
-  }
+
+  window.addEventListener('languageChanged', () => {
+      renderModelOptions(state.models);
+      updateBalance(state.apiKey);
+  });
 }
 
 // ============================================================================
@@ -824,28 +754,26 @@ function setupEventListeners() {
 // ============================================================================
 
 function init() {
-  // Initialize i18n
   i18n.updatePageLanguage();
   
-  // Load API key from session
+  const lang = i18n.getCurrentLanguage();
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+  const activeBtn = document.getElementById(`lang-${lang}`);
+  if (activeBtn) activeBtn.classList.add('active');
+
   loadApiKey();
   if (state.apiKey) {
     const apiKeyInput = document.getElementById('api-key');
-    if (apiKeyInput) {
-      apiKeyInput.value = state.apiKey;
-    }
-    // Update balance display with loaded API key
+    if (apiKeyInput) apiKeyInput.value = state.apiKey;
     updateBalance(state.apiKey);
+  } else {
+      updateBalance(null);
   }
-  
-  // Setup event listeners
   setupEventListeners();
-  
-  // Load models
   loadModels();
+  adjustPromptHeight();
 }
 
-// Start the app when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

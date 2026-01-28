@@ -3,956 +3,448 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pollinations Image Generator</title>
+    <title>PollGen - AI Image Generator</title>
     <style>
         :root {
-            color-scheme: dark;
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #111827;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e5;
-            --border: #334155;
+            --sidebar-bg: #1f1f21;
+            --canvas-bg: #2f2f31;
+            --panel-bg: #242427;
+            --input-bg: #1e1e1e;
+            --text-primary: #FFFFFF;
+            --text-secondary: #BDBDBD;
+            --text-muted: #9E9E9E;
+            --border-subtle: #2e2e2f;
+            --accent: #2563EB;
+            --accent-hover: #1D4ED8;
+            --prompt-bar-bg: #1e1e1f;
             --error: #f87171;
             --success: #34d399;
-            --info: #38bdf8;
-            --warning: #fbbf24;
-            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color-scheme: dark;
         }
-        
+
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-        
-        html {
-            height: 100%;
-        }
-        
+
         body {
-            margin: 0;
-            min-height: 100vh;
-            background: radial-gradient(circle at top, rgba(79,70,229,0.4), transparent 55%), var(--bg-primary);
+            background-color: var(--canvas-bg);
             color: var(--text-primary);
-            padding: 20px;
-            overflow-x: hidden;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        /* Header */
-        header {
-            text-align: center;
-            padding: 20px 0 30px;
-            position: relative;
-        }
-        
-        header h1 {
-            margin: 0;
-            font-size: clamp(2rem, 4vw, 3rem);
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #fff, #94a3b8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        header p {
-            margin: 10px 0 0;
-            color: var(--text-secondary);
-            font-size: clamp(0.95rem, 2vw, 1.1rem);
-        }
-        
-        .language-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: var(--text-primary);
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
-        }
-        
-        .language-toggle:hover {
-            background: rgba(99, 102, 241, 0.25);
-            transform: translateY(-1px);
-        }
-        
-        /* Main Content */
-        main {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-        
-        @media (min-width: 1024px) {
-            main {
-                grid-template-columns: minmax(500px, 1fr) minmax(450px, 0.9fr);
-            }
-        }
-        
-        /* Panel */
-        .panel {
-            background: linear-gradient(145deg, rgba(17,24,39,0.95), rgba(30,41,59,0.95));
-            border: 1px solid rgba(99,102,241,0.15);
-            border-radius: 20px;
-            padding: 28px;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 30px 70px -25px rgba(15,23,42,0.9);
-        }
-        
-        /* Form Elements */
-        .form-section {
-            margin-bottom: 24px;
-        }
-        
-        .form-section:last-child {
-            margin-bottom: 0;
-        }
-        
-        .form-section-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin: 0 0 14px 0;
-            color: var(--text-primary);
-        }
-        
-        .field {
-            margin-bottom: 18px;
-        }
-        
-        label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.95rem;
-            margin-bottom: 6px;
-            color: var(--text-primary);
-        }
-        
-        .required {
-            color: var(--error);
-            margin-left: 4px;
-        }
-        
-        .hint {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            display: block;
-        }
-        
-        input[type="text"],
-        input[type="number"],
-        input[type="password"],
-        select,
-        textarea {
-            width: 100%;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 11px 14px;
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            font-family: inherit;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-            line-height: 1.5;
-        }
-        
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
-        }
-        
-        input::placeholder,
-        textarea::placeholder {
-            color: rgba(148,163,184,0.5);
-        }
-        
-        /* Grid Layouts */
-        .grid-2 {
-            display: grid;
-            gap: 16px;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        }
-        
-        /* Checkbox Group */
-        .checkbox-group {
-            display: grid;
-            gap: 10px;
-        }
-        
-        .checkbox-item {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-            padding: 12px 14px;
-            border-radius: 10px;
-            background: rgba(148,163,184,0.06);
-            border: 1px solid rgba(148,163,184,0.1);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .checkbox-item:hover {
-            background: rgba(148,163,184,0.1);
-            border-color: rgba(99,102,241,0.3);
-        }
-        
-        .checkbox-item input[type="checkbox"] {
-            margin-top: 3px;
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        
-        .checkbox-item-content {
-            flex: 1;
-        }
-        
-        .checkbox-item strong {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 2px;
-        }
-        
-        .checkbox-item span {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            display: block;
-        }
-        
-        /* Range Slider */
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 5px;
-            background: var(--bg-tertiary);
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-        
-        input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-            border: none;
-            transition: transform 0.2s ease;
-        }
-        
-        input[type="range"]::-moz-range-thumb:hover {
-            transform: scale(1.2);
-        }
-        
-        /* Buttons */
-        .btn {
-            border: none;
-            border-radius: 12px;
-            padding: 12px 20px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: inherit;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-            color: #fff;
-            width: 100%;
-            padding: 14px 24px;
-            font-size: 1.05rem;
-        }
-        
-        .btn-primary:not(:disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -10px rgba(99,102,241,0.5);
-        }
-        
-        .btn-primary:disabled {
-            cursor: not-allowed;
-            filter: grayscale(0.4);
-            opacity: 0.6;
-        }
-        
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-        }
-        
-        .btn-secondary:hover {
-            border-color: var(--accent);
-            color: var(--text-primary);
-            background: rgba(99,102,241,0.1);
-        }
-        
-        .btn-link {
-            background: rgba(99,102,241,0.12);
-            color: var(--text-primary);
-            border: 1px solid rgba(99,102,241,0.2);
-            text-decoration: none;
-            padding: 10px 18px;
-        }
-        
-        .btn-link:hover {
-            background: rgba(99,102,241,0.25);
-            transform: translateY(-1px);
-        }
-        
-        /* Status Messages */
-        .status {
-            font-size: 0.9rem;
-            padding: 10px 14px;
-            border-radius: 10px;
-            margin-top: 12px;
-            min-height: 0;
-            display: none;
-            align-items: center;
-        }
-        
-        .status.info {
-            display: flex;
-            background: rgba(56,189,248,0.1);
-            color: var(--info);
-            border: 1px solid rgba(56,189,248,0.2);
-        }
-        
-        .status.success {
-            display: flex;
-            background: rgba(52,211,153,0.1);
-            color: var(--success);
-            border: 1px solid rgba(52,211,153,0.2);
-        }
-        
-        .status.error {
-            display: flex;
-            background: rgba(248,113,113,0.1);
-            color: var(--error);
-            border: 1px solid rgba(248,113,113,0.2);
-        }
-        
-        /* Result Panel */
-        .result-container {
-            position: relative;
-            width: 100%;
-            background: rgba(15,23,42,0.7);
-            border: 1px solid rgba(99,102,241,0.2);
-            border-radius: 16px;
+            height: 100vh;
             overflow: hidden;
-            aspect-ratio: 1 / 1;
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
-        
-        .result-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: none;
-        }
-        
-        .result-container img.visible {
-            display: block;
-        }
-        
-        .placeholder {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 1rem;
-            padding: 24px;
-        }
-        
-        .loader {
-            width: 56px;
-            height: 56px;
-            border: 5px solid rgba(99,102,241,0.2);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            position: absolute;
-            z-index: 2;
-            display: none;
-        }
-        
-        .loader.visible {
-            display: block;
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .loading-status {
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            min-height: 24px;
-            margin-top: 12px;
-            margin-bottom: -8px;
-        }
-        
-        .result-panel-container {
+
+        .hidden { display: none !important; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 360px;
+            height: 100vh;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
-            position: relative;
-        }
-        
-        .btn-primary {
-            margin-top: 16px;
-        }
-        
-        .result-actions {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 16px;
-        }
-        
-        .result-actions.hidden {
-            display: none;
-        }
-        
-        .footer {
-            text-align: center;
-            margin-top: auto;
-            padding-top: 16px;
-            border-top: 1px solid rgba(148,163,184,0.1);
-            font-size: 0.75rem;
-            color: rgba(203, 213, 229, 0.6);
-        }
-        
-        .footer a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .footer a:hover {
-            text-decoration: underline;
-        }
-        
-        /* API Key Info */
-        .api-key-info {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            border-radius: 10px;
             padding: 12px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 8px;
-        }
-        
-        .api-key-info a {
-            color: var(--warning);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        
-        .api-key-info a:hover {
-            text-decoration: underline;
-        }
-        
-        /* Balance Display */
-        .balance-display {
-            margin-top: 8px;
-            padding: 8px 12px;
-            background: rgba(52, 211, 153, 0.1);
-            border: 1px solid rgba(52, 211, 153, 0.2);
-            border-radius: 8px;
-            font-size: 0.85rem;
-            color: var(--success);
-            font-weight: 500;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        
-        .balance-text {
-            display: block;
-        }
-        
-        /* Responsive */
-        @media (max-width: 1023px) {
-            .language-toggle {
-                position: static;
-                display: block;
-                width: fit-content;
-                margin: 15px auto 0;
-            }
-            
-            header {
-                padding-bottom: 20px;
-            }
-        }
-        
-        @media (max-width: 640px) {
-            body {
-                padding: 12px;
-            }
-
-            .panel {
-                padding: 20px;
-            }
-
-            header h1 {
-                font-size: 1.8rem;
-            }
-
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-
-            .image-history-grid {
-                grid-template-columns: repeat(3, 1fr);
-                grid-template-rows: repeat(6, 1fr);
-                aspect-ratio: 3/6;
-            }
-        }
-        
-        /* Utility */
-        .hidden {
-            display: none !important;
-        }
-        
-        /* Scrollbar */
-        .form-panel {
-            max-height: calc(100vh - 200px);
             overflow-y: auto;
-            padding-right: 4px;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(148,163,184,0.3) transparent;
-        }
-        
-        .form-panel::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .form-panel::-webkit-scrollbar-thumb {
-            background: rgba(148,163,184,0.3);
-            border-radius: 999px;
-        }
-        
-        .form-panel::-webkit-scrollbar-track {
-            background: transparent;
+            flex-shrink: 0;
+            z-index: 20;
         }
 
-        /* Image Modal */
-        .image-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            backdrop-filter: blur(4px);
-        }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: var(--sidebar-bg); }
+        .sidebar::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
 
-        .image-modal-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(10, 14, 26, 0.95);
-        }
-
-        .image-modal-container {
-            position: relative;
-            max-height: 90vh;
-            max-width: 90vw;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
-        }
-
-        .image-modal-container img {
-            max-height: 90vh;
-            max-width: 90vw;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-
-        .image-modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(91, 141, 255, 0.2);
-            border: 1px solid rgba(91, 141, 255, 0.4);
-            color: #f1f5f9;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 200ms ease;
-            z-index: 10001;
-        }
-
-        .image-modal-close:hover {
-            background: rgba(91, 141, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        #result-image {
-            cursor: pointer;
-        }
-
-        /* Image History */
-        .image-history-section {
-            margin-top: 24px;
-        }
-
-        .image-history-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin: 0 0 12px 0;
-            color: var(--text-primary);
-        }
-
-        .image-history-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 8px;
-            width: 100%;
-            aspect-ratio: 6/3;
-        }
-
-        .image-history-item {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-            border-radius: 6px;
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 12px;
+            margin-bottom: 12px;
             overflow: hidden;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(99, 102, 241, 0.1);
-            transition: all 0.2s ease;
+            transition: all 160ms ease;
         }
 
-        .image-history-item:hover {
-            border-color: rgba(99, 102, 241, 0.4);
-            transform: scale(1.05);
-            z-index: 2;
+        .panel-header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid transparent;
         }
 
-        .image-history-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
+        .panel.open .panel-header { border-bottom: 1px solid var(--border-subtle); }
+
+        .panel-header h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            flex: 1;
         }
+
+        .panel-header .caret {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            transition: transform 160ms ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel.open .caret { transform: rotate(90deg); }
+
+        .panel-content { padding: 16px; display: none; }
+        .panel.open .panel-content { display: block; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+
+        .custom-select {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            position: relative;
+            transition: border-color 120ms ease;
+        }
+
+        .custom-select:hover { border-color: #4a4a4c; }
+
+        .select-value {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .model-badge { width: 18px; height: 18px; border-radius: 4px; background-color: #ff9d00; flex-shrink: 0; }
+        .select-arrow { width: 12px; height: 12px; color: var(--text-muted); flex-shrink: 0; }
+
+        .slider-container { padding: 8px 0; }
+        .slider-labels { display: flex; justify-content: space-between; margin-top: 12px; font-size: 11px; color: var(--text-muted); }
+
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #3a3a3a; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb { height: 18px; width: 18px; border-radius: 50%; background: #ffffff; cursor: pointer; -webkit-appearance: none; margin-top: -7px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+
+        input[type="text"], input[type="number"], input[type="password"], select, textarea {
+            width: 100%; background-color: var(--input-bg); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 12px; color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none; transition: border-color 120ms ease; appearance: none;
+        }
+        input:focus, textarea:focus { border-color: var(--accent); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .checkbox-group { display: flex; flex-direction: column; gap: 12px; }
+        .checkbox-item { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none; }
+        .checkbox-item input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+
+        .language-toggle { display: flex; justify-content: flex-end; padding: 8px; gap: 8px; }
+        .lang-btn { background: #1a1a1c; border: 1px solid #2a2a2c; color: var(--text-muted); border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; transition: all 120ms ease; }
+        .lang-btn.active { color: var(--text-primary); border-color: var(--accent); background: rgba(37,99,235,0.1); }
+
+        .api-key-container { margin-top: auto; padding: 16px 12px; border-top: 1px solid var(--border-subtle); }
+        .balance-box { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; text-align: center; line-height: 1.4; }
+        .api-key-hint { font-size: 11px; margin-top: 8px; color: var(--text-muted); text-align: center; }
+        .api-key-hint a { color: var(--accent); text-decoration: none; }
+        .api-key-hint a:hover { text-decoration: underline; }
+
+        .canvas { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: var(--canvas-bg); }
+        .canvas-workspace { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 60px 24px; overflow-y: auto; scroll-behavior: smooth; }
+        .canvas-workspace::-webkit-scrollbar { width: 8px; }
+        .canvas-workspace::-webkit-scrollbar-track { background: transparent; }
+        .canvas-workspace::-webkit-scrollbar-thumb { background: #4a4a4c; border-radius: 4px; }
+
+        .empty-state { text-align: center; max-width: 400px; margin: auto; }
+        .empty-icon { width: 80px; height: 80px; margin: 0 auto 32px; background: linear-gradient(135deg, #ff9d00, #ff00ff); border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px rgba(255, 157, 0, 0.3); }
+
+        .gallery-feed { width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; gap: 40px; padding-bottom: 40px; }
+
+        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 30px 60px rgba(0,0,0,0.6); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
+        .image-card img { width: 100%; height: auto; max-height: 85vh; object-fit: contain; display: block; border-radius: 16px; opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .image-card img.loaded { opacity: 1; }
+
+        .image-card-overlay { position: absolute; top: 20px; right: 20px; display: flex; gap: 12px; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease; transform: translateY(-10px); pointer-events: none; }
+        .image-card:hover .image-card-overlay { opacity: 1; transform: translateY(0); }
+        .overlay-btn { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); color: white; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: auto; }
+
+        .mini-view { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 10px; background: rgba(31, 31, 33, 0.8); backdrop-filter: blur(20px); border-radius: 16px; max-width: 70%; overflow-x: auto; z-index: 25; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5); visibility: hidden; opacity: 0; transition: all 0.3s; }
+        .mini-view.visible { visibility: visible; opacity: 1; }
+        .mini-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; flex-shrink: 0; }
+        .mini-thumb:hover { border-color: var(--accent); transform: translateY(-4px); }
+
+        .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; cursor: default; overflow: hidden; }
+        .lightbox-content { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        .lightbox-content img { 
+            max-width: 95%; max-height: 95%; border-radius: 4px; box-shadow: 0 0 50px rgba(0,0,0,0.8); 
+            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); 
+            cursor: zoom-in;
+            user-select: none;
+            object-fit: contain;
+            pointer-events: auto;
+        }
+        .lightbox.zoomed img { transform: scale(2.5); cursor: move; }
+        .lightbox-close {
+            position: absolute; top: 30px; right: 30px; width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
+            color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 1001; transition: all 0.2s;
+        }
+        .lightbox-close:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
+
+        .noise-placeholder { 
+            width: 100%; background-color: #2a2a2a; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; 
+            border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .mini-pulse {
+            display: grid;
+            width: 100%; height: 100%;
+            position: absolute; inset: 0;
+            z-index: 1;
+        }
+        .mini-pulse > div {
+            background-color: #2a2a2a;
+            animation: miniPulse 4s ease-in-out infinite;
+        }
+        @keyframes miniPulse {
+            0%, 100% { background-color: #2a2a2a; }
+            50% { background-color: rgba(192, 192, 192, 0.08); }
+        }
+
+        .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: flex-end; gap: 20px; z-index: 30; }
+        .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-end; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
+        .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+        .prompt-label { font-size: 11px; font-weight: 700; color: var(--accent); margin-right: 16px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+
+        #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: hidden; display: block; }
+        #prompt::placeholder { color: #6a6a6c; }
+
+        .cost-display { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 12px; height: fit-content; align-self: center; }
+
+        .generate-btn { height: 52px; padding: 0 32px; background: linear-gradient(135deg, var(--accent) 0%, #1D4ED8 100%); color: white; border: none; border-radius: 26px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 20px rgba(37,99,235,0.3); white-space: nowrap; align-self: center; }
+        .generate-btn svg { flex-shrink: 0; }
+        .generate-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 24px rgba(37,99,235,0.4); filter: brightness(1.1); }
+        .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(0.5); transform: none !important; }
+
+        .popover { position: fixed; background-color: #252526; border-radius: 12px; padding: 10px; box-shadow: 0 12px 48px rgba(0,0,0,0.7); display: none; z-index: 100; width: 280px; border: 1px solid rgba(255,255,255,0.1); }
+        .popover.visible { display: block; }
+        .popover-item { padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; color: var(--text-secondary); }
+        .popover-item:hover { background-color: #303033; color: #fff; }
+        .popover-item.selected { background-color: rgba(37,99,235,0.15); color: #fff; font-weight: 500; }
+
+        .ratio-icon-container { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ratio-icon { border: 2px solid currentColor; border-radius: 2px; opacity: 0.8; }
+
+        .status-msg { position: fixed; top: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; z-index: 1000; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-width: 400px; animation: slideIn 0.3s ease-out; word-break: break-word; }
+        @keyframes slideIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .status-msg.info { background: #2563EB; color: white; display: block; }
+        .status-msg.success { background: #059669; color: white; display: block; }
+        .status-msg.error { background: #DC2626; color: white; display: block; }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 data-i18n="pageTitle">Pollinations Image Generator</h1>
-            <p data-i18n="pageDescription">Create high-quality images with dynamic models and custom parameters.</p>
-            <button type="button" id="language-toggle" class="language-toggle">EN</button>
-        </header>
-        
-        <main>
-            <!-- Form Panel -->
-            <div class="panel form-panel">
-                <form id="generation-form">
-                    <!-- API Key Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="api-key">
-                                <span data-i18n="apiKeyLabel">API Key</span>
-                                <span class="required">*</span>
-                            </label>
-                            <input 
-                                type="password" 
-                                id="api-key" 
-                                name="api-key"
-                                data-i18n-placeholder="apiKeyPlaceholder"
-                                placeholder="Enter your Pollinations API key"
-                                required
-                            >
-                            <div class="balance-display hidden" id="balance-display">
-                                <span class="balance-text" id="balance-text"></span>
-                            </div>
-                            <div class="api-key-info">
-                                <span data-i18n="apiKeyHint">Get your free API key from</span>
-                                <a href="https://enter.pollinations.ai" target="_blank" rel="noopener">pollinations.ai</a>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Prompt Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="prompt">
-                                <span data-i18n="promptLabel">Image Description</span>
-                                <span class="required">*</span>
-                            </label>
-                            <textarea 
-                                id="prompt" 
-                                name="prompt"
-                                data-i18n-placeholder="promptPlaceholder"
-                                placeholder="Describe your desired image in detail..."
-                                required
-                            ></textarea>
-                        </div>
-                    </div>
-                    
-                    <!-- Model Section -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="model">
-                                <span data-i18n="modelLabel">Model</span>
-                                <span class="required">*</span>
-                            </label>
-                            <select id="model" name="model" required>
-                                <option value="" disabled selected data-i18n="modelPlaceholder">Select a model...</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Dimensions & Settings -->
-                    <div class="form-section">
-                        <h3 class="form-section-title" data-i18n="optionsLabel">Generation Options</h3>
-                        
-                        <div class="grid-2">
-                            <div class="field">
-                                <label for="width" data-i18n="widthLabel">Width (px)</label>
-                                <input type="number" id="width" name="width" min="64" max="2048" step="1" value="1024">
-                            </div>
-                            <div class="field">
-                                <label for="height" data-i18n="heightLabel">Height (px)</label>
-                                <input type="number" id="height" name="height" min="64" max="2048" step="1" value="1024">
-                            </div>
-                        </div>
-                        
-                        <div class="field">
-                            <label for="aspect-ratio" data-i18n="formatLabel">Format</label>
-                            <select id="aspect-ratio" name="aspect-ratio">
-                                <option value="" disabled selected data-i18n="selectFormat">Select format...</option>
-                                <option value="Ultrabreit (21:9)" data-i18n="formatUltrabreit"></option>
-                                <option value="Breitbild (16:9)" data-i18n="formatBreitbild"></option>
-                                <option value="Klassisch (5:4)" data-i18n="formatKlassisch"></option>
-                                <option value="Querformat (4:3)" data-i18n="formatQuerformat"></option>
-                                <option value="Breit (3:2)" data-i18n="formatBreit"></option>
-                                <option value="Quadratisch (1:1)" data-i18n="formatQuadratisch"></option>
-                                <option value="Standard (4:5)" data-i18n="formatStandard"></option>
-                                <option value="Hochformat (3:4)" data-i18n="formatHochformat"></option>
-                                <option value="Hoch (2:3)" data-i18n="formatHoch"></option>
-                                <option value="Vertikal (9:16)" data-i18n="formatVertikal"></option>
-                                <option value="custom" data-i18n="customFormat">Custom</option>
-                            </select>
-                        </div>
-                        
-                        <div class="grid-2">
-                            <div class="field">
-                                <label for="seed">
-                                    <span data-i18n="seedLabel">Seed</span>
-                                </label>
-                                <input type="number" id="seed" name="seed" value="0">
-                                <small class="hint" data-i18n="seedHint">0 = random</small>
-                            </div>
-                            <div class="field">
-                                <label for="quality" data-i18n="qualityLabel">Quality</label>
-                                <select id="quality" name="quality">
-                                    <option value="low" data-i18n="qualityLow">Low</option>
-                                    <option value="medium" data-i18n="qualityMedium">Medium</option>
-                                    <option value="high" data-i18n="qualityHigh">High</option>
-                                    <option value="hd" selected data-i18n="qualityHD">HD</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="field">
-                            <label for="guidance_scale">
-                                <span data-i18n="guidanceLabel">Guidance Scale</span>
-                                <span id="guidance-value">7</span>
-                            </label>
-                            <input type="range" id="guidance_scale" name="guidance_scale" min="1" max="20" step="0.5" value="7">
-                            <small class="hint" data-i18n="guidanceHint">Determines how closely the result follows the description</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Negative Prompt -->
-                    <div class="form-section">
-                        <div class="field">
-                            <label for="negative_prompt" data-i18n="negativePromptLabel">Negative Prompt</label>
-                            <textarea 
-                                id="negative_prompt" 
-                                name="negative_prompt"
-                                data-i18n-placeholder="negativePromptPlaceholder"
-                                placeholder="What to avoid in the image..."
-                                style="min-height: 80px;"
-                            ></textarea>
-                            <small class="hint" data-i18n="negativePromptHint">Optional: Describe what you don't want</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Advanced Options -->
-                    <div class="form-section">
-                        <h3 class="form-section-title" data-i18n="optionsLabel">Advanced Options</h3>
-                        <div class="checkbox-group">
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="enhance" name="enhance">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="enhanceLabel">Enhance</strong>
-                                    <span data-i18n="enhanceDesc">Let AI optimize the prompt</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="private" name="private" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="privateLabel">Private</strong>
-                                    <span data-i18n="privateDesc">Hide from public feeds</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="nologo" name="nologo" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="nologoLabel">No Logo</strong>
-                                    <span data-i18n="nologoDesc">Remove watermark</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="nofeed" name="nofeed" checked>
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="nofeedLabel">No Feed</strong>
-                                    <span data-i18n="nofeedDesc">Don't share in public feed</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="safe" name="safe">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="safeLabel">Safe</strong>
-                                    <span data-i18n="safeDesc">Enable safety filters</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="transparent" name="transparent">
-                                <div class="checkbox-item-content">
-                                    <strong data-i18n="transparentLabel">Transparent</strong>
-                                    <span data-i18n="transparentDesc">Transparent background</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Actions -->
-                    <div class="form-section">
-                        <button type="button" class="btn btn-secondary" id="reset-btn">
-                            <span data-i18n="resetBtn">Reset Form</span>
-                        </button>
-                    </div>
-                </form>
+    <aside class="sidebar">
+        <div class="language-toggle">
+            <button class="lang-btn active" id="lang-en" onclick="changeLanguage('en')">EN</button>
+            <button class="lang-btn" id="lang-de" onclick="changeLanguage('de')">DE</button>
+        </div>
+        <div class="panel open" id="panel-general">
+            <div class="panel-header" onclick="togglePanel('panel-general')">
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
+                <h3 data-i18n="modelLabel">General Settings</h3>
             </div>
-            
-            <!-- Result Panel -->
-            <div class="panel result-panel-container">
-                <div class="result-container" id="result-container">
-                    <div class="loader" id="result-loader"></div>
-                    <div class="placeholder" id="placeholder" data-i18n="placeholderText">
-                        Your generated images will appear here
+            <div class="panel-content">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="modelLabel">Model</label>
+                    <div class="custom-select" id="model-select-btn">
+                        <div class="select-value"><span class="model-badge"></span><span id="current-model-name">Loading models...</span></div>
+                        <span class="select-arrow"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg></span>
                     </div>
-                    <img id="result-image" alt="Generated Image">
+                    <select id="model" name="model" style="display: none;"></select>
                 </div>
-                <div class="loading-status" id="loading-status"></div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="aspectRatioLabel">Aspect Ratio</label>
+                    <div class="custom-select" id="aspect-ratio-btn">
+                        <div class="select-value"><div class="ratio-icon-container"><div class="ratio-icon" id="current-ratio-icon" style="width: 14px; height: 10px;"></div></div><span id="current-ratio-label">Landscape (4:3)</span></div>
+                        <span class="select-arrow"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel open" id="panel-intensity">
+            <div class="panel-header" onclick="togglePanel('panel-intensity')">
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
+                <h3 data-i18n="visualIntensityLabel">Visual Intensity</h3>
+            </div>
+            <div class="panel-content">
+                <div class="slider-container">
+                    <input type="range" id="guidance_scale" name="guidance_scale" min="1" max="20" value="7.5" step="0.5">
+                    <div class="slider-labels"><span data-i18n="intensityLow">Creative</span><span id="guidance-value">7.5</span><span data-i18n="intensityHigh">Strict</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="parameters-panel">
+            <div class="panel-header" onclick="togglePanel('parameters-panel')">
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
+                <h3 data-i18n="parametersLabel">Parameters</h3>
+            </div>
+            <div class="panel-content">
+                <div class="grid-2">
+                    <div class="form-group"><label class="form-label" data-i18n="seedLabel">Seed</label><input type="number" id="seed" name="seed" data-i18n-placeholder="seedPlaceholder" placeholder="Random"></div>
+                    <div class="form-group"><label class="form-label" data-i18n="qualityLabel">Quality</label><select id="quality" name="quality"><option value="">Default</option><option value="standard">Standard</option><option value="hd" selected>HD</option></select></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="refinement-panel">
+            <div class="panel-header" onclick="togglePanel('refinement-panel')">
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
+                <h3 data-i18n="refinementLabel">Refinement</h3>
+            </div>
+            <div class="panel-content">
+                <div class="form-group"><label class="form-label" data-i18n="negativePromptLabel">Negative Prompt</label><textarea id="negative_prompt" name="negative_prompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="What to exclude..."></textarea></div>
+            </div>
+        </div>
+
+        <div class="panel" id="advanced-panel">
+            <div class="panel-header" onclick="togglePanel('advanced-panel')">
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
+                <h3 data-i18n="advancedLabel">Advanced Options</h3>
+            </div>
+            <div class="panel-content">
+                <div class="checkbox-group">
+                    <label class="checkbox-item"><input type="checkbox" id="enhance" name="enhance"><span data-i18n="enhanceLabel">Enhance Prompt</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="private" name="private" checked><span data-i18n="privateLabel">Private Mode</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="nologo" name="nologo" checked><span data-i18n="nologoLabel">No Watermark</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="nofeed" name="nofeed" checked><span data-i18n="nofeedLabel">No Public Feed</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="safe" name="safe"><span data-i18n="safeLabel">Safety Filter</span></label>
+                    <label class="checkbox-item"><input type="checkbox" id="transparent" name="transparent"><span data-i18n="transparentLabel">Transparent BG</span></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-key-container">
+            <div id="balance-display" class="balance-box hidden"><span id="balance-text">0.000 pollen remaining.</span></div>
+            <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
+            <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
+        </div>
+    </aside>
+
+    <main class="canvas">
+        <div class="canvas-workspace" id="canvas-workspace">
+            <div class="empty-state" id="placeholder">
+                <div class="empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1h1v1h-1zM21 12h1v1h-1zM2 11h1v1H2zM12 21h1v1h-1zM19.07 4.93l.7.7.7-.7-.7-.7zM4.93 19.07l.7.7.7-.7-.7-.7zM19.07 19.07l.7.7.7-.7-.7-.7zM4.93 4.93l.7.7.7-.7-.7-.7z"/><path d="M12 7l1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7z"/></svg></div>
+                <h2 data-i18n="pageTitle">Generate Images Now</h2>
+                <p data-i18n="promptLabel">Describe your desired image in the prompt field.</p>
+            </div>
+            <div class="gallery-feed" id="gallery-feed"></div>
+        </div>
+
+        <div class="mini-view" id="mini-view"></div>
+
+        <div class="prompt-bar">
+            <div class="prompt-input-wrapper">
+                <span class="prompt-label" data-i18n="promptLabel">Prompt</span>
+                <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="1"></textarea>
+            </div>
+            <div class="cost-display">
+                <svg class="cost-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M12 6v12"></path>
+                    <path d="M8.5 9.5c0-1.4 1.4-2.5 3.5-2.5s3.5 1.1 3.5 2.5-1.4 2.5-3.5 2.5-3.5 1.1-3.5 2.5 1.4 2.5 3.5 2.5 3.5-1.1 3.5-2.5"></path>
+                </svg>
+                <span id="cost-text">Costs 0.002 Pollen</span>
+            </div>
+            <button class="generate-btn" id="generate-btn">
+                <svg viewBox="0 0 64 64" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M32 6c-8 6-14 24-14 36v8l10-5v9l4 8 4-8v-9l10 5v-8c0-12-6-30-14-36Z"></path>
+                    <path d="M20 42 12 50"></path>
+                    <path d="M44 42 52 50"></path>
+                    <circle cx="32" cy="26" r="5"></circle>
+                    <path d="M28 50h8"></path>
+                    <path d="M24 58c2-4 6-6 8-6s6 2 8 6" stroke-width="1.5"></path>
+                    <path d="M32 56v6" stroke-width="1.5"></path>
+                    <path d="M27 60 28 56"></path>
+                    <path d="M37 60 36 56"></path>
+                </svg>
+                <span data-i18n="generateBtn">Generate Image</span>
+            </button>
+        </div>
+
+        <div class="popover" id="aspect-ratio-popover">
+            <div class="popover-item" data-ratio="21:9" data-w="2394" data-h="1026"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 20px; height: 9px;"></div></div>Ultra-wide (21:9)</div>
+            <div class="popover-item" data-ratio="16:9" data-w="1824" data-h="1026"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 18px; height: 10px;"></div></div>Widescreen (16:9)</div>
+            <div class="popover-item" data-ratio="5:4" data-w="1280" data-h="1024"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 14px; height: 11px;"></div></div>Classic (5:4)</div>
+            <div class="popover-item selected" data-ratio="4:3" data-w="1366" data-h="1025"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 14px; height: 10px;"></div></div>Landscape (4:3)</div>
+            <div class="popover-item" data-ratio="3:2" data-w="1536" data-h="1024"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 15px; height: 10px;"></div></div>Wide (3:2)</div>
+            <div class="popover-item" data-ratio="1:1" data-w="1024" data-h="1024"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 12px; height: 12px;"></div></div>Square (1:1)</div>
+            <div class="popover-item" data-ratio="4:5" data-w="1024" data-h="1280"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 10px; height: 13px;"></div></div>Standard (4:5)</div>
+            <div class="popover-item" data-ratio="3:4" data-w="1025" data-h="1366"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 10px; height: 14px;"></div></div>Portrait (3:4)</div>
+            <div class="popover-item" data-ratio="2:3" data-w="1024" data-h="1536"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 10px; height: 15px;"></div></div>Tall (2:3)</div>
+            <div class="popover-item" data-ratio="9:16" data-w="1026" data-h="1824"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 8px; height: 18px;"></div></div>Vertical (9:16)</div>
+        </div>
+        <div class="popover" id="model-popover"></div>
+        <div id="lightbox" class="lightbox hidden" onclick="this.classList.remove('zoomed'); this.classList.add('hidden');">
+            <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.add('hidden')">&times;</button>
+            <div class="lightbox-content" onclick="event.stopPropagation()">
+                <img id="lightbox-image" src="" alt="Full size image">
+            </div>
+        </div>
+    </main>
+
+    <div id="status" class="status-msg"></div>
+    <form id="generation-form" style="display: none;"><input type="hidden" name="width" id="width" value="1366"><input type="hidden" name="height" id="height" value="1025"></form>
+
+    <script>
+        function togglePanel(id) { document.getElementById(id).classList.toggle('open'); }
+        function changeLanguage(lang) { i18n.setLanguage(lang); document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active')); document.getElementById(`lang-${lang}`).classList.add('active'); }
+
+        const aspectBtn = document.getElementById('aspect-ratio-btn');
+        const aspectPopover = document.getElementById('aspect-ratio-popover');
+        const modelBtn = document.getElementById('model-select-btn');
+        const modelPopover = document.getElementById('model-popover');
+
+        function positionPopover(btn, popover) {
+            const rect = btn.getBoundingClientRect();
+            popover.style.left = rect.left + 'px';
+            popover.style.top = (rect.bottom + 8) + 'px';
+            popover.style.bottom = 'auto';
+        }
+
+        aspectBtn.onclick = (e) => { e.stopPropagation(); const isVisible = aspectPopover.classList.contains('visible'); document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); if (!isVisible) { aspectPopover.classList.add('visible'); positionPopover(aspectBtn, aspectPopover); } };
+        modelBtn.onclick = (e) => { e.stopPropagation(); const isVisible = modelPopover.classList.contains('visible'); document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); if (!isVisible) { modelPopover.classList.add('visible'); positionPopover(modelBtn, modelPopover); } };
+        document.onclick = () => { document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); };
+
+        aspectPopover.querySelectorAll('.popover-item').forEach(item => {
+            item.onclick = (e) => {
+                e.stopPropagation();
+                aspectPopover.querySelector('.selected')?.classList.remove('selected');
+                item.classList.add('selected');
+                document.getElementById('current-ratio-label').textContent = item.textContent.trim();
+                document.getElementById('width').value = item.dataset.w;
+                document.getElementById('height').value = item.dataset.h;
                 
-                <button type="submit" form="generation-form" class="btn btn-primary" id="generate-btn">
-                    <span data-i18n="generateBtn">Generate Image</span>
-                </button>
-
-                <div id="status" class="status"></div>
-
-                <div class="result-actions hidden" id="result-actions">
-                    <a id="download-link" class="btn btn-link" download="pollinations-image.png">
-                        <span data-i18n="downloadBtn">Download Image</span>
-                    </a>
-                </div>
-
-                <!-- Image History -->
-                <div class="image-history-section">
-                    <h4 class="image-history-title" data-i18n="imageHistoryTitle">Image History</h4>
-                    <div class="image-history-grid" id="image-history-grid">
-                        <!-- Generated images will be added here -->
-                    </div>
-                </div>
-
-                <footer class="footer">
-                    Powered by <a href="https://pollinations.ai" target="_blank" rel="noopener">Pollinations</a> ✨
-                </footer>
-            </div>
-        </main>
-    </div>
-    
-    <!-- Scripts -->
+                const btnIcon = document.getElementById('current-ratio-icon');
+                const itemIcon = item.querySelector('.ratio-icon');
+                btnIcon.style.width = itemIcon.style.width;
+                btnIcon.style.height = itemIcon.style.height;
+                
+                aspectPopover.classList.remove('visible');
+            };
+        });
+    </script>
     <script src="js/i18n.js"></script>
     <script src="js/app.js"></script>
-
-    <!-- Image Modal -->
-    <div id="image-modal" class="image-modal" style="display: none;">
-        <div class="image-modal-overlay"></div>
-        <div class="image-modal-container">
-            <button id="image-modal-close" class="image-modal-close" aria-label="Close image">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-            <img id="image-modal-image" src="" alt="Enlarged image">
-        </div>
-    </div>
 </body>
 </html>
