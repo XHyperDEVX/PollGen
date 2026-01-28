@@ -39,13 +39,15 @@ function formatBalanceDisplay(balance) {
 async function updateBalance(apiKey) {
   const balanceDisplay = document.getElementById('balance-display');
   const balanceText = document.getElementById('balance-text');
+  const apiKeyHint = document.getElementById('api-key-hint');
   
   if (!apiKey || !apiKey.trim()) {
-    if (balanceDisplay) {
-      balanceDisplay.classList.add('hidden');
-    }
+    if (balanceDisplay) balanceDisplay.classList.add('hidden');
+    if (apiKeyHint) apiKeyHint.classList.remove('hidden');
     return;
   }
+
+  if (apiKeyHint) apiKeyHint.classList.add('hidden');
   
   try {
     const response = await fetch('https://gen.pollinations.ai/account/balance', {
@@ -55,10 +57,19 @@ async function updateBalance(apiKey) {
       }
     });
     
+    if (response.status === 401) {
+       const data = await response.json();
+       if (data.error?.code === 'UNAUTHORIZED' || data.code === 'UNAUTHORIZED') {
+           if (balanceDisplay && balanceText) {
+               balanceText.textContent = i18n.t('balancePermissionError');
+               balanceDisplay.classList.remove('hidden');
+           }
+           return;
+       }
+    }
+
     if (!response.ok) {
-      if (balanceDisplay) {
-        balanceDisplay.classList.add('hidden');
-      }
+      if (balanceDisplay) balanceDisplay.classList.add('hidden');
       return;
     }
     
@@ -396,7 +407,6 @@ function collectPayload() {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
   
-  // Boolean flags
   ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
@@ -433,7 +443,7 @@ function toggleLoading(isLoading) {
     if (isLoading) {
         generateBtn.innerHTML = '<div class="spinner"></div>';
     } else {
-        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg> <span data-i18n="generateBtn">Generate Image</span>';
+        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1M12 20v1M4.22 4.22l.7.7M19.07 19.07l.7.7M3 12h1M20 12h1M4.22 19.78l.7-.7M19.07 4.93l.7-.7"></path><path d="m12 8 1.5 2.5L16 12l-2.5 1.5L12 16l-1.5-2.5L8 12l2.5-1.5L12 8z"/></svg> <span data-i18n="generateBtn">Generate Image</span>';
     }
   }
 }
@@ -446,6 +456,13 @@ function createPlaceholderCard(genId) {
     const w = Number(document.getElementById('width').value) || 1024;
     const h = Number(document.getElementById('height').value) || 1024;
     const ratio = (h / w) * 100;
+
+    // Ensure vertical images don't exceed viewport height
+    if (h > w) {
+        card.style.maxWidth = `calc(85vh * ${w/h})`;
+    } else {
+        card.style.maxWidth = '100%';
+    }
 
     card.innerHTML = `
         <div class="noise-placeholder" style="padding-bottom: ${ratio}%"></div>
@@ -564,6 +581,7 @@ function setupEventListeners() {
       const key = apiKeyInput.value.trim();
       if (key) saveApiKey(key);
       else state.apiKey = null;
+      updateBalance(state.apiKey);
     });
   }
   
@@ -665,6 +683,8 @@ function init() {
     const apiKeyInput = document.getElementById('api-key');
     if (apiKeyInput) apiKeyInput.value = state.apiKey;
     updateBalance(state.apiKey);
+  } else {
+      updateBalance(null);
   }
   setupEventListeners();
   loadModels();

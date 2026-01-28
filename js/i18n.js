@@ -12,7 +12,7 @@ const translations = {
     // API Key
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'Enter your Pollinations API key',
-    apiKeyHint: 'Get your free API key from',
+    apiKeyHint: 'Get your API key from <a href="https://pollinations.ai" target="_blank">pollinations</a>',
     apiKeyStored: 'API key saved',
     apiKeyMissing: 'Please enter your API key',
 
@@ -58,6 +58,7 @@ const translations = {
     balanceRemaining: 'pollen remaining.',
     costsLabel: 'Costs %s Pollen',
     deleteConfirm: 'Delete this image?',
+    balancePermissionError: 'Please activate the balance permission for the API key.',
   },
   de: {
     // Page
@@ -67,7 +68,7 @@ const translations = {
     // API Key
     apiKeyLabel: 'API-Schlüssel',
     apiKeyPlaceholder: 'Geben Sie Ihren Pollinations-API-Schlüssel ein',
-    apiKeyHint: 'Holen Sie sich Ihren kostenlosen API-Schlüssel von',
+    apiKeyHint: 'Holen Sie sich Ihren API-Schlüssel von <a href="https://pollinations.ai" target="_blank">pollinations</a>',
     apiKeyStored: 'API-Schlüssel gespeichert',
     apiKeyMissing: 'Bitte geben Sie Ihren API-Schlüssel ein',
 
@@ -113,6 +114,7 @@ const translations = {
     balanceRemaining: 'Pollen verbleibend.',
     costsLabel: 'Kostet %s Pollen',
     deleteConfirm: 'Bild löschen?',
+    balancePermissionError: 'Bitte aktiviere die Balance-Berechtigung für den API-Key.',
   }
 };
 
@@ -148,7 +150,13 @@ class I18n {
     document.documentElement.lang = this.currentLanguage;
     document.querySelectorAll('[data-i18n]').forEach(element => {
       const key = element.getAttribute('data-i18n');
-      if (key) element.textContent = this.t(key);
+      if (key) {
+          if (key === 'apiKeyHint') {
+              element.innerHTML = this.t(key);
+          } else {
+              element.textContent = this.t(key);
+          }
+      }
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
       const key = element.getAttribute('data-i18n-placeholder');
