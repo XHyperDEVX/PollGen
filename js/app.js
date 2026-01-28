@@ -252,7 +252,7 @@ function renderModelOptions(models) {
     if (model.name === previousValue) item.classList.add('selected');
     
     let label = name;
-    if (price !== '0') label += ` - ${price} Pollen`;
+    if (price !== '0') label += ` - ${price}`;
     
     item.innerHTML = `
       <div class="model-badge" style="background-color: ${stringToColor(name)}"></div>
@@ -448,7 +448,7 @@ function toggleLoading(isLoading) {
     if (isLoading) {
         generateBtn.innerHTML = '<div class="spinner"></div>';
     } else {
-        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg> <span data-i18n="generateBtn">Generate Image</span>';
+        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1M12 20v1M4.22 4.22l.7.7M19.07 19.07l.7.7M3 12h1M20 12h1M4.22 19.78l.7-.7M19.07 4.93l.7-.7"></path><path d="m12 8 1.5 2.5L16 12l-2.5 1.5L12 16l-1.5-2.5L8 12l2.5-1.5L12 8z"/></svg> <span data-i18n="generateBtn">Generate Image</span>';
     }
   }
 }
@@ -475,7 +475,14 @@ function createPlaceholderCard(genId) {
 
     const grid = document.createElement('div');
     grid.className = 'mini-pulse';
-    for (let i = 0; i < 192; i++) {
+    
+    const cols = 48; 
+    const rows = Math.round(cols * (h / w));
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    
+    const totalBlocks = cols * rows;
+    for (let i = 0; i < totalBlocks; i++) {
         const block = document.createElement('div');
         block.style.animationDelay = (Math.random() * 4).toFixed(2) + 's';
         grid.appendChild(block);

@@ -160,6 +160,7 @@
         .canvas { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: var(--canvas-bg); }
         .canvas-workspace { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 60px 24px; overflow-y: auto; scroll-behavior: smooth; }
         .canvas-workspace::-webkit-scrollbar { width: 8px; }
+        .canvas-workspace::-webkit-scrollbar-track { background: transparent; }
         .canvas-workspace::-webkit-scrollbar-thumb { background: #4a4a4c; border-radius: 4px; }
 
         .empty-state { text-align: center; max-width: 400px; margin: auto; }
@@ -187,6 +188,7 @@
             transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); 
             cursor: zoom-in;
             user-select: none;
+            object-fit: contain;
         }
         .lightbox.zoomed img { transform: scale(2.5); cursor: zoom-out; }
 
@@ -196,8 +198,6 @@
         }
         .mini-pulse {
             display: grid;
-            grid-template-columns: repeat(16, 1fr);
-            grid-template-rows: repeat(12, 1fr);
             width: 100%; height: 100%;
             position: absolute; inset: 0;
         }
@@ -281,8 +281,8 @@
             </div>
         </div>
 
-        <div class="panel" id="panel-parameters">
-            <div class="panel-header" onclick="togglePanel('panel-parameters')">
+        <div class="panel" id="parameters-panel">
+            <div class="panel-header" onclick="togglePanel('parameters-panel')">
                 <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="parametersLabel">Parameters</h3>
             </div>
@@ -294,8 +294,8 @@
             </div>
         </div>
 
-        <div class="panel" id="panel-refinement">
-            <div class="panel-header" onclick="togglePanel('panel-refinement')">
+        <div class="panel" id="refinement-panel">
+            <div class="panel-header" onclick="togglePanel('refinement-panel')">
                 <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="refinementLabel">Refinement</h3>
             </div>
@@ -304,8 +304,8 @@
             </div>
         </div>
 
-        <div class="panel" id="panel-advanced">
-            <div class="panel-header" onclick="togglePanel('panel-advanced')">
+        <div class="panel" id="advanced-panel">
+            <div class="panel-header" onclick="togglePanel('advanced-panel')">
                 <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="advancedLabel">Advanced Options</h3>
             </div>
@@ -333,7 +333,7 @@
             <div class="empty-state" id="placeholder">
                 <div class="empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1h1v1h-1zM21 12h1v1h-1zM2 11h1v1H2zM12 21h1v1h-1zM19.07 4.93l.7.7.7-.7-.7-.7zM4.93 19.07l.7.7.7-.7-.7-.7zM19.07 19.07l.7.7.7-.7-.7-.7zM4.93 4.93l.7.7.7-.7-.7-.7z"/><path d="M12 7l1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7z"/></svg></div>
                 <h2 data-i18n="pageTitle">Generate Images Now</h2>
-                <p>Describe your desired image in the prompt field.</p>
+                <p data-i18n="promptLabel">Describe your desired image in the prompt field.</p>
             </div>
             <div class="gallery-feed" id="gallery-feed"></div>
         </div>
