@@ -396,6 +396,7 @@ function collectPayload() {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
   
+  // Boolean flags
   ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
@@ -537,7 +538,15 @@ function adjustPromptHeight() {
     const prompt = document.getElementById('prompt');
     if (!prompt) return;
     prompt.style.height = 'auto';
-    prompt.style.height = prompt.scrollHeight + 'px';
+    const newHeight = Math.min(prompt.scrollHeight, 200);
+    prompt.style.height = newHeight + 'px';
+    
+    // Adjust mini view position
+    const miniView = document.getElementById('mini-view');
+    if (miniView) {
+        const barHeight = document.querySelector('.prompt-bar').offsetHeight;
+        miniView.style.bottom = (barHeight + 20) + 'px';
+    }
 }
 
 // ============================================================================
@@ -587,9 +596,8 @@ function setupEventListeners() {
       if (emptyState) emptyState.style.display = 'none';
       galleryFeed.appendChild(card);
       
-      // Extended scroll logic to ensure it hits bottom
+      // Full scroll to bottom
       setTimeout(() => {
-          card.scrollIntoView({ behavior: 'smooth', block: 'end' });
           const scrollContainer = document.getElementById('canvas-workspace');
           if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }, 50);
@@ -620,12 +628,8 @@ function setupEventListeners() {
             e.preventDefault();
             generateBtn.click();
         } else if (e.key === 'Enter' && e.ctrlKey) {
-            // New line on Ctrl+Enter
-            const start = promptInput.selectionStart;
-            const end = promptInput.selectionEnd;
-            promptInput.value = promptInput.value.substring(0, start) + "\n" + promptInput.value.substring(end);
-            promptInput.selectionStart = promptInput.selectionEnd = start + 1;
-            adjustPromptHeight();
+            // New line logic for textarea already handled by default but we force height adjustment
+            setTimeout(adjustPromptHeight, 0);
         }
     });
   }
