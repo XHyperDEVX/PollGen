@@ -351,20 +351,24 @@
                 <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="1"></textarea>
             </div>
             <div class="cost-display">
-                <svg class="cost-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"></path></svg>
+                <svg class="cost-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M12 6v12"></path>
+                    <path d="M8.5 9.5c0-1.4 1.4-2.5 3.5-2.5s3.5 1.1 3.5 2.5-1.4 2.5-3.5 2.5-3.5 1.1-3.5 2.5 1.4 2.5 3.5 2.5 3.5-1.1 3.5-2.5"></path>
+                </svg>
                 <span id="cost-text">Costs 0.002 Pollen</span>
             </div>
             <button class="generate-btn" id="generate-btn">
                 <svg viewBox="0 0 64 64" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M32 6c-8 6-14 24-14 36v8l10-5v9l4 8 4-8v-9l10 5v-8c0-12-6-30-14-36Z"></path>
-                <path d="M20 42 12 50"></path>
-                <path d="M44 42 52 50"></path>
-                <circle cx="32" cy="26" r="5"></circle>
-                <path d="M28 50h8"></path>
-                <path d="M24 58c2-4 6-6 8-6s6 2 8 6" stroke-width="1.5"></path>
-                <path d="M32 56v6" stroke-width="1.5"></path>
-                <path d="M27 60 28 56"></path>
-                <path d="M37 60 36 56"></path>
+                    <path d="M32 6c-8 6-14 24-14 36v8l10-5v9l4 8 4-8v-9l10 5v-8c0-12-6-30-14-36Z"></path>
+                    <path d="M20 42 12 50"></path>
+                    <path d="M44 42 52 50"></path>
+                    <circle cx="32" cy="26" r="5"></circle>
+                    <path d="M28 50h8"></path>
+                    <path d="M24 58c2-4 6-6 8-6s6 2 8 6" stroke-width="1.5"></path>
+                    <path d="M32 56v6" stroke-width="1.5"></path>
+                    <path d="M27 60 28 56"></path>
+                    <path d="M37 60 36 56"></path>
                 </svg>
                 <span data-i18n="generateBtn">Generate Image</span>
             </button>
