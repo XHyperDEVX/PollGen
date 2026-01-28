@@ -476,7 +476,7 @@ function createPlaceholderCard(genId) {
     const grid = document.createElement('div');
     grid.className = 'mini-pulse';
     
-    const cols = 96; 
+    const cols = 48; 
     const rows = Math.round(cols * (h / w));
     grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
