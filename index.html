@@ -48,6 +48,11 @@
             border-right: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-content {
+            flex: 1;
             padding: 12px;
             overflow-y: auto;
             overflow-x: hidden;
@@ -369,12 +374,12 @@
             </div>
         </div>
         </div>
-
-        <div class="api-key-container">
-            <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
-            <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
-        </div>
     </aside>
+
+    <div class="api-key-container">
+        <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
+        <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
+    </div>
 
     <main class="canvas">
         <div class="canvas-workspace" id="canvas-workspace">
