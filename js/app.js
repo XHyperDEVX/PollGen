@@ -299,7 +299,6 @@ async function generateImage(payload) {
   if (payload.seed) params.append('seed', payload.seed);
   if (payload.guidance_scale) params.append('guidance_scale', payload.guidance_scale);
   if (payload.negative_prompt) params.append('negative_prompt', payload.negative_prompt);
-  if (payload.quality) params.append('quality', payload.quality);
   if (payload.enhance) params.append('enhance', 'true');
   if (payload.private) params.append('private', 'true');
   if (payload.nologo) params.append('nologo', 'true');
@@ -352,7 +351,6 @@ function collectPayload() {
   const widthInput = document.getElementById('width');
   const heightInput = document.getElementById('height');
   const seedInput = document.getElementById('seed');
-  const qualityInput = document.getElementById('quality');
   const guidanceInput = document.getElementById('guidance_scale');
   const negativePromptInput = document.getElementById('negative_prompt');
   
@@ -370,10 +368,6 @@ function collectPayload() {
       payload.seed = Number(seedInput.value);
   } else {
       payload.seed = generateRandomSeed();
-  }
-  
-  if (qualityInput && qualityInput.value) {
-      payload.quality = qualityInput.value;
   }
   
   if (guidanceInput) {
@@ -831,7 +825,14 @@ if (lightbox && lightboxImg) {
         if (isZoomed) {
             lightbox.classList.remove('zoomed');
             isZoomed = false;
-            resetLightboxTransform();
+
+            stopLightboxOriginAnimation();
+            lightboxImg.style.cursor = 'zoom-in';
+            lightboxImg.style.transform = 'translate3d(0px, 0px, 0) scale(1)';
+
+            setTimeout(() => {
+                if (!isZoomed) setLightboxOriginImmediate(50, 50);
+            }, 480);
             return;
         }
 
@@ -1047,21 +1048,13 @@ function pinApiKeyFooter() {
 
   apiKeyContainer.classList.add('pinned');
 
-  const sidebarContent = sidebar.querySelector('.sidebar-content');
-
   const applyLayout = () => {
     const rect = sidebar.getBoundingClientRect();
     apiKeyContainer.style.left = `${rect.left}px`;
     apiKeyContainer.style.width = `${rect.width}px`;
 
-    if (!sidebarContent) return;
-
-    const footerRect = apiKeyContainer.getBoundingClientRect();
-    const contentRect = sidebarContent.getBoundingClientRect();
-
-    const available = Math.max(0, footerRect.top - contentRect.top);
-    sidebarContent.style.height = `${available}px`;
-    sidebarContent.style.maxHeight = `${available}px`;
+    const h = apiKeyContainer.offsetHeight || 0;
+    sidebar.style.setProperty('--api-footer-height', `${h}px`);
   };
 
   applyLayout();
