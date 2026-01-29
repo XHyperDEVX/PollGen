@@ -307,7 +307,7 @@ function updateCostDisplay(model) {
   const costText = document.getElementById('cost-text');
   if (costText) {
     const price = formatModelPrice(model);
-    costText.textContent = i18n.t('costsLabel', price);
+    costText.textContent = price;
   }
 }
 
@@ -445,10 +445,14 @@ function toggleLoading(isLoading) {
   
   if (generateBtn) {
     generateBtn.disabled = isLoading;
+    const btnText = generateBtn.querySelector('span');
+    if (btnText) {
+      btnText.textContent = isLoading ? i18n.t('generatingLabel') : i18n.t('generateBtn');
+    }
     if (isLoading) {
-        generateBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div> <span data-i18n="generateBtn">' + i18n.t('generateBtn') + '</span>';
+        generateBtn.classList.add('loading');
     } else {
-        generateBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 10 7.5-7.5a2.12 2.12 0 1 1 3 3L16 13"></path><path d="m15 5 4 4"></path><path d="m8 22 3-3"></path><path d="M2 14l2-2"></path><path d="m2 22 10-10"></path><path d="m17 17 3 3"></path><path d="m2 18 1-1"></path><path d="m20 2 1 1"></path></svg> <span data-i18n="generateBtn">' + i18n.t('generateBtn') + '</span>';
+        generateBtn.classList.remove('loading');
     }
   }
 }
@@ -473,21 +477,61 @@ function createPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    const grid = document.createElement('div');
-    grid.className = 'mini-pulse';
+    // Create firefly animation
+    const fireflyCount = 25;
+    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
     
-    const cols = 192; 
-    const rows = Math.round(cols * (h / w));
-    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-    
-    const totalBlocks = cols * rows;
-    for (let i = 0; i < totalBlocks; i++) {
-        const block = document.createElement('div');
-        block.style.animationDelay = (Math.random() * 4).toFixed(2) + 's';
-        grid.appendChild(block);
+    for (let i = 0; i < fireflyCount; i++) {
+        const firefly = document.createElement('div');
+        firefly.className = 'firefly';
+        
+        // Random size
+        const size = Math.random() * 6 + 2;
+        firefly.style.width = size + 'px';
+        firefly.style.height = size + 'px';
+        
+        // Random color
+        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Random brightness
+        const brightness = Math.random() * 0.5 + 0.5;
+        firefly.style.filter = `brightness(${brightness})`;
+        
+        // Random starting position
+        firefly.style.left = Math.random() * 100 + '%';
+        firefly.style.top = Math.random() * 100 + '%';
+        
+        // Random animation delay
+        firefly.style.animationDelay = Math.random() * 5 + 's';
+        
+        placeholder.appendChild(firefly);
+        
+        animateFirefly(firefly);
     }
-    placeholder.appendChild(grid);
+
+    function animateFirefly(firefly) {
+        const duration = Math.random() * 6 + 4;
+        const startX = parseFloat(firefly.style.left);
+        const startY = parseFloat(firefly.style.top);
+        const endX = Math.random() * 100;
+        const endY = Math.random() * 100;
+        
+        const animation = firefly.animate([
+            { left: startX + '%', top: startY + '%', opacity: 0.4 },
+            { left: endX + '%', top: endY + '%', opacity: 0.8 },
+            { left: endX + 10 + '%', top: endY + 5 + '%', opacity: 0.4 }
+        ], {
+            duration: duration * 1000,
+            easing: 'ease-in-out',
+            iterations: Infinity,
+            direction: 'alternate'
+        });
+        
+        const playbackRate = Math.random() * 0.5 + 0.5;
+        animation.playbackRate = playbackRate;
+        
+        setTimeout(() => animateFirefly(firefly), duration * 1000);
+    }
 
     card.appendChild(placeholder);
     const overlay = document.createElement('div');
@@ -528,7 +572,8 @@ function displayResultInCard(genId, data) {
 }
 
 let isZoomed = false;
-let startX, startY, moveX = 0, moveY = 0;
+let startX, startY, currentTranslateX = 0, currentTranslateY = 0;
+let isDragging = false;
 
 function openLightbox(src, e) {
     const lightbox = document.getElementById('lightbox');
@@ -538,9 +583,10 @@ function openLightbox(src, e) {
         lightbox.classList.remove('hidden');
         lightbox.classList.remove('zoomed');
         isZoomed = false;
-        moveX = 0;
-        moveY = 0;
-        lightboxImg.style.transform = 'translate(0, 0)';
+        currentTranslateX = 0;
+        currentTranslateY = 0;
+        isDragging = false;
+        lightboxImg.style.transform = 'translate(0px, 0px)';
         lightboxImg.style.transformOrigin = 'center center';
     }
 }
@@ -551,40 +597,96 @@ const lightboxImg = document.getElementById('lightbox-image');
 if (lightboxImg) {
     lightboxImg.onclick = (e) => {
         e.stopPropagation();
+        if (isDragging) return;
+
         if (isZoomed) {
             lightbox.classList.remove('zoomed');
             isZoomed = false;
-            moveX = 0;
-            moveY = 0;
-            lightboxImg.style.transform = 'translate(0, 0)';
+            currentTranslateX = 0;
+            currentTranslateY = 0;
+            lightboxImg.style.transform = 'translate(0px, 0px)';
+            lightboxImg.style.cursor = 'zoom-in';
         } else {
             const rect = lightboxImg.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * 100;
             const y = ((e.clientY - rect.top) / rect.height) * 100;
             lightboxImg.style.transformOrigin = `${x}% ${y}%`;
             lightbox.classList.add('zoomed');
+            lightboxImg.style.transform = 'scale(2.5)';
+            lightboxImg.style.cursor = 'grab';
             isZoomed = true;
         }
     };
 
+    let hasMoved = false;
+    let dragStartX, dragStartY;
+
     lightbox.addEventListener('mousedown', (e) => {
         if (!isZoomed) return;
-        startX = e.clientX - moveX;
-        startY = e.clientY - moveY;
-        
+        isDragging = false;
+        hasMoved = false;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+
         const onMouseMove = (moveEvent) => {
-            moveX = moveEvent.clientX - startX;
-            moveY = moveEvent.clientY - startY;
-            lightboxImg.style.transform = `scale(2.5) translate(${moveX/2.5}px, ${moveY/2.5}px)`;
+            const deltaX = moveEvent.clientX - dragStartX;
+            const deltaY = moveEvent.clientY - dragStartY;
+
+            // Minimal movement threshold to start dragging
+            if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+                hasMoved = true;
+                isDragging = true;
+            }
+
+            if (!hasMoved) return;
+
+            dragStartX = moveEvent.clientX;
+            dragStartY = moveEvent.clientY;
+
+            const rect = lightboxImg.getBoundingClientRect();
+            const containerRect = lightbox.getBoundingClientRect();
+
+            const scale = 2.5;
+            const imageWidth = rect.width;
+            const imageHeight = rect.height;
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+
+            const maxTranslateX = (imageWidth - containerWidth) / 2;
+            const maxTranslateY = (imageHeight - containerHeight) / 2;
+
+            currentTranslateX += deltaX;
+            currentTranslateY += deltaY;
+
+            currentTranslateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, currentTranslateX));
+            currentTranslateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, currentTranslateY));
+
+            lightboxImg.style.transform = `scale(${scale}) translate(${currentTranslateX / scale}px, ${currentTranslateY / scale}px)`;
         };
-        
+
         const onMouseUp = () => {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+
+            if (!hasMoved) {
+                isDragging = false;
+            }
+
+            setTimeout(() => {
+                isDragging = false;
+            }, 10);
         };
-        
+
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
+    });
+
+    lightboxImg.addEventListener('mousemove', (e) => {
+        if (isZoomed && isDragging) {
+            lightboxImg.style.cursor = 'grabbing';
+        } else if (isZoomed) {
+            lightboxImg.style.cursor = 'grab';
+        }
     });
 }
 
@@ -633,9 +735,20 @@ function addToImageHistory(historyItem) {
 function adjustPromptHeight() {
     const prompt = document.getElementById('prompt');
     if (!prompt) return;
+    
+    // Store scroll position if textarea has overflow
+    const wasScrolled = prompt.scrollTop > 0;
+    const scrollTop = prompt.scrollTop;
+    const scrollBottom = prompt.scrollHeight - prompt.scrollTop - prompt.clientHeight;
+    
     prompt.style.height = 'auto';
     const newHeight = Math.min(prompt.scrollHeight, 200);
     prompt.style.height = newHeight + 'px';
+    
+    // Restore scroll position if needed
+    if (wasScrolled) {
+        prompt.scrollTop = prompt.scrollHeight - newHeight - scrollBottom;
+    }
     
     // Adjust mini view position
     const miniView = document.getElementById('mini-view');

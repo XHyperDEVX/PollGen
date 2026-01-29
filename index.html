@@ -50,13 +50,21 @@
             flex-direction: column;
             padding: 12px;
             overflow-y: auto;
+            overflow-x: hidden;
             flex-shrink: 0;
             z-index: 20;
         }
+        .sidebar-content {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
 
         .sidebar::-webkit-scrollbar { width: 6px; }
-        .sidebar::-webkit-scrollbar-track { background: var(--sidebar-bg); }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
         .sidebar::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+        .sidebar::-webkit-scrollbar-thumb:hover { background: #4a4a4c; }
+        .sidebar { scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
 
         .panel {
             background-color: var(--panel-bg);
@@ -200,39 +208,51 @@
         }
         .lightbox-close:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
 
-        .noise-placeholder { 
-            width: 100%; background-color: #2a2a2a; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; 
+        .noise-placeholder {
+            width: 100%; background-color: #2a2a2a; position: relative; overflow: hidden;
             border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
-        .mini-pulse {
-            display: grid;
-            width: 100%; height: 100%;
-            position: absolute; inset: 0;
-            z-index: 1;
+        .firefly {
+            position: absolute;
+            border-radius: 50%;
+            animation: move 8s infinite linear, fade 4s infinite alternate;
         }
-        .mini-pulse > div {
-            background-color: #2a2a2a;
-            animation: miniPulse 4s ease-in-out infinite;
+        @keyframes move {
+            from { transform: translate(0, 0); }
+            to { transform: translate(100vw, 100vh); }
         }
-        @keyframes miniPulse {
-            0%, 100% { background-color: #2a2a2a; }
-            50% { background-color: rgba(192, 192, 192, 0.08); }
+        @keyframes fade {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
         }
 
-        .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: flex-end; gap: 20px; z-index: 30; }
+        .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: center; gap: 20px; z-index: 30; }
         .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-end; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
+        .prompt-actions { display: flex; gap: 12px; align-items: center; }
         .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
         .prompt-label { font-size: 11px; font-weight: 700; color: var(--accent); margin-right: 16px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
 
-        #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: hidden; display: block; }
+        #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: auto; display: block; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
+        #prompt::-webkit-scrollbar { width: 6px; }
+        #prompt::-webkit-scrollbar-track { background: transparent; }
+        #prompt::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+        #prompt::-webkit-scrollbar-thumb:hover { background: #4a4a4c; }
         #prompt::placeholder { color: #6a6a6c; }
 
-        .cost-display { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 12px; height: fit-content; align-self: center; }
+        .cost-display { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 12px; align-self: center; text-align: center; }
+        .cost-display .cost-label { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .cost-display .cost-value { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+        .cost-display .cost-unit { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
 
         .generate-btn { height: 52px; padding: 0 32px; background: linear-gradient(135deg, var(--accent) 0%, #1D4ED8 100%); color: white; border: none; border-radius: 26px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 20px rgba(37,99,235,0.3); white-space: nowrap; align-self: center; }
-        .generate-btn svg { flex-shrink: 0; }
+        .generate-btn svg { flex-shrink: 0; transition: opacity 0.3s ease; }
         .generate-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 24px rgba(37,99,235,0.4); filter: brightness(1.1); }
         .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(0.5); transform: none !important; }
+        .generate-btn:disabled svg { opacity: 0.7; }
+        .generate-btn .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+        .generate-btn.loading .spinner { display: block; }
+        .generate-btn.loading svg { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .popover { position: fixed; background-color: #252526; border-radius: 12px; padding: 10px; box-shadow: 0 12px 48px rgba(0,0,0,0.7); display: none; z-index: 100; width: 280px; border: 1px solid rgba(255,255,255,0.1); }
         .popover.visible { display: block; }
@@ -253,11 +273,12 @@
 </head>
 <body>
     <aside class="sidebar">
-        <div class="language-toggle">
-            <button class="lang-btn active" id="lang-en" onclick="changeLanguage('en')">EN</button>
-            <button class="lang-btn" id="lang-de" onclick="changeLanguage('de')">DE</button>
-        </div>
-        <div class="panel open" id="panel-general">
+        <div class="sidebar-content">
+            <div class="language-toggle">
+                <button class="lang-btn active" id="lang-en" onclick="changeLanguage('en')">EN</button>
+                <button class="lang-btn" id="lang-de" onclick="changeLanguage('de')">DE</button>
+            </div>
+            <div class="panel open" id="panel-general">
             <div class="panel-header" onclick="togglePanel('panel-general')">
                 <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
                 <h3 data-i18n="modelLabel">General Settings</h3>
@@ -313,7 +334,7 @@
                 <h3 data-i18n="refinementLabel">Refinement</h3>
             </div>
             <div class="panel-content">
-                <div class="form-group"><label class="form-label" data-i18n="negativePromptLabel">Negative Prompt</label><textarea id="negative_prompt" name="negative_prompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="What to exclude..."></textarea></div>
+               <div class="form-group"><label class="form-label" data-i18n="negativePromptLabel">Negative Prompt</label><textarea id="negative_prompt" name="negative_prompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="What to exclude..." style="resize: vertical; min-height: 60px;"></textarea></div>
             </div>
         </div>
 
@@ -331,10 +352,10 @@
                     <label class="checkbox-item"><input type="checkbox" id="safe" name="safe"><span data-i18n="safeLabel">Safety Filter</span></label>
                     <label class="checkbox-item"><input type="checkbox" id="transparent" name="transparent"><span data-i18n="transparentLabel">Transparent BG</span></label>
                 </div>
-            </div>
-        </div>
+                </div>
+                </div>
 
-        <div class="api-key-container">
+                <div class="api-key-container">
             <div id="balance-display" class="balance-box hidden"><span id="balance-text">0.000 pollen remaining.</span></div>
             <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
             <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
@@ -358,28 +379,28 @@
                 <span class="prompt-label" data-i18n="promptLabel">Prompt</span>
                 <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="1"></textarea>
             </div>
-            <div class="cost-display">
-                <svg class="cost-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="9"></circle>
-                    <path d="M12 6v12"></path>
-                    <path d="M8.5 9.5c0-1.4 1.4-2.5 3.5-2.5s3.5 1.1 3.5 2.5-1.4 2.5-3.5 2.5-3.5 1.1-3.5 2.5 1.4 2.5 3.5 2.5 3.5-1.1 3.5-2.5"></path>
-                </svg>
-                <span id="cost-text">Costs 0.002 Pollen</span>
+            <div class="prompt-actions">
+               <div class="cost-display">
+                   <div class="cost-label" data-i18n="costLabel">Costs</div>
+                   <div class="cost-value" id="cost-text">0.002</div>
+                   <div class="cost-unit" data-i18n="pollenLabel">Pollen</div>
+               </div>
+               <button class="generate-btn" id="generate-btn">
+                   <svg viewBox="0 0 64 64" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                       <path d="M32 6c-8 6-14 24-14 36v8l10-5v9l4 8 4-8v-9l10 5v-8c0-12-6-30-14-36Z"></path>
+                       <path d="M20 42 12 50"></path>
+                       <path d="M44 42 52 50"></path>
+                       <circle cx="32" cy="26" r="5"></circle>
+                       <path d="M28 50h8"></path>
+                       <path d="M24 58c2-4 6-6 8-6s6 2 8 6" stroke-width="1.5"></path>
+                       <path d="M32 56v6" stroke-width="1.5"></path>
+                       <path d="M27 60 28 56"></path>
+                       <path d="M37 60 36 56"></path>
+                   </svg>
+                   <div class="spinner"></div>
+                   <span data-i18n="generateBtn">Generate Image</span>
+               </button>
             </div>
-            <button class="generate-btn" id="generate-btn">
-                <svg viewBox="0 0 64 64" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M32 6c-8 6-14 24-14 36v8l10-5v9l4 8 4-8v-9l10 5v-8c0-12-6-30-14-36Z"></path>
-                    <path d="M20 42 12 50"></path>
-                    <path d="M44 42 52 50"></path>
-                    <circle cx="32" cy="26" r="5"></circle>
-                    <path d="M28 50h8"></path>
-                    <path d="M24 58c2-4 6-6 8-6s6 2 8 6" stroke-width="1.5"></path>
-                    <path d="M32 56v6" stroke-width="1.5"></path>
-                    <path d="M27 60 28 56"></path>
-                    <path d="M37 60 36 56"></path>
-                </svg>
-                <span data-i18n="generateBtn">Generate Image</span>
-            </button>
         </div>
 
         <div class="popover" id="aspect-ratio-popover">
