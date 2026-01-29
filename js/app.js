@@ -565,6 +565,47 @@ function toggleLoading(isLoading) {
   }
 }
 
+let imageCardResizeRaf = null;
+
+function getCanvasWorkspaceContentSize() {
+  const workspace = document.getElementById('canvas-workspace');
+  if (!workspace) return { w: window.innerWidth, h: window.innerHeight };
+
+  const rect = workspace.getBoundingClientRect();
+  const styles = window.getComputedStyle(workspace);
+  const padX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+  const padY = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+
+  return {
+    w: Math.max(240, rect.width - padX),
+    h: Math.max(200, rect.height - padY)
+  };
+}
+
+function applyImageCardSizing(card) {
+  if (!card) return;
+
+  const w = Number(card.dataset.w);
+  const h = Number(card.dataset.h);
+  if (!w || !h) return;
+
+  const { w: availableW, h: availableH } = getCanvasWorkspaceContentSize();
+  const maxW = Math.min(availableW, (availableH * w) / h);
+  card.style.maxWidth = `${Math.floor(maxW)}px`;
+}
+
+function resizeAllImageCards() {
+  document.querySelectorAll('.image-card').forEach(applyImageCardSizing);
+}
+
+function scheduleImageCardResize() {
+  if (imageCardResizeRaf) cancelAnimationFrame(imageCardResizeRaf);
+  imageCardResizeRaf = requestAnimationFrame(() => {
+    resizeAllImageCards();
+    imageCardResizeRaf = null;
+  });
+}
+
 function createPlaceholderCard(genId) {
     const card = document.createElement('div');
     card.className = 'image-card';
@@ -574,12 +615,9 @@ function createPlaceholderCard(genId) {
     const h = Number(document.getElementById('height').value) || 1024;
     const ratio = (h / w) * 100;
 
-    // Ensure vertical images don't exceed viewport height
-    if (h > w) {
-        card.style.maxWidth = `calc(85vh * ${w/h})`;
-    } else {
-        card.style.maxWidth = '100%';
-    }
+    card.dataset.w = w.toString();
+    card.dataset.h = h.toString();
+    applyImageCardSizing(card);
 
     const placeholder = document.createElement('div');
     placeholder.className = 'noise-placeholder';
@@ -673,40 +711,86 @@ const LIGHTBOX_ZOOM_SCALE = 2.5;
 const lightbox = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightbox-image');
 
-function resetLightboxTransform() {
+let lightboxOriginRaf = null;
+let lightboxOriginX = 50;
+let lightboxOriginY = 50;
+let lightboxOriginTargetX = 50;
+let lightboxOriginTargetY = 50;
+
+function applyLightboxOrigin() {
     if (!lightboxImg) return;
-    lightboxImg.style.transformOrigin = 'center center';
-    lightboxImg.style.transform = 'translate3d(0px, 0px, 0) scale(1)';
-    lightboxImg.style.cursor = 'zoom-in';
+    lightboxImg.style.transformOrigin = `${lightboxOriginX}% ${lightboxOriginY}%`;
 }
 
-function applyLightboxPanFromPointer(clientX, clientY) {
+function stopLightboxOriginAnimation() {
+    if (lightboxOriginRaf) {
+        cancelAnimationFrame(lightboxOriginRaf);
+        lightboxOriginRaf = null;
+    }
+}
+
+function setLightboxOriginImmediate(x, y) {
+    stopLightboxOriginAnimation();
+
+    lightboxOriginX = x;
+    lightboxOriginY = y;
+    lightboxOriginTargetX = x;
+    lightboxOriginTargetY = y;
+    applyLightboxOrigin();
+}
+
+function setLightboxOriginTarget(x, y) {
+    lightboxOriginTargetX = x;
+    lightboxOriginTargetY = y;
+
+    if (lightboxOriginRaf) return;
+
+    const tick = () => {
+        const dx = lightboxOriginTargetX - lightboxOriginX;
+        const dy = lightboxOriginTargetY - lightboxOriginY;
+
+        lightboxOriginX += dx * 0.18;
+        lightboxOriginY += dy * 0.18;
+        applyLightboxOrigin();
+
+        if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
+            lightboxOriginX = lightboxOriginTargetX;
+            lightboxOriginY = lightboxOriginTargetY;
+            applyLightboxOrigin();
+            lightboxOriginRaf = null;
+            return;
+        }
+
+        lightboxOriginRaf = requestAnimationFrame(tick);
+    };
+
+    lightboxOriginRaf = requestAnimationFrame(tick);
+}
+
+function setLightboxOriginTargetFromPointer(clientX, clientY) {
     if (!lightbox || !lightboxImg) return;
 
     const containerRect = lightbox.getBoundingClientRect();
     if (!containerRect.width || !containerRect.height) return;
 
-    const xNorm = (clientX - containerRect.left) / containerRect.width;
-    const yNorm = (clientY - containerRect.top) / containerRect.height;
+    let x = ((clientX - containerRect.left) / containerRect.width) * 100;
+    let y = ((clientY - containerRect.top) / containerRect.height) * 100;
 
-    const clampedX = Math.min(1, Math.max(0, xNorm));
-    const clampedY = Math.min(1, Math.max(0, yNorm));
+    const sensitivity = 2.1;
+    x = 50 + (x - 50) * sensitivity;
+    y = 50 + (y - 50) * sensitivity;
 
-    const baseW = lightboxImg.clientWidth || 0;
-    const baseH = lightboxImg.clientHeight || 0;
+    x = Math.min(100, Math.max(0, x));
+    y = Math.min(100, Math.max(0, y));
 
-    const maxTranslateX = Math.max(0, (baseW * LIGHTBOX_ZOOM_SCALE - containerRect.width) / 2);
-    const maxTranslateY = Math.max(0, (baseH * LIGHTBOX_ZOOM_SCALE - containerRect.height) / 2);
+    setLightboxOriginTarget(x, y);
+}
 
-    const sensitivity = 1.65;
-
-    let tx = (0.5 - clampedX) * 2 * maxTranslateX * sensitivity;
-    let ty = (0.5 - clampedY) * 2 * maxTranslateY * sensitivity;
-
-    tx = Math.max(-maxTranslateX, Math.min(maxTranslateX, tx));
-    ty = Math.max(-maxTranslateY, Math.min(maxTranslateY, ty));
-
-    lightboxImg.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${LIGHTBOX_ZOOM_SCALE})`;
+function resetLightboxTransform() {
+    if (!lightboxImg) return;
+    setLightboxOriginImmediate(50, 50);
+    lightboxImg.style.transform = 'translate3d(0px, 0px, 0) scale(1)';
+    lightboxImg.style.cursor = 'zoom-in';
 }
 
 function closeLightbox() {
@@ -755,25 +839,27 @@ if (lightbox && lightboxImg) {
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
         if (Number.isFinite(x) && Number.isFinite(y)) {
-            lightboxImg.style.transformOrigin = `${x}% ${y}%`;
+            setLightboxOriginImmediate(x, y);
+        } else {
+            setLightboxOriginImmediate(50, 50);
         }
 
         lightbox.classList.add('zoomed');
         isZoomed = true;
         lightboxImg.style.cursor = 'zoom-out';
-        applyLightboxPanFromPointer(e.clientX, e.clientY);
+        lightboxImg.style.transform = `translate3d(0px, 0px, 0) scale(${LIGHTBOX_ZOOM_SCALE})`;
     });
 
     lightbox.addEventListener('mousemove', (e) => {
         if (!isZoomed) return;
-        applyLightboxPanFromPointer(e.clientX, e.clientY);
+        setLightboxOriginTargetFromPointer(e.clientX, e.clientY);
     }, { passive: true });
 
     lightbox.addEventListener('touchmove', (e) => {
         if (!isZoomed) return;
         const t = e.touches && e.touches[0];
         if (!t) return;
-        applyLightboxPanFromPointer(t.clientX, t.clientY);
+        setLightboxOriginTargetFromPointer(t.clientX, t.clientY);
     }, { passive: true });
 }
 
@@ -961,13 +1047,21 @@ function pinApiKeyFooter() {
 
   apiKeyContainer.classList.add('pinned');
 
-  const applyLayout = () => {
-    const h = apiKeyContainer.offsetHeight || 0;
-    sidebar.style.paddingBottom = `${h + 20}px`;
+  const sidebarContent = sidebar.querySelector('.sidebar-content');
 
+  const applyLayout = () => {
     const rect = sidebar.getBoundingClientRect();
     apiKeyContainer.style.left = `${rect.left}px`;
     apiKeyContainer.style.width = `${rect.width}px`;
+
+    if (!sidebarContent) return;
+
+    const footerRect = apiKeyContainer.getBoundingClientRect();
+    const contentRect = sidebarContent.getBoundingClientRect();
+
+    const available = Math.max(0, footerRect.top - contentRect.top);
+    sidebarContent.style.height = `${available}px`;
+    sidebarContent.style.maxHeight = `${available}px`;
   };
 
   applyLayout();
@@ -1001,6 +1095,9 @@ function init() {
   setupEventListeners();
   loadModels();
   adjustPromptHeight();
+
+  window.addEventListener('resize', scheduleImageCardResize);
+  scheduleImageCardResize();
 }
 
 if (document.readyState === 'loading') {
