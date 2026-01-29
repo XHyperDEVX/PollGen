@@ -37,21 +37,16 @@ function formatBalanceDisplay(balance) {
 }
 
 async function updateBalance(apiKey) {
-  const balanceDisplay = document.getElementById('balance-display');
-  const balanceText = document.getElementById('balance-text');
   const apiKeyHint = document.getElementById('api-key-hint');
-  
+  if (!apiKeyHint) return;
+
+  apiKeyHint.classList.remove('hidden');
+
   if (!apiKey || !apiKey.trim()) {
-    if (balanceDisplay) balanceDisplay.classList.add('hidden');
-    if (apiKeyHint) {
-        apiKeyHint.classList.remove('hidden');
-        apiKeyHint.innerHTML = i18n.t('apiKeyHint');
-    }
+    apiKeyHint.innerHTML = i18n.t('apiKeyHint');
     return;
   }
 
-  if (apiKeyHint) apiKeyHint.classList.add('hidden');
-  
   try {
     const response = await fetch('https://gen.pollinations.ai/account/balance', {
       method: 'GET',
@@ -59,47 +54,25 @@ async function updateBalance(apiKey) {
         'Authorization': `Bearer ${apiKey.trim()}`
       }
     });
-    
-    if (response.status === 403 || response.status === 401) {
-       const data = await response.json();
-       const errorMsg = data.error?.message || data.message || "";
-       if (errorMsg.includes('account:balance') || data.error?.code === 'UNAUTHORIZED' || data.code === 'UNAUTHORIZED') {
-           if (balanceDisplay && balanceText) {
-               balanceText.textContent = i18n.t('balancePermissionError');
-               balanceDisplay.classList.remove('hidden');
-           }
-           return;
-       }
-    }
 
     if (!response.ok) {
-      if (balanceDisplay) balanceDisplay.classList.add('hidden');
+      apiKeyHint.textContent = i18n.t('balancePermissionError');
       return;
     }
-    
+
     const data = await response.json();
     const balance = data.balance;
-    
+
     if (typeof balance === 'number' && !isNaN(balance)) {
       const formattedBalance = formatBalanceDisplay(balance);
-      
-      if (balanceText) {
-        balanceText.textContent = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
-      }
-      
-      if (balanceDisplay) {
-        balanceDisplay.classList.remove('hidden');
-      }
-    } else {
-      if (balanceDisplay) {
-        balanceDisplay.classList.add('hidden');
-      }
+      apiKeyHint.textContent = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
+      return;
     }
+
+    apiKeyHint.textContent = i18n.t('balancePermissionError');
   } catch (error) {
     console.log('Balance API call failed:', error.message);
-    if (balanceDisplay) {
-      balanceDisplay.classList.add('hidden');
-    }
+    apiKeyHint.textContent = i18n.t('balancePermissionError');
   }
 }
 
@@ -326,7 +299,6 @@ async function generateImage(payload) {
   if (payload.seed) params.append('seed', payload.seed);
   if (payload.guidance_scale) params.append('guidance_scale', payload.guidance_scale);
   if (payload.negative_prompt) params.append('negative_prompt', payload.negative_prompt);
-  if (payload.quality) params.append('quality', payload.quality);
   if (payload.enhance) params.append('enhance', 'true');
   if (payload.private) params.append('private', 'true');
   if (payload.nologo) params.append('nologo', 'true');
@@ -379,7 +351,6 @@ function collectPayload() {
   const widthInput = document.getElementById('width');
   const heightInput = document.getElementById('height');
   const seedInput = document.getElementById('seed');
-  const qualityInput = document.getElementById('quality');
   const guidanceInput = document.getElementById('guidance_scale');
   const negativePromptInput = document.getElementById('negative_prompt');
   
@@ -397,10 +368,6 @@ function collectPayload() {
       payload.seed = Number(seedInput.value);
   } else {
       payload.seed = generateRandomSeed();
-  }
-  
-  if (qualityInput && qualityInput.value) {
-      payload.quality = qualityInput.value;
   }
   
   if (guidanceInput) {
@@ -439,9 +406,144 @@ function setStatus(message, type = 'info') {
   }
 }
 
+let activeFireflyRaf = null;
+let activeFireflyRo = null;
+
+function startFireflyTicker(layer) {
+  if (!layer) return;
+
+  const fireflies = Array.from(layer.querySelectorAll('.firefly'));
+  if (fireflies.length === 0) return;
+
+  const bounds = { w: 0, h: 0 };
+
+  const updateBounds = () => {
+    bounds.w = layer.clientWidth || 0;
+    bounds.h = layer.clientHeight || 0;
+
+    if (!bounds.w || !bounds.h) return;
+
+    const margin = Math.min(12, Math.max(4, Math.round(Math.min(bounds.w, bounds.h) * 0.02)));
+
+    for (const el of fireflies) {
+      const size = parseFloat(el.dataset.size || '0') || 0;
+      const minX = margin;
+      const minY = margin;
+      const maxX = Math.max(minX, bounds.w - size - margin);
+      const maxY = Math.max(minY, bounds.h - size - margin);
+
+      let x = parseFloat(el.dataset.x);
+      let y = parseFloat(el.dataset.y);
+
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        const rx = parseFloat(el.dataset.rx || '0');
+        const ry = parseFloat(el.dataset.ry || '0');
+        x = rx * (maxX - minX) + minX;
+        y = ry * (maxY - minY) + minY;
+      } else {
+        x = Math.min(maxX, Math.max(minX, x));
+        y = Math.min(maxY, Math.max(minY, y));
+      }
+
+      el.dataset.x = x.toString();
+      el.dataset.y = y.toString();
+      el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    }
+  };
+
+  updateBounds();
+
+  if (activeFireflyRo) activeFireflyRo.disconnect();
+  if (window.ResizeObserver) {
+    activeFireflyRo = new ResizeObserver(updateBounds);
+    activeFireflyRo.observe(layer);
+  }
+
+  const last = { t: performance.now() };
+
+  const tick = (t) => {
+    const dt = Math.min(0.05, Math.max(0.008, (t - last.t) / 1000));
+    last.t = t;
+
+    if (!bounds.w || !bounds.h) {
+      updateBounds();
+      activeFireflyRaf = requestAnimationFrame(tick);
+      return;
+    }
+
+    const margin = Math.min(12, Math.max(4, Math.round(Math.min(bounds.w, bounds.h) * 0.02)));
+
+    for (const el of fireflies) {
+      const size = parseFloat(el.dataset.size || '0') || 0;
+      const minX = margin;
+      const minY = margin;
+      const maxX = Math.max(minX, bounds.w - size - margin);
+      const maxY = Math.max(minY, bounds.h - size - margin);
+
+      let x = parseFloat(el.dataset.x);
+      let y = parseFloat(el.dataset.y);
+      let vx = parseFloat(el.dataset.vx || '0');
+      let vy = parseFloat(el.dataset.vy || '0');
+
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        const rx = parseFloat(el.dataset.rx || '0');
+        const ry = parseFloat(el.dataset.ry || '0');
+        x = rx * (maxX - minX) + minX;
+        y = ry * (maxY - minY) + minY;
+      }
+
+      x += vx * dt;
+      y += vy * dt;
+
+      if (x < minX) {
+        x = minX;
+        vx = Math.abs(vx);
+      } else if (x > maxX) {
+        x = maxX;
+        vx = -Math.abs(vx);
+      }
+
+      if (y < minY) {
+        y = minY;
+        vy = Math.abs(vy);
+      } else if (y > maxY) {
+        y = maxY;
+        vy = -Math.abs(vy);
+      }
+
+      el.dataset.x = x.toString();
+      el.dataset.y = y.toString();
+      el.dataset.vx = vx.toString();
+      el.dataset.vy = vy.toString();
+
+      el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    }
+
+    activeFireflyRaf = requestAnimationFrame(tick);
+  };
+
+  if (activeFireflyRaf) cancelAnimationFrame(activeFireflyRaf);
+  activeFireflyRaf = requestAnimationFrame(tick);
+}
+
+function stopFireflyTicker() {
+  if (activeFireflyRaf) {
+    cancelAnimationFrame(activeFireflyRaf);
+    activeFireflyRaf = null;
+  }
+  if (activeFireflyRo) {
+    activeFireflyRo.disconnect();
+    activeFireflyRo = null;
+  }
+}
+
 function toggleLoading(isLoading) {
   state.isGenerating = isLoading;
   const generateBtn = document.getElementById('generate-btn');
+
+  if (!isLoading) {
+    stopFireflyTicker();
+  }
   
   if (generateBtn) {
     generateBtn.disabled = isLoading;
@@ -457,6 +559,47 @@ function toggleLoading(isLoading) {
   }
 }
 
+let imageCardResizeRaf = null;
+
+function getCanvasWorkspaceContentSize() {
+  const workspace = document.getElementById('canvas-workspace');
+  if (!workspace) return { w: window.innerWidth, h: window.innerHeight };
+
+  const rect = workspace.getBoundingClientRect();
+  const styles = window.getComputedStyle(workspace);
+  const padX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+  const padY = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+
+  return {
+    w: Math.max(240, rect.width - padX),
+    h: Math.max(200, rect.height - padY)
+  };
+}
+
+function applyImageCardSizing(card) {
+  if (!card) return;
+
+  const w = Number(card.dataset.w);
+  const h = Number(card.dataset.h);
+  if (!w || !h) return;
+
+  const { w: availableW, h: availableH } = getCanvasWorkspaceContentSize();
+  const maxW = Math.min(availableW, (availableH * w) / h);
+  card.style.maxWidth = `${Math.floor(maxW)}px`;
+}
+
+function resizeAllImageCards() {
+  document.querySelectorAll('.image-card').forEach(applyImageCardSizing);
+}
+
+function scheduleImageCardResize() {
+  if (imageCardResizeRaf) cancelAnimationFrame(imageCardResizeRaf);
+  imageCardResizeRaf = requestAnimationFrame(() => {
+    resizeAllImageCards();
+    imageCardResizeRaf = null;
+  });
+}
+
 function createPlaceholderCard(genId) {
     const card = document.createElement('div');
     card.className = 'image-card';
@@ -466,71 +609,56 @@ function createPlaceholderCard(genId) {
     const h = Number(document.getElementById('height').value) || 1024;
     const ratio = (h / w) * 100;
 
-    // Ensure vertical images don't exceed viewport height
-    if (h > w) {
-        card.style.maxWidth = `calc(85vh * ${w/h})`;
-    } else {
-        card.style.maxWidth = '100%';
-    }
+    card.dataset.w = w.toString();
+    card.dataset.h = h.toString();
+    applyImageCardSizing(card);
 
     const placeholder = document.createElement('div');
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Create firefly animation
-    const fireflyCount = 25;
+    // Create firefly animation (bounded to image area)
+    const fireflyLayer = document.createElement('div');
+    fireflyLayer.className = 'firefly-layer';
+    placeholder.appendChild(fireflyLayer);
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    
+    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+
     for (let i = 0; i < fireflyCount; i++) {
         const firefly = document.createElement('div');
         firefly.className = 'firefly';
-        
-        // Random size
-        const size = Math.random() * 6 + 2;
+
+        const size = Math.random() * 4.5 + 2;
         firefly.style.width = size + 'px';
         firefly.style.height = size + 'px';
-        
-        // Random color
+        firefly.dataset.size = size.toString();
+
         firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        
-        // Random brightness
-        const brightness = Math.random() * 0.5 + 0.5;
+
+        const brightness = Math.random() * 0.55 + 0.45;
         firefly.style.filter = `brightness(${brightness})`;
-        
-        // Random starting position
-        firefly.style.left = Math.random() * 100 + '%';
-        firefly.style.top = Math.random() * 100 + '%';
-        
-        // Random animation delay
-        firefly.style.animationDelay = Math.random() * 5 + 's';
-        
-        placeholder.appendChild(firefly);
-        
-        animateFirefly(firefly);
+
+        firefly.dataset.rx = Math.random().toString();
+        firefly.dataset.ry = Math.random().toString();
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 45 + 18; // px/s
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
+        firefly.dataset.vx = vx.toString();
+        firefly.dataset.vy = vy.toString();
+
+        firefly.style.animationDelay = Math.random() * 4 + 's';
+        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+        fireflyLayer.appendChild(firefly);
     }
 
-    function animateFirefly(firefly) {
-        const duration = Math.random() * 6 + 4;
-        const startX = parseFloat(firefly.style.left);
-        const startY = parseFloat(firefly.style.top);
-        const endX = Math.random() * 100;
-        const endY = Math.random() * 100;
-        
-        const animation = firefly.animate([
-            { left: startX + '%', top: startY + '%', opacity: 0.4 },
-            { left: endX + '%', top: endY + '%', opacity: 0.8 },
-            { left: endX + 10 + '%', top: endY + 5 + '%', opacity: 0.4 }
-        ], {
-            duration: duration * 1000,
-            easing: 'ease-in-out',
-            iterations: Infinity,
-            direction: 'alternate'
-        });
-        
-        const playbackRate = Math.random() * 0.5 + 0.5;
-        animation.playbackRate = playbackRate;
-        
-        setTimeout(() => animateFirefly(firefly), duration * 1000);
+    if (!prefersReducedMotion && fireflyCount > 0) {
+        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
     }
 
     card.appendChild(placeholder);
@@ -556,7 +684,7 @@ function displayResultInCard(genId, data) {
     
     const img = new Image();
     img.src = data.imageData;
-    img.onclick = (e) => openLightbox(data.imageData, e);
+    img.onclick = () => openLightbox(data.imageData);
     img.onload = () => {
         placeholder.remove();
         card.insertBefore(img, overlay);
@@ -572,122 +700,168 @@ function displayResultInCard(genId, data) {
 }
 
 let isZoomed = false;
-let startX, startY, currentTranslateX = 0, currentTranslateY = 0;
-let isDragging = false;
-
-function openLightbox(src, e) {
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightbox-image');
-    if (lightbox && lightboxImg) {
-        lightboxImg.src = src;
-        lightbox.classList.remove('hidden');
-        lightbox.classList.remove('zoomed');
-        isZoomed = false;
-        currentTranslateX = 0;
-        currentTranslateY = 0;
-        isDragging = false;
-        lightboxImg.style.transform = 'translate(0px, 0px)';
-        lightboxImg.style.transformOrigin = 'center center';
-    }
-}
+const LIGHTBOX_ZOOM_SCALE = 2.5;
 
 const lightbox = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightbox-image');
 
-if (lightboxImg) {
-    lightboxImg.onclick = (e) => {
+let lightboxOriginRaf = null;
+let lightboxOriginX = 50;
+let lightboxOriginY = 50;
+let lightboxOriginTargetX = 50;
+let lightboxOriginTargetY = 50;
+
+function applyLightboxOrigin() {
+    if (!lightboxImg) return;
+    lightboxImg.style.transformOrigin = `${lightboxOriginX}% ${lightboxOriginY}%`;
+}
+
+function stopLightboxOriginAnimation() {
+    if (lightboxOriginRaf) {
+        cancelAnimationFrame(lightboxOriginRaf);
+        lightboxOriginRaf = null;
+    }
+}
+
+function setLightboxOriginImmediate(x, y) {
+    stopLightboxOriginAnimation();
+
+    lightboxOriginX = x;
+    lightboxOriginY = y;
+    lightboxOriginTargetX = x;
+    lightboxOriginTargetY = y;
+    applyLightboxOrigin();
+}
+
+function setLightboxOriginTarget(x, y) {
+    lightboxOriginTargetX = x;
+    lightboxOriginTargetY = y;
+
+    if (lightboxOriginRaf) return;
+
+    const tick = () => {
+        const dx = lightboxOriginTargetX - lightboxOriginX;
+        const dy = lightboxOriginTargetY - lightboxOriginY;
+
+        lightboxOriginX += dx * 0.18;
+        lightboxOriginY += dy * 0.18;
+        applyLightboxOrigin();
+
+        if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
+            lightboxOriginX = lightboxOriginTargetX;
+            lightboxOriginY = lightboxOriginTargetY;
+            applyLightboxOrigin();
+            lightboxOriginRaf = null;
+            return;
+        }
+
+        lightboxOriginRaf = requestAnimationFrame(tick);
+    };
+
+    lightboxOriginRaf = requestAnimationFrame(tick);
+}
+
+function setLightboxOriginTargetFromPointer(clientX, clientY) {
+    if (!lightbox || !lightboxImg) return;
+
+    const containerRect = lightbox.getBoundingClientRect();
+    if (!containerRect.width || !containerRect.height) return;
+
+    let x = ((clientX - containerRect.left) / containerRect.width) * 100;
+    let y = ((clientY - containerRect.top) / containerRect.height) * 100;
+
+    const sensitivity = 2.1;
+    x = 50 + (x - 50) * sensitivity;
+    y = 50 + (y - 50) * sensitivity;
+
+    x = Math.min(100, Math.max(0, x));
+    y = Math.min(100, Math.max(0, y));
+
+    setLightboxOriginTarget(x, y);
+}
+
+function resetLightboxTransform() {
+    if (!lightboxImg) return;
+    setLightboxOriginImmediate(50, 50);
+    lightboxImg.style.transform = 'translate3d(0px, 0px, 0) scale(1)';
+    lightboxImg.style.cursor = 'zoom-in';
+}
+
+function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.add('hidden');
+    lightbox.classList.remove('zoomed');
+    isZoomed = false;
+    resetLightboxTransform();
+}
+
+function openLightbox(src) {
+    if (!lightbox || !lightboxImg) return;
+    lightboxImg.src = src;
+    lightbox.classList.remove('hidden');
+    lightbox.classList.remove('zoomed');
+    isZoomed = false;
+    resetLightboxTransform();
+}
+
+if (lightbox && lightboxImg) {
+    const closeBtn = lightbox.querySelector('.lightbox-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeLightbox();
+        });
+    }
+
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+            closeLightbox();
+        }
+    });
+
+    lightboxImg.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (isDragging) return;
 
         if (isZoomed) {
             lightbox.classList.remove('zoomed');
             isZoomed = false;
-            currentTranslateX = 0;
-            currentTranslateY = 0;
-            lightboxImg.style.transform = 'translate(0px, 0px)';
+
+            stopLightboxOriginAnimation();
             lightboxImg.style.cursor = 'zoom-in';
-        } else {
-            const rect = lightboxImg.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            lightboxImg.style.transformOrigin = `${x}% ${y}%`;
-            lightbox.classList.add('zoomed');
-            lightboxImg.style.transform = 'scale(2.5)';
-            lightboxImg.style.cursor = 'grab';
-            isZoomed = true;
-        }
-    };
-
-    let hasMoved = false;
-    let dragStartX, dragStartY;
-
-    lightbox.addEventListener('mousedown', (e) => {
-        if (!isZoomed) return;
-        isDragging = false;
-        hasMoved = false;
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-
-        const onMouseMove = (moveEvent) => {
-            const deltaX = moveEvent.clientX - dragStartX;
-            const deltaY = moveEvent.clientY - dragStartY;
-
-            // Minimal movement threshold to start dragging
-            if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
-                hasMoved = true;
-                isDragging = true;
-            }
-
-            if (!hasMoved) return;
-
-            dragStartX = moveEvent.clientX;
-            dragStartY = moveEvent.clientY;
-
-            const rect = lightboxImg.getBoundingClientRect();
-            const containerRect = lightbox.getBoundingClientRect();
-
-            const scale = 2.5;
-            const imageWidth = rect.width;
-            const imageHeight = rect.height;
-            const containerWidth = containerRect.width;
-            const containerHeight = containerRect.height;
-
-            const maxTranslateX = (imageWidth - containerWidth) / 2;
-            const maxTranslateY = (imageHeight - containerHeight) / 2;
-
-            currentTranslateX += deltaX;
-            currentTranslateY += deltaY;
-
-            currentTranslateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, currentTranslateX));
-            currentTranslateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, currentTranslateY));
-
-            lightboxImg.style.transform = `scale(${scale}) translate(${currentTranslateX / scale}px, ${currentTranslateY / scale}px)`;
-        };
-
-        const onMouseUp = () => {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-
-            if (!hasMoved) {
-                isDragging = false;
-            }
+            lightboxImg.style.transform = 'translate3d(0px, 0px, 0) scale(1)';
 
             setTimeout(() => {
-                isDragging = false;
-            }, 10);
-        };
-
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    });
-
-    lightboxImg.addEventListener('mousemove', (e) => {
-        if (isZoomed && isDragging) {
-            lightboxImg.style.cursor = 'grabbing';
-        } else if (isZoomed) {
-            lightboxImg.style.cursor = 'grab';
+                if (!isZoomed) setLightboxOriginImmediate(50, 50);
+            }, 480);
+            return;
         }
+
+        const rect = lightboxImg.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+            setLightboxOriginImmediate(x, y);
+        } else {
+            setLightboxOriginImmediate(50, 50);
+        }
+
+        lightbox.classList.add('zoomed');
+        isZoomed = true;
+        lightboxImg.style.cursor = 'zoom-out';
+        lightboxImg.style.transform = `translate3d(0px, 0px, 0) scale(${LIGHTBOX_ZOOM_SCALE})`;
     });
+
+    lightbox.addEventListener('mousemove', (e) => {
+        if (!isZoomed) return;
+        setLightboxOriginTargetFromPointer(e.clientX, e.clientY);
+    }, { passive: true });
+
+    lightbox.addEventListener('touchmove', (e) => {
+        if (!isZoomed) return;
+        const t = e.touches && e.touches[0];
+        if (!t) return;
+        setLightboxOriginTargetFromPointer(t.clientX, t.clientY);
+    }, { passive: true });
 }
 
 function addThumbnailToMiniView(genId, src) {
@@ -866,6 +1040,33 @@ function setupEventListeners() {
 // INITIALIZATION
 // ============================================================================
 
+function pinApiKeyFooter() {
+  const apiKeyContainer = document.querySelector('.api-key-container');
+  const sidebar = document.querySelector('.sidebar');
+
+  if (!apiKeyContainer || !sidebar) return;
+
+  apiKeyContainer.classList.add('pinned');
+
+  const applyLayout = () => {
+    const rect = sidebar.getBoundingClientRect();
+    apiKeyContainer.style.left = `${rect.left}px`;
+    apiKeyContainer.style.width = `${rect.width}px`;
+
+    const h = apiKeyContainer.offsetHeight || 0;
+    sidebar.style.setProperty('--api-footer-height', `${h}px`);
+  };
+
+  applyLayout();
+  window.addEventListener('resize', applyLayout);
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(applyLayout);
+    ro.observe(apiKeyContainer);
+    ro.observe(sidebar);
+  }
+}
+
 function init() {
   i18n.updatePageLanguage();
   
@@ -873,6 +1074,8 @@ function init() {
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
   const activeBtn = document.getElementById(`lang-${lang}`);
   if (activeBtn) activeBtn.classList.add('active');
+
+  pinApiKeyFooter();
 
   loadApiKey();
   if (state.apiKey) {
@@ -885,6 +1088,9 @@ function init() {
   setupEventListeners();
   loadModels();
   adjustPromptHeight();
+
+  window.addEventListener('resize', scheduleImageCardResize);
+  scheduleImageCardResize();
 }
 
 if (document.readyState === 'loading') {
