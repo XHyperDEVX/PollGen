@@ -61,7 +61,7 @@ const translations = {
 
     // Balance
     balanceRemaining: 'pollen remaining.',
-    costsLabel: 'Costs %s Pollen',
+    costsLabel: 'Costs: %s Pollen',
     deleteConfirm: 'Delete this image?',
     balancePermissionError: 'Please activate the balance permission for the API key.',
   },
@@ -122,7 +122,7 @@ const translations = {
 
     // Balance
     balanceRemaining: 'Pollen verbleibend.',
-    costsLabel: 'Kostet %s Pollen',
+    costsLabel: 'Kostet: %s Pollen',
     deleteConfirm: 'Bild löschen?',
     balancePermissionError: 'Bitte aktiviere die Balance-Berechtigung für den API-Key.',
   }
