@@ -477,9 +477,61 @@ function createPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    const pattern = document.createElement('div');
-    pattern.className = 'loading-pattern';
-    placeholder.appendChild(pattern);
+    // Create firefly animation
+    const fireflyCount = 25;
+    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+    
+    for (let i = 0; i < fireflyCount; i++) {
+        const firefly = document.createElement('div');
+        firefly.className = 'firefly';
+        
+        // Random size
+        const size = Math.random() * 6 + 2;
+        firefly.style.width = size + 'px';
+        firefly.style.height = size + 'px';
+        
+        // Random color
+        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Random brightness
+        const brightness = Math.random() * 0.5 + 0.5;
+        firefly.style.filter = `brightness(${brightness})`;
+        
+        // Random starting position
+        firefly.style.left = Math.random() * 100 + '%';
+        firefly.style.top = Math.random() * 100 + '%';
+        
+        // Random animation delay
+        firefly.style.animationDelay = Math.random() * 5 + 's';
+        
+        placeholder.appendChild(firefly);
+        
+        animateFirefly(firefly);
+    }
+
+    function animateFirefly(firefly) {
+        const duration = Math.random() * 6 + 4;
+        const startX = parseFloat(firefly.style.left);
+        const startY = parseFloat(firefly.style.top);
+        const endX = Math.random() * 100;
+        const endY = Math.random() * 100;
+        
+        const animation = firefly.animate([
+            { left: startX + '%', top: startY + '%', opacity: 0.4 },
+            { left: endX + '%', top: endY + '%', opacity: 0.8 },
+            { left: endX + 10 + '%', top: endY + 5 + '%', opacity: 0.4 }
+        ], {
+            duration: duration * 1000,
+            easing: 'ease-in-out',
+            iterations: Infinity,
+            direction: 'alternate'
+        });
+        
+        const playbackRate = Math.random() * 0.5 + 0.5;
+        animation.playbackRate = playbackRate;
+        
+        setTimeout(() => animateFirefly(firefly), duration * 1000);
+    }
 
     card.appendChild(placeholder);
     const overlay = document.createElement('div');

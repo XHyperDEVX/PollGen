@@ -212,20 +212,18 @@
             width: 100%; background-color: #2a2a2a; position: relative; overflow: hidden;
             border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
-        .loading-pattern {
-            position: absolute; inset: 0;
-            background: 
-                linear-gradient(135deg, rgba(37, 99, 235, 0.03) 25%, transparent 25%),
-                linear-gradient(225deg, rgba(37, 99, 235, 0.03) 25%, transparent 25%),
-                linear-gradient(45deg, rgba(37, 99, 235, 0.03) 25%, transparent 25%),
-                linear-gradient(315deg, rgba(37, 99, 235, 0.03) 25%, transparent 25%);
-            background-size: 20px 20px;
-            animation: loadingPattern 1.5s linear infinite;
-            opacity: 0.8;
+        .firefly {
+            position: absolute;
+            border-radius: 50%;
+            animation: move 8s infinite linear, fade 4s infinite alternate;
         }
-        @keyframes loadingPattern {
-            0% { background-position: 0 0, 10px 10px, 20px 20px, 5px 5px, 15px 15px; }
-            100% { background-position: 20px 20px, 30px 30px, 40px 40px, 25px 25px; }
+        @keyframes move {
+            from { transform: translate(0, 0); }
+            to { transform: translate(100vw, 100vh); }
+        }
+        @keyframes fade {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
         }
 
         .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: center; gap: 20px; z-index: 30; }
@@ -241,9 +239,9 @@
         #prompt::-webkit-scrollbar-thumb:hover { background: #4a4a4c; }
         #prompt::placeholder { color: #6a6a6c; }
 
-        .cost-display { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 10px 16px; border-radius: 12px; align-self: center; text-align: center; }
+        .cost-display { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 12px; align-self: center; text-align: center; }
         .cost-display .cost-label { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
-        .cost-display .cost-value { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+        .cost-display .cost-value { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
         .cost-display .cost-unit { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
 
         .generate-btn { height: 52px; padding: 0 32px; background: linear-gradient(135deg, var(--accent) 0%, #1D4ED8 100%); color: white; border: none; border-radius: 26px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 20px rgba(37,99,235,0.3); white-space: nowrap; align-self: center; }
@@ -336,7 +334,7 @@
                 <h3 data-i18n="refinementLabel">Refinement</h3>
             </div>
             <div class="panel-content">
-                <div class="form-group"><label class="form-label" data-i18n="negativePromptLabel">Negative Prompt</label><textarea id="negative_prompt" name="negative_prompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="What to exclude..."></textarea></div>
+               <div class="form-group"><label class="form-label" data-i18n="negativePromptLabel">Negative Prompt</label><textarea id="negative_prompt" name="negative_prompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="What to exclude..." style="resize: vertical; min-height: 60px;"></textarea></div>
             </div>
         </div>
 
@@ -383,7 +381,7 @@
             </div>
             <div class="prompt-actions">
                <div class="cost-display">
-                   <div class="cost-label" data-i18n="costLabel">Cost</div>
+                   <div class="cost-label" data-i18n="costLabel">Costs</div>
                    <div class="cost-value" id="cost-text">0.002</div>
                    <div class="cost-unit" data-i18n="pollenLabel">Pollen</div>
                </div>
