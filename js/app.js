@@ -477,9 +477,9 @@ function createPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    const pulse = document.createElement('div');
-    pulse.className = 'mini-pulse';
-    placeholder.appendChild(pulse);
+    const pattern = document.createElement('div');
+    pattern.className = 'loading-pattern';
+    placeholder.appendChild(pattern);
 
     card.appendChild(placeholder);
     const overlay = document.createElement('div');
