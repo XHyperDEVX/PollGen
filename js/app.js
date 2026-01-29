@@ -620,7 +620,7 @@ function createPlaceholderCard(genId) {
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    const baseCount = Math.min(90, Math.max(60, Math.round((w * h) / 15000)));
+    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
     const fireflyCount = prefersReducedMotion ? 0 : baseCount;
 
     for (let i = 0; i < fireflyCount; i++) {
@@ -977,23 +977,32 @@ function setupEventListeners() {
 
 function pinApiKeyFooter() {
   const apiKeyContainer = document.querySelector('.api-key-container');
-  const sidebarContent = document.querySelector('.sidebar-content');
+  const sidebar = document.querySelector('.sidebar');
 
-  if (!apiKeyContainer || !sidebarContent) return;
+  if (!apiKeyContainer || !sidebar) return;
 
   apiKeyContainer.classList.add('pinned');
 
-  const applyPadding = () => {
+  const applyLayout = () => {
     const h = apiKeyContainer.offsetHeight || 0;
-    sidebarContent.style.paddingBottom = `${h + 20}px`;
+    sidebar.style.paddingBottom = `${h + 20}px`;
+
+    const rect = sidebar.getBoundingClientRect();
+    const styles = window.getComputedStyle(sidebar);
+    const pl = parseFloat(styles.paddingLeft) || 0;
+    const pr = parseFloat(styles.paddingRight) || 0;
+
+    apiKeyContainer.style.left = `${rect.left + pl}px`;
+    apiKeyContainer.style.width = `${Math.max(0, rect.width - pl - pr)}px`;
   };
 
-  applyPadding();
-  window.addEventListener('resize', applyPadding);
+  applyLayout();
+  window.addEventListener('resize', applyLayout);
 
   if (window.ResizeObserver) {
-    const ro = new ResizeObserver(applyPadding);
+    const ro = new ResizeObserver(applyLayout);
     ro.observe(apiKeyContainer);
+    ro.observe(sidebar);
   }
 }
 
