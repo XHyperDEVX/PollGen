@@ -44,7 +44,7 @@
         /* Sidebar */
         .sidebar {
             width: 360px;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 120px);
             background-color: var(--sidebar-bg);
             border-right: 1px solid var(--border-subtle);
             display: flex;
@@ -192,17 +192,17 @@
         .api-key-hint a:hover { text-decoration: underline; }
 
         @media (max-width: 880px) {
-            .sidebar { width: 320px; height: calc(100vh - 80px); }
+            .sidebar { width: 320px; height: calc(100vh - 120px); }
             .api-key-footer { left: 320px; }
             .canvas { margin-left: 320px; }
         }
         @media (max-width: 640px) {
-            .sidebar { width: 100vw; height: calc(100vh - 80px); }
+            .sidebar { width: 100vw; height: calc(100vh - 120px); }
             .api-key-footer { left: 0; width: 100vw; }
             .canvas { margin-left: 0; }
         }
 
-        .canvas { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: var(--canvas-bg); margin-left: 360px; margin-bottom: 80px; }
+        .canvas { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: var(--canvas-bg); margin-left: 360px; margin-bottom: 120px; }
         .canvas-workspace { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 60px 24px; overflow-y: auto; scroll-behavior: smooth; }
         .canvas-workspace::-webkit-scrollbar { width: 8px; }
         .canvas-workspace::-webkit-scrollbar-track { background: transparent; }
@@ -213,7 +213,7 @@
 
         .gallery-feed { width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; gap: 40px; padding-bottom: 40px; }
 
-        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
+        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
         .image-card img { width: 100%; height: auto; max-height: 85vh; object-fit: contain; display: block; border-radius: 16px; opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .image-card img.loaded { opacity: 1; }
 
