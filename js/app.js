@@ -439,9 +439,64 @@ function setStatus(message, type = 'info') {
   }
 }
 
+let activeFireflyRaf = null;
+
+function startFireflyTicker(layer) {
+  if (!layer) return;
+
+  const fireflies = Array.from(layer.querySelectorAll('.firefly'));
+  if (fireflies.length === 0) return;
+
+  const last = { t: performance.now() };
+
+  const tick = (t) => {
+    const dt = Math.min(0.05, Math.max(0.008, (t - last.t) / 1000));
+    last.t = t;
+
+    for (const el of fireflies) {
+      let x = parseFloat(el.dataset.x || '0');
+      let y = parseFloat(el.dataset.y || '0');
+      let vx = parseFloat(el.dataset.vx || '0');
+      let vy = parseFloat(el.dataset.vy || '0');
+
+      x += vx * dt;
+      y += vy * dt;
+
+      // Bounce within [0..100] bounds
+      if (x < 0) { x = 0; vx = Math.abs(vx); }
+      if (x > 100) { x = 100; vx = -Math.abs(vx); }
+      if (y < 0) { y = 0; vy = Math.abs(vy); }
+      if (y > 100) { y = 100; vy = -Math.abs(vy); }
+
+      el.dataset.x = x.toString();
+      el.dataset.y = y.toString();
+      el.dataset.vx = vx.toString();
+      el.dataset.vy = vy.toString();
+
+      el.style.transform = `translate3d(${x}%, ${y}%, 0)`;
+    }
+
+    activeFireflyRaf = requestAnimationFrame(tick);
+  };
+
+  if (activeFireflyRaf) cancelAnimationFrame(activeFireflyRaf);
+  activeFireflyRaf = requestAnimationFrame(tick);
+}
+
+function stopFireflyTicker() {
+  if (activeFireflyRaf) {
+    cancelAnimationFrame(activeFireflyRaf);
+    activeFireflyRaf = null;
+  }
+}
+
 function toggleLoading(isLoading) {
   state.isGenerating = isLoading;
   const generateBtn = document.getElementById('generate-btn');
+
+  if (!isLoading) {
+    stopFireflyTicker();
+  }
   
   if (generateBtn) {
     generateBtn.disabled = isLoading;
@@ -477,60 +532,51 @@ function createPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Create firefly animation
-    const fireflyCount = 25;
+    // Create firefly animation (bounded to image area)
+    const fireflyLayer = document.createElement('div');
+    fireflyLayer.className = 'firefly-layer';
+    placeholder.appendChild(fireflyLayer);
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    
+    const baseCount = Math.min(60, Math.max(34, Math.round((w * h) / 80000)));
+    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+
     for (let i = 0; i < fireflyCount; i++) {
         const firefly = document.createElement('div');
         firefly.className = 'firefly';
-        
+
         // Random size
-        const size = Math.random() * 6 + 2;
+        const size = Math.random() * 5 + 2;
         firefly.style.width = size + 'px';
         firefly.style.height = size + 'px';
-        
+
         // Random color
         firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        
+
         // Random brightness
-        const brightness = Math.random() * 0.5 + 0.5;
+        const brightness = Math.random() * 0.55 + 0.45;
         firefly.style.filter = `brightness(${brightness})`;
-        
-        // Random starting position
-        firefly.style.left = Math.random() * 100 + '%';
-        firefly.style.top = Math.random() * 100 + '%';
-        
-        // Random animation delay
-        firefly.style.animationDelay = Math.random() * 5 + 's';
-        
-        placeholder.appendChild(firefly);
-        
-        animateFirefly(firefly);
+
+        // Start in-bounds
+        const x = Math.random() * 100;
+        const y = Math.random() * 100;
+        firefly.dataset.x = x.toString();
+        firefly.dataset.y = y.toString();
+
+        // Velocity in % per second
+        const vx = (Math.random() * 22 + 10) * (Math.random() < 0.5 ? -1 : 1);
+        const vy = (Math.random() * 22 + 10) * (Math.random() < 0.5 ? -1 : 1);
+        firefly.dataset.vx = vx.toString();
+        firefly.dataset.vy = vy.toString();
+
+        firefly.style.animationDelay = Math.random() * 4 + 's';
+        fireflyLayer.appendChild(firefly);
     }
 
-    function animateFirefly(firefly) {
-        const duration = Math.random() * 6 + 4;
-        const startX = parseFloat(firefly.style.left);
-        const startY = parseFloat(firefly.style.top);
-        const endX = Math.random() * 100;
-        const endY = Math.random() * 100;
-        
-        const animation = firefly.animate([
-            { left: startX + '%', top: startY + '%', opacity: 0.4 },
-            { left: endX + '%', top: endY + '%', opacity: 0.8 },
-            { left: endX + 10 + '%', top: endY + 5 + '%', opacity: 0.4 }
-        ], {
-            duration: duration * 1000,
-            easing: 'ease-in-out',
-            iterations: Infinity,
-            direction: 'alternate'
-        });
-        
-        const playbackRate = Math.random() * 0.5 + 0.5;
-        animation.playbackRate = playbackRate;
-        
-        setTimeout(() => animateFirefly(firefly), duration * 1000);
+    if (!prefersReducedMotion && fireflyCount > 0) {
+        startFireflyTicker(fireflyLayer);
     }
 
     card.appendChild(placeholder);
@@ -866,6 +912,28 @@ function setupEventListeners() {
 // INITIALIZATION
 // ============================================================================
 
+function pinApiKeyFooter() {
+  const apiKeyContainer = document.querySelector('.api-key-container');
+  const sidebarContent = document.querySelector('.sidebar-content');
+
+  if (!apiKeyContainer || !sidebarContent) return;
+
+  apiKeyContainer.classList.add('pinned');
+
+  const applyPadding = () => {
+    const h = apiKeyContainer.offsetHeight || 0;
+    sidebarContent.style.paddingBottom = `${h + 20}px`;
+  };
+
+  applyPadding();
+  window.addEventListener('resize', applyPadding);
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(applyPadding);
+    ro.observe(apiKeyContainer);
+  }
+}
+
 function init() {
   i18n.updatePageLanguage();
   
@@ -873,6 +941,8 @@ function init() {
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
   const activeBtn = document.getElementById(`lang-${lang}`);
   if (activeBtn) activeBtn.classList.add('active');
+
+  pinApiKeyFooter();
 
   loadApiKey();
   if (state.apiKey) {

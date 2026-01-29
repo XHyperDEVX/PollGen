@@ -49,8 +49,7 @@
             display: flex;
             flex-direction: column;
             padding: 12px;
-            overflow-y: auto;
-            overflow-x: hidden;
+            overflow: hidden;
             flex-shrink: 0;
             z-index: 20;
         }
@@ -58,13 +57,18 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #BDBDBD #2e2e2f;
+            padding-right: 4px;
         }
 
-        .sidebar::-webkit-scrollbar { width: 6px; }
-        .sidebar::-webkit-scrollbar-track { background: transparent; }
-        .sidebar::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
-        .sidebar::-webkit-scrollbar-thumb:hover { background: #4a4a4c; }
-        .sidebar { scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
+        .sidebar-content::-webkit-scrollbar { width: 6px; }
+        .sidebar-content::-webkit-scrollbar-track { background: #2e2e2f; }
+        .sidebar-content::-webkit-scrollbar-thumb { background: #BDBDBD; border-radius: 4px; }
+        .sidebar-content::-webkit-scrollbar-thumb:hover { background: #d0d0d0; }
 
         .panel {
             background-color: var(--panel-bg);
@@ -159,11 +163,33 @@
         .lang-btn { background: #1a1a1c; border: 1px solid #2a2a2c; color: var(--text-muted); border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; transition: all 120ms ease; }
         .lang-btn.active { color: var(--text-primary); border-color: var(--accent); background: rgba(37,99,235,0.1); }
 
-        .api-key-container { margin-top: auto; padding: 16px 12px; border-top: 1px solid var(--border-subtle); }
+        .api-key-container {
+            margin-top: auto;
+            padding: 16px 12px;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--sidebar-bg);
+        }
+        .api-key-container.pinned {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 360px;
+            z-index: 40;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.4);
+        }
         .balance-box { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; text-align: center; line-height: 1.4; }
         .api-key-hint { font-size: 11px; margin-top: 8px; color: var(--text-muted); text-align: center; }
         .api-key-hint a { color: var(--accent); text-decoration: none; }
         .api-key-hint a:hover { text-decoration: underline; }
+
+        @media (max-width: 880px) {
+            .sidebar { width: 320px; }
+            .api-key-container.pinned { width: 320px; }
+        }
+        @media (max-width: 640px) {
+            .sidebar { width: 100vw; }
+            .api-key-container.pinned { width: 100vw; }
+        }
 
         .canvas { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: var(--canvas-bg); }
         .canvas-workspace { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 60px 24px; overflow-y: auto; scroll-behavior: smooth; }
@@ -212,18 +238,26 @@
             width: 100%; background-color: #2a2a2a; position: relative; overflow: hidden;
             border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
+        .noise-placeholder {
+            position: relative;
+        }
+        .noise-placeholder .firefly-layer {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            border-radius: 16px;
+        }
         .firefly {
             position: absolute;
             border-radius: 50%;
-            animation: move 8s infinite linear, fade 4s infinite alternate;
-        }
-        @keyframes move {
-            from { transform: translate(0, 0); }
-            to { transform: translate(100vw, 100vh); }
+            will-change: transform, opacity;
+            transform: translate3d(0,0,0);
+            animation: fade 4s infinite alternate;
         }
         @keyframes fade {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.8; }
+            0%, 100% { opacity: 0.25; }
+            50% { opacity: 0.85; }
         }
 
         .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: center; gap: 20px; z-index: 30; }
