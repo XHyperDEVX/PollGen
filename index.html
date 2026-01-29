@@ -285,11 +285,17 @@
         .generate-btn.loading svg { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .popover { position: fixed; background-color: #252526; border-radius: 12px; padding: 10px; box-shadow: 0 12px 48px rgba(0,0,0,0.7); display: none; z-index: 100; width: 280px; border: 1px solid rgba(255,255,255,0.1); }
+        .popover { position: fixed; background-color: #252526; border-radius: 12px; padding: 10px; box-shadow: 0 12px 48px rgba(0,0,0,0.7); display: none; z-index: 100; width: 280px; border: 1px solid rgba(255,255,255,0.1); max-height: 400px; overflow-y: auto; }
         .popover.visible { display: block; }
         .popover-item { padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; color: var(--text-secondary); }
         .popover-item:hover { background-color: #303033; color: #fff; }
         .popover-item.selected { background-color: rgba(37,99,235,0.15); color: #fff; font-weight: 500; }
+
+        .model-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+        .model-name-desc { font-weight: 500; color: var(--text-primary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .model-name-single { font-weight: 400; color: var(--text-primary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .model-description { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .model-price { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
         .ratio-icon-container { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .ratio-icon { border: 2px solid currentColor; border-radius: 2px; opacity: 0.8; }
