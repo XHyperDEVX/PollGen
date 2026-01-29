@@ -307,7 +307,7 @@ function updateCostDisplay(model) {
   const costText = document.getElementById('cost-text');
   if (costText) {
     const price = formatModelPrice(model);
-    costText.textContent = i18n.t('costsLabel', price);
+    costText.textContent = price;
   }
 }
 
@@ -447,7 +447,7 @@ function toggleLoading(isLoading) {
     generateBtn.disabled = isLoading;
     const btnText = generateBtn.querySelector('span');
     if (btnText) {
-      btnText.textContent = isLoading ? 'Generating...' : i18n.t('generateBtn');
+      btnText.textContent = isLoading ? i18n.t('generatingLabel') : i18n.t('generateBtn');
     }
     if (isLoading) {
         generateBtn.classList.add('loading');
@@ -480,14 +480,6 @@ function createPlaceholderCard(genId) {
     const pulse = document.createElement('div');
     pulse.className = 'mini-pulse';
     placeholder.appendChild(pulse);
-
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.className = 'loading-indicator';
-    loadingIndicator.innerHTML = `
-        <div class="spinner"></div>
-        <div class="text">Generating...</div>
-    `;
-    placeholder.appendChild(loadingIndicator);
 
     card.appendChild(placeholder);
     const overlay = document.createElement('div');

@@ -42,6 +42,11 @@ const translations = {
     // Buttons
     generateBtn: 'Generate Image',
 
+    // Common
+    generatingLabel: 'Generating...',
+    costLabel: 'Cost',
+    pollenLabel: 'Pollen',
+
     // Status Messages
     statusPromptMissing: 'Please enter a prompt',
     statusModelMissing: 'Please select a model',
@@ -97,6 +102,11 @@ const translations = {
 
     // Buttons
     generateBtn: 'Bild generieren',
+
+    // Common
+    generatingLabel: 'Generiere...',
+    costLabel: 'Kosten',
+    pollenLabel: 'Pollen',
 
     // Status Messages
     statusPromptMissing: 'Bitte geben Sie einen Prompt ein',
