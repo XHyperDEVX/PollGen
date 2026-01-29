@@ -1042,6 +1042,7 @@ function setupEventListeners() {
 function pinApiKeyFooter() {
   const apiKeyContainer = document.querySelector('.api-key-container');
   const sidebar = document.querySelector('.sidebar');
+  const promptBar = document.querySelector('.prompt-bar');
 
   if (!apiKeyContainer || !sidebar) return;
 
@@ -1051,6 +1052,10 @@ function pinApiKeyFooter() {
     const rect = sidebar.getBoundingClientRect();
     apiKeyContainer.style.left = `${rect.left}px`;
     apiKeyContainer.style.width = `${rect.width}px`;
+
+    if (promptBar) {
+      promptBar.style.left = `${rect.width}px`;
+    }
 
     const h = apiKeyContainer.offsetHeight || 0;
     sidebar.style.setProperty('--api-footer-height', `${h}px`);
