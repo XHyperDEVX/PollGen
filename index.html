@@ -240,9 +240,9 @@
         #prompt::placeholder { color: #6a6a6c; }
 
         .cost-display { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 12px; align-self: center; text-align: center; }
-        .cost-display .cost-label { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
-        .cost-display .cost-value { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
-        .cost-display .cost-unit { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .cost-display .cost-label { font-size: 9px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .cost-display .cost-value { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+        .cost-display .cost-unit { font-size: 9px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
 
         .generate-btn { height: 52px; padding: 0 32px; background: linear-gradient(135deg, var(--accent) 0%, #1D4ED8 100%); color: white; border: none; border-radius: 26px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 20px rgba(37,99,235,0.3); white-space: nowrap; align-self: center; }
         .generate-btn svg { flex-shrink: 0; transition: opacity 0.3s ease; }
@@ -381,7 +381,7 @@
             </div>
             <div class="prompt-actions">
                <div class="cost-display">
-                   <div class="cost-label" data-i18n="costLabel">Costs</div>
+                   <div class="cost-label" data-i18n="costLabel">Costs:</div>
                    <div class="cost-value" id="cost-text">0.002</div>
                    <div class="cost-unit" data-i18n="pollenLabel">Pollen</div>
                </div>
