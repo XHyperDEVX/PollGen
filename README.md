@@ -33,7 +33,6 @@ A clean, minimal web application for generating AI images using the Pollinations
   - No Logo: Remove Pollinations watermark
   - No Feed: Prevent sharing in public feed
   - Safe: Enable safety content filters
-  - Transparent: Create transparent background (if supported)
 
 ## How to Use
 

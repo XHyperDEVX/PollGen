@@ -304,7 +304,6 @@ async function generateImage(payload) {
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
-  if (payload.transparent) params.append('transparent', 'true');
   
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
@@ -379,7 +378,7 @@ function collectPayload() {
   }
   
   // Boolean flags
-  ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
+  ['enhance', 'private', 'nologo', 'nofeed', 'safe'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
   });
@@ -1042,18 +1041,22 @@ function setupEventListeners() {
 
 function pinApiKeyFooter() {
   const apiKeyContainer = document.querySelector('.api-key-container');
+  const apiKeyFooter = document.querySelector('.api-key-footer');
   const sidebar = document.querySelector('.sidebar');
 
-  if (!apiKeyContainer || !sidebar) return;
+  if (!apiKeyContainer || !apiKeyFooter || !sidebar) return;
 
   apiKeyContainer.classList.add('pinned');
 
   const applyLayout = () => {
     const rect = sidebar.getBoundingClientRect();
-    apiKeyContainer.style.left = `${rect.left}px`;
-    apiKeyContainer.style.width = `${rect.width}px`;
+    const footerWidth = window.innerWidth - rect.width;
+    
+    // Position the footer to start after the sidebar
+    apiKeyFooter.style.left = `${rect.width}px`;
+    apiKeyFooter.style.width = `${footerWidth}px`;
 
-    const h = apiKeyContainer.offsetHeight || 0;
+    const h = apiKeyFooter.offsetHeight || 0;
     sidebar.style.setProperty('--api-footer-height', `${h}px`);
   };
 
@@ -1062,7 +1065,7 @@ function pinApiKeyFooter() {
 
   if (window.ResizeObserver) {
     const ro = new ResizeObserver(applyLayout);
-    ro.observe(apiKeyContainer);
+    ro.observe(apiKeyFooter);
     ro.observe(sidebar);
   }
 }

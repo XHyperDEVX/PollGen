@@ -36,6 +36,7 @@
             height: 100vh;
             overflow: hidden;
             display: flex;
+            position: relative;
         }
 
         .hidden { display: none !important; }
@@ -43,7 +44,7 @@
         /* Sidebar */
         .sidebar {
             width: 360px;
-            height: 100vh;
+            height: calc(100vh - 80px);
             background-color: var(--sidebar-bg);
             border-right: 1px solid var(--border-subtle);
             display: flex;
@@ -55,6 +56,10 @@
             touch-action: pan-y;
             scrollbar-width: thin;
             scrollbar-color: #3a3a3a transparent;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 50;
         }
 
         .sidebar-content::-webkit-scrollbar { width: 6px; }
@@ -156,9 +161,7 @@
         .lang-btn.active { color: var(--text-primary); border-color: var(--accent); background: rgba(37,99,235,0.1); }
 
         .api-key-container {
-            margin-top: auto;
             padding: 16px 12px;
-            border-top: 1px solid var(--border-subtle);
             background: var(--sidebar-bg);
         }
         .api-key-container.pinned {
@@ -168,18 +171,38 @@
             border-top: 1px solid var(--border-subtle);
             border-right: 1px solid var(--border-subtle);
         }
+        
+        .api-key-separator {
+            height: 1px;
+            background: var(--border-subtle);
+            width: 100%;
+        }
+        
+        .api-key-footer {
+            position: fixed;
+            bottom: 0;
+            left: 360px;
+            right: 0;
+            z-index: 30;
+            background: var(--sidebar-bg);
+            border-top: 1px solid var(--border-subtle);
+        }
         .api-key-hint { font-size: 11px; margin-top: 8px; color: var(--text-muted); text-align: center; }
         .api-key-hint a { color: var(--accent); text-decoration: none; }
         .api-key-hint a:hover { text-decoration: underline; }
 
         @media (max-width: 880px) {
-            .sidebar { width: 320px; }
+            .sidebar { width: 320px; height: calc(100vh - 80px); }
+            .api-key-footer { left: 320px; }
+            .canvas { margin-left: 320px; }
         }
         @media (max-width: 640px) {
-            .sidebar { width: 100vw; }
+            .sidebar { width: 100vw; height: calc(100vh - 80px); }
+            .api-key-footer { left: 0; width: 100vw; }
+            .canvas { margin-left: 0; }
         }
 
-        .canvas { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: var(--canvas-bg); }
+        .canvas { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background-color: var(--canvas-bg); margin-left: 360px; margin-bottom: 80px; }
         .canvas-workspace { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 60px 24px; overflow-y: auto; scroll-behavior: smooth; }
         .canvas-workspace::-webkit-scrollbar { width: 8px; }
         .canvas-workspace::-webkit-scrollbar-track { background: transparent; }
@@ -190,7 +213,7 @@
 
         .gallery-feed { width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; gap: 40px; padding-bottom: 40px; }
 
-        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 30px 60px rgba(0,0,0,0.6); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
+        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
         .image-card img { width: 100%; height: auto; max-height: 85vh; object-fit: contain; display: block; border-radius: 16px; opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .image-card img.loaded { opacity: 1; }
 
@@ -366,17 +389,19 @@
                     <label class="checkbox-item"><input type="checkbox" id="nologo" name="nologo" checked><span data-i18n="nologoLabel">No Watermark</span></label>
                     <label class="checkbox-item"><input type="checkbox" id="nofeed" name="nofeed" checked><span data-i18n="nofeedLabel">No Public Feed</span></label>
                     <label class="checkbox-item"><input type="checkbox" id="safe" name="safe"><span data-i18n="safeLabel">Safety Filter</span></label>
-                    <label class="checkbox-item"><input type="checkbox" id="transparent" name="transparent"><span data-i18n="transparentLabel">Transparent BG</span></label>
                 </div>
             </div>
         </div>
         </div>
+    </aside>
 
+    <footer class="api-key-footer">
+        <div class="api-key-separator"></div>
         <div class="api-key-container">
             <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
             <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
         </div>
-    </aside>
+    </footer>
 
     <main class="canvas">
         <div class="canvas-workspace" id="canvas-workspace">

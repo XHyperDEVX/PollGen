@@ -36,7 +36,6 @@ const translations = {
     nologoLabel: 'No Watermark',
     nofeedLabel: 'No Public Feed',
     safeLabel: 'Safety Filter',
-    transparentLabel: 'Transparent BG',
 
     // Buttons
     generateBtn: 'Generate Image',
@@ -96,7 +95,6 @@ const translations = {
     nologoLabel: 'Kein Wasserzeichen',
     nofeedLabel: 'Kein öffentlicher Feed',
     safeLabel: 'Sicherheitsfilter',
-    transparentLabel: 'Transparenter HG',
 
     // Buttons
     generateBtn: 'Bild generieren',
