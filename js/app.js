@@ -37,21 +37,16 @@ function formatBalanceDisplay(balance) {
 }
 
 async function updateBalance(apiKey) {
-  const balanceDisplay = document.getElementById('balance-display');
-  const balanceText = document.getElementById('balance-text');
   const apiKeyHint = document.getElementById('api-key-hint');
-  
+  if (!apiKeyHint) return;
+
+  apiKeyHint.classList.remove('hidden');
+
   if (!apiKey || !apiKey.trim()) {
-    if (balanceDisplay) balanceDisplay.classList.add('hidden');
-    if (apiKeyHint) {
-        apiKeyHint.classList.remove('hidden');
-        apiKeyHint.innerHTML = i18n.t('apiKeyHint');
-    }
+    apiKeyHint.innerHTML = i18n.t('apiKeyHint');
     return;
   }
 
-  if (apiKeyHint) apiKeyHint.classList.add('hidden');
-  
   try {
     const response = await fetch('https://gen.pollinations.ai/account/balance', {
       method: 'GET',
@@ -59,47 +54,25 @@ async function updateBalance(apiKey) {
         'Authorization': `Bearer ${apiKey.trim()}`
       }
     });
-    
-    if (response.status === 403 || response.status === 401) {
-       const data = await response.json();
-       const errorMsg = data.error?.message || data.message || "";
-       if (errorMsg.includes('account:balance') || data.error?.code === 'UNAUTHORIZED' || data.code === 'UNAUTHORIZED') {
-           if (balanceDisplay && balanceText) {
-               balanceText.textContent = i18n.t('balancePermissionError');
-               balanceDisplay.classList.remove('hidden');
-           }
-           return;
-       }
-    }
 
     if (!response.ok) {
-      if (balanceDisplay) balanceDisplay.classList.add('hidden');
+      apiKeyHint.textContent = i18n.t('balancePermissionError');
       return;
     }
-    
+
     const data = await response.json();
     const balance = data.balance;
-    
+
     if (typeof balance === 'number' && !isNaN(balance)) {
       const formattedBalance = formatBalanceDisplay(balance);
-      
-      if (balanceText) {
-        balanceText.textContent = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
-      }
-      
-      if (balanceDisplay) {
-        balanceDisplay.classList.remove('hidden');
-      }
-    } else {
-      if (balanceDisplay) {
-        balanceDisplay.classList.add('hidden');
-      }
+      apiKeyHint.textContent = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
+      return;
     }
+
+    apiKeyHint.textContent = i18n.t('balancePermissionError');
   } catch (error) {
     console.log('Balance API call failed:', error.message);
-    if (balanceDisplay) {
-      balanceDisplay.classList.add('hidden');
-    }
+    apiKeyHint.textContent = i18n.t('balancePermissionError');
   }
 }
 
@@ -725,8 +698,13 @@ function applyLightboxPanFromPointer(clientX, clientY) {
     const maxTranslateX = Math.max(0, (baseW * LIGHTBOX_ZOOM_SCALE - containerRect.width) / 2);
     const maxTranslateY = Math.max(0, (baseH * LIGHTBOX_ZOOM_SCALE - containerRect.height) / 2);
 
-    const tx = (0.5 - clampedX) * 2 * maxTranslateX;
-    const ty = (0.5 - clampedY) * 2 * maxTranslateY;
+    const sensitivity = 1.65;
+
+    let tx = (0.5 - clampedX) * 2 * maxTranslateX * sensitivity;
+    let ty = (0.5 - clampedY) * 2 * maxTranslateY * sensitivity;
+
+    tx = Math.max(-maxTranslateX, Math.min(maxTranslateX, tx));
+    ty = Math.max(-maxTranslateY, Math.min(maxTranslateY, ty));
 
     lightboxImg.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${LIGHTBOX_ZOOM_SCALE})`;
 }
@@ -988,12 +966,8 @@ function pinApiKeyFooter() {
     sidebar.style.paddingBottom = `${h + 20}px`;
 
     const rect = sidebar.getBoundingClientRect();
-    const styles = window.getComputedStyle(sidebar);
-    const pl = parseFloat(styles.paddingLeft) || 0;
-    const pr = parseFloat(styles.paddingRight) || 0;
-
-    apiKeyContainer.style.left = `${rect.left + pl}px`;
-    apiKeyContainer.style.width = `${Math.max(0, rect.width - pl - pr)}px`;
+    apiKeyContainer.style.left = `${rect.left}px`;
+    apiKeyContainer.style.width = `${rect.width}px`;
   };
 
   applyLayout();

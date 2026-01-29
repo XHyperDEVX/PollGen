@@ -60,10 +60,10 @@ const translations = {
     modelPlaceholder: 'Select a model...',
 
     // Balance
-    balanceRemaining: 'pollen remaining.',
+    balanceRemaining: 'pollen remaining',
     costsLabel: 'Costs: %s Pollen',
     deleteConfirm: 'Delete this image?',
-    balancePermissionError: 'Please activate the balance permission for the API key.',
+    balancePermissionError: 'Please activate the balance permission for the API key',
   },
   de: {
     // Page
@@ -121,10 +121,10 @@ const translations = {
     modelPlaceholder: 'Wählen Sie ein Modell...',
 
     // Balance
-    balanceRemaining: 'Pollen verbleibend.',
+    balanceRemaining: 'Pollen verbleibend',
     costsLabel: 'Kostet: %s Pollen',
     deleteConfirm: 'Bild löschen?',
-    balancePermissionError: 'Bitte aktiviere die Balance-Berechtigung für den API-Key.',
+    balancePermissionError: 'Bitte aktiviere die Balance-Berechtigung für den API-Key',
   }
 };
 
