@@ -58,18 +58,21 @@
             flex-direction: column;
             min-height: 0;
             flex: 1;
+            height: 100%;
+            max-height: 100%;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
             scrollbar-width: thin;
-            scrollbar-color: #BDBDBD #2e2e2f;
+            scrollbar-color: #3a3a3a transparent;
             padding-right: 4px;
         }
 
         .sidebar-content::-webkit-scrollbar { width: 6px; }
-        .sidebar-content::-webkit-scrollbar-track { background: #2e2e2f; }
-        .sidebar-content::-webkit-scrollbar-thumb { background: #BDBDBD; border-radius: 4px; }
-        .sidebar-content::-webkit-scrollbar-thumb:hover { background: #d0d0d0; }
+        .sidebar-content::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-content::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+        .sidebar-content::-webkit-scrollbar-thumb:hover { background: #4a4a4c; }
 
         .panel {
             background-color: var(--panel-bg);
@@ -176,7 +179,7 @@
             left: 0;
             width: 360px;
             z-index: 40;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.4);
+            border-top: 1px solid var(--border-subtle);
         }
         .balance-box { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; text-align: center; line-height: 1.4; }
         .api-key-hint { font-size: 11px; margin-top: 8px; color: var(--text-muted); text-align: center; }
@@ -225,8 +228,9 @@
             user-select: none;
             object-fit: contain;
             pointer-events: auto;
+            transform: translate3d(0,0,0);
         }
-        .lightbox.zoomed img { transform: scale(2.5); cursor: move; }
+        .lightbox.zoomed img { cursor: zoom-out; }
         .lightbox-close {
             position: absolute; top: 30px; right: 30px; width: 44px; height: 44px; border-radius: 50%;
             background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
@@ -454,9 +458,9 @@
             <div class="popover-item" data-ratio="9:16" data-w="1026" data-h="1824"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 8px; height: 18px;"></div></div>Vertical (9:16)</div>
         </div>
         <div class="popover" id="model-popover"></div>
-        <div id="lightbox" class="lightbox hidden" onclick="this.classList.remove('zoomed'); this.classList.add('hidden');">
-            <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.add('hidden')">&times;</button>
-            <div class="lightbox-content" onclick="event.stopPropagation()">
+        <div id="lightbox" class="lightbox hidden">
+            <button class="lightbox-close" type="button">&times;</button>
+            <div class="lightbox-content">
                 <img id="lightbox-image" src="" alt="Full size image">
             </div>
         </div>

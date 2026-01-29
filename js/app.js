@@ -679,7 +679,7 @@ function displayResultInCard(genId, data) {
     
     const img = new Image();
     img.src = data.imageData;
-    img.onclick = (e) => openLightbox(data.imageData, e);
+    img.onclick = () => openLightbox(data.imageData);
     img.onload = () => {
         placeholder.remove();
         card.insertBefore(img, overlay);
@@ -695,122 +695,108 @@ function displayResultInCard(genId, data) {
 }
 
 let isZoomed = false;
-let startX, startY, currentTranslateX = 0, currentTranslateY = 0;
-let isDragging = false;
-
-function openLightbox(src, e) {
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightbox-image');
-    if (lightbox && lightboxImg) {
-        lightboxImg.src = src;
-        lightbox.classList.remove('hidden');
-        lightbox.classList.remove('zoomed');
-        isZoomed = false;
-        currentTranslateX = 0;
-        currentTranslateY = 0;
-        isDragging = false;
-        lightboxImg.style.transform = 'translate(0px, 0px)';
-        lightboxImg.style.transformOrigin = 'center center';
-    }
-}
+const LIGHTBOX_ZOOM_SCALE = 2.5;
 
 const lightbox = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightbox-image');
 
-if (lightboxImg) {
-    lightboxImg.onclick = (e) => {
+function resetLightboxTransform() {
+    if (!lightboxImg) return;
+    lightboxImg.style.transformOrigin = 'center center';
+    lightboxImg.style.transform = 'translate3d(0px, 0px, 0) scale(1)';
+    lightboxImg.style.cursor = 'zoom-in';
+}
+
+function applyLightboxPanFromPointer(clientX, clientY) {
+    if (!lightbox || !lightboxImg) return;
+
+    const containerRect = lightbox.getBoundingClientRect();
+    if (!containerRect.width || !containerRect.height) return;
+
+    const xNorm = (clientX - containerRect.left) / containerRect.width;
+    const yNorm = (clientY - containerRect.top) / containerRect.height;
+
+    const clampedX = Math.min(1, Math.max(0, xNorm));
+    const clampedY = Math.min(1, Math.max(0, yNorm));
+
+    const baseW = lightboxImg.clientWidth || 0;
+    const baseH = lightboxImg.clientHeight || 0;
+
+    const maxTranslateX = Math.max(0, (baseW * LIGHTBOX_ZOOM_SCALE - containerRect.width) / 2);
+    const maxTranslateY = Math.max(0, (baseH * LIGHTBOX_ZOOM_SCALE - containerRect.height) / 2);
+
+    const tx = (0.5 - clampedX) * 2 * maxTranslateX;
+    const ty = (0.5 - clampedY) * 2 * maxTranslateY;
+
+    lightboxImg.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${LIGHTBOX_ZOOM_SCALE})`;
+}
+
+function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.add('hidden');
+    lightbox.classList.remove('zoomed');
+    isZoomed = false;
+    resetLightboxTransform();
+}
+
+function openLightbox(src) {
+    if (!lightbox || !lightboxImg) return;
+    lightboxImg.src = src;
+    lightbox.classList.remove('hidden');
+    lightbox.classList.remove('zoomed');
+    isZoomed = false;
+    resetLightboxTransform();
+}
+
+if (lightbox && lightboxImg) {
+    const closeBtn = lightbox.querySelector('.lightbox-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeLightbox();
+        });
+    }
+
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+            closeLightbox();
+        }
+    });
+
+    lightboxImg.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (isDragging) return;
 
         if (isZoomed) {
             lightbox.classList.remove('zoomed');
             isZoomed = false;
-            currentTranslateX = 0;
-            currentTranslateY = 0;
-            lightboxImg.style.transform = 'translate(0px, 0px)';
-            lightboxImg.style.cursor = 'zoom-in';
-        } else {
-            const rect = lightboxImg.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            resetLightboxTransform();
+            return;
+        }
+
+        const rect = lightboxImg.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        if (Number.isFinite(x) && Number.isFinite(y)) {
             lightboxImg.style.transformOrigin = `${x}% ${y}%`;
-            lightbox.classList.add('zoomed');
-            lightboxImg.style.transform = 'scale(2.5)';
-            lightboxImg.style.cursor = 'grab';
-            isZoomed = true;
         }
-    };
 
-    let hasMoved = false;
-    let dragStartX, dragStartY;
+        lightbox.classList.add('zoomed');
+        isZoomed = true;
+        lightboxImg.style.cursor = 'zoom-out';
+        applyLightboxPanFromPointer(e.clientX, e.clientY);
+    });
 
-    lightbox.addEventListener('mousedown', (e) => {
+    lightbox.addEventListener('mousemove', (e) => {
         if (!isZoomed) return;
-        isDragging = false;
-        hasMoved = false;
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
+        applyLightboxPanFromPointer(e.clientX, e.clientY);
+    }, { passive: true });
 
-        const onMouseMove = (moveEvent) => {
-            const deltaX = moveEvent.clientX - dragStartX;
-            const deltaY = moveEvent.clientY - dragStartY;
-
-            // Minimal movement threshold to start dragging
-            if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
-                hasMoved = true;
-                isDragging = true;
-            }
-
-            if (!hasMoved) return;
-
-            dragStartX = moveEvent.clientX;
-            dragStartY = moveEvent.clientY;
-
-            const rect = lightboxImg.getBoundingClientRect();
-            const containerRect = lightbox.getBoundingClientRect();
-
-            const scale = 2.5;
-            const imageWidth = rect.width;
-            const imageHeight = rect.height;
-            const containerWidth = containerRect.width;
-            const containerHeight = containerRect.height;
-
-            const maxTranslateX = (imageWidth - containerWidth) / 2;
-            const maxTranslateY = (imageHeight - containerHeight) / 2;
-
-            currentTranslateX += deltaX;
-            currentTranslateY += deltaY;
-
-            currentTranslateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, currentTranslateX));
-            currentTranslateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, currentTranslateY));
-
-            lightboxImg.style.transform = `scale(${scale}) translate(${currentTranslateX / scale}px, ${currentTranslateY / scale}px)`;
-        };
-
-        const onMouseUp = () => {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-
-            if (!hasMoved) {
-                isDragging = false;
-            }
-
-            setTimeout(() => {
-                isDragging = false;
-            }, 10);
-        };
-
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    });
-
-    lightboxImg.addEventListener('mousemove', (e) => {
-        if (isZoomed && isDragging) {
-            lightboxImg.style.cursor = 'grabbing';
-        } else if (isZoomed) {
-            lightboxImg.style.cursor = 'grab';
-        }
-    });
+    lightbox.addEventListener('touchmove', (e) => {
+        if (!isZoomed) return;
+        const t = e.touches && e.touches[0];
+        if (!t) return;
+        applyLightboxPanFromPointer(t.clientX, t.clientY);
+    }, { passive: true });
 }
 
 function addThumbnailToMiniView(genId, src) {
