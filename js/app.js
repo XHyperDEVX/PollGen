@@ -297,14 +297,12 @@ async function generateImage(payload) {
   if (payload.width) params.append('width', payload.width);
   if (payload.height) params.append('height', payload.height);
   if (payload.seed) params.append('seed', payload.seed);
-  if (payload.guidance_scale) params.append('guidance_scale', payload.guidance_scale);
   if (payload.negative_prompt) params.append('negative_prompt', payload.negative_prompt);
   if (payload.enhance) params.append('enhance', 'true');
   if (payload.private) params.append('private', 'true');
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
-  if (payload.transparent) params.append('transparent', 'true');
   
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
@@ -351,35 +349,30 @@ function collectPayload() {
   const widthInput = document.getElementById('width');
   const heightInput = document.getElementById('height');
   const seedInput = document.getElementById('seed');
-  const guidanceInput = document.getElementById('guidance_scale');
   const negativePromptInput = document.getElementById('negative_prompt');
-  
+
   if (!promptInput) return {};
-  
+
   const payload = {
     prompt: promptInput.value.trim(),
     model: modelInput ? modelInput.value : ''
   };
-  
+
   if (widthInput) payload.width = Number(widthInput.value);
   if (heightInput) payload.height = Number(heightInput.value);
-  
+
   if (seedInput && seedInput.value.trim() !== "") {
       payload.seed = Number(seedInput.value);
   } else {
       payload.seed = generateRandomSeed();
   }
-  
-  if (guidanceInput) {
-      payload.guidance_scale = Number(guidanceInput.value);
-  }
-  
+
   if (negativePromptInput && negativePromptInput.value.trim()) {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
   
   // Boolean flags
-  ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
+  ['enhance', 'private', 'nologo', 'nofeed', 'safe'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
   });
@@ -1022,14 +1015,6 @@ function setupEventListeners() {
     });
   }
 
-  const guidanceScale = document.getElementById('guidance_scale');
-  const guidanceValue = document.getElementById('guidance-value');
-  if (guidanceScale && guidanceValue) {
-      guidanceScale.addEventListener('input', () => {
-          guidanceValue.textContent = guidanceScale.value;
-      });
-  }
-
   window.addEventListener('languageChanged', () => {
       renderModelOptions(state.models);
       updateBalance(state.apiKey);
@@ -1043,6 +1028,7 @@ function setupEventListeners() {
 function pinApiKeyFooter() {
   const apiKeyContainer = document.querySelector('.api-key-container');
   const sidebar = document.querySelector('.sidebar');
+  const promptBar = document.querySelector('.prompt-bar');
 
   if (!apiKeyContainer || !sidebar) return;
 
@@ -1052,6 +1038,10 @@ function pinApiKeyFooter() {
     const rect = sidebar.getBoundingClientRect();
     apiKeyContainer.style.left = `${rect.left}px`;
     apiKeyContainer.style.width = `${rect.width}px`;
+
+    if (promptBar) {
+      promptBar.style.left = `${rect.width}px`;
+    }
 
     const h = apiKeyContainer.offsetHeight || 0;
     sidebar.style.setProperty('--api-footer-height', `${h}px`);

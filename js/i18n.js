@@ -21,9 +21,6 @@ const translations = {
     promptPlaceholder: 'Describe the image you want to generate',
     modelLabel: 'Model',
     aspectRatioLabel: 'Aspect Ratio',
-    visualIntensityLabel: 'Visual Intensity',
-    intensityLow: 'Creative',
-    intensityHigh: 'Strict',
     parametersLabel: 'Parameters',
     seedLabel: 'Seed',
     seedPlaceholder: 'Random',
@@ -36,7 +33,6 @@ const translations = {
     nologoLabel: 'No Watermark',
     nofeedLabel: 'No Public Feed',
     safeLabel: 'Safety Filter',
-    transparentLabel: 'Transparent BG',
 
     // Buttons
     generateBtn: 'Generate Image',
@@ -81,9 +77,6 @@ const translations = {
     promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten',
     modelLabel: 'Modell',
     aspectRatioLabel: 'Seitenverhältnis',
-    visualIntensityLabel: 'Visuelle Intensität',
-    intensityLow: 'Kreativ',
-    intensityHigh: 'Strikt',
     parametersLabel: 'Parameter',
     seedLabel: 'Seed',
     seedPlaceholder: 'Zufällig',
@@ -96,7 +89,6 @@ const translations = {
     nologoLabel: 'Kein Wasserzeichen',
     nofeedLabel: 'Kein öffentlicher Feed',
     safeLabel: 'Sicherheitsfilter',
-    transparentLabel: 'Transparenter HG',
 
     // Buttons
     generateBtn: 'Bild generieren',
