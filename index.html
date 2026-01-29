@@ -43,7 +43,7 @@
         /* Sidebar */
         .sidebar {
             width: 360px;
-            height: 100vh;
+            height: calc(100vh - var(--api-footer-height, 0px));
             background-color: var(--sidebar-bg);
             border-right: 1px solid var(--border-subtle);
             display: flex;
@@ -156,7 +156,6 @@
         .lang-btn.active { color: var(--text-primary); border-color: var(--accent); background: rgba(37,99,235,0.1); }
 
         .api-key-container {
-            margin-top: auto;
             padding: 16px 12px;
             border-top: 1px solid var(--border-subtle);
             background: var(--sidebar-bg);
@@ -190,7 +189,7 @@
 
         .gallery-feed { width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; gap: 40px; padding-bottom: 40px; }
 
-        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 30px 60px rgba(0,0,0,0.6); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
+        .image-card { width: 100%; position: relative; border-radius: 16px; overflow: hidden; background: #1a1a1c; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1); cursor: pointer; }
         .image-card img { width: 100%; height: auto; max-height: 85vh; object-fit: contain; display: block; border-radius: 16px; opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .image-card img.loaded { opacity: 1; }
 
@@ -366,7 +365,6 @@
                     <label class="checkbox-item"><input type="checkbox" id="nologo" name="nologo" checked><span data-i18n="nologoLabel">No Watermark</span></label>
                     <label class="checkbox-item"><input type="checkbox" id="nofeed" name="nofeed" checked><span data-i18n="nofeedLabel">No Public Feed</span></label>
                     <label class="checkbox-item"><input type="checkbox" id="safe" name="safe"><span data-i18n="safeLabel">Safety Filter</span></label>
-                    <label class="checkbox-item"><input type="checkbox" id="transparent" name="transparent"><span data-i18n="transparentLabel">Transparent BG</span></label>
                 </div>
             </div>
         </div>
