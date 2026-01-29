@@ -44,30 +44,17 @@
         .sidebar {
             width: 360px;
             height: 100vh;
-            --api-footer-height: 0px;
             background-color: var(--sidebar-bg);
             border-right: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
             padding: 12px;
-            overflow: hidden;
-            flex-shrink: 0;
-            z-index: 20;
-        }
-
-        .sidebar-content {
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-            flex: 1 1 auto;
-            max-height: calc(100vh - var(--api-footer-height) - 12px);
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             touch-action: pan-y;
             scrollbar-width: thin;
             scrollbar-color: #3a3a3a transparent;
-            padding-right: 4px;
         }
 
         .sidebar-content::-webkit-scrollbar { width: 6px; }
