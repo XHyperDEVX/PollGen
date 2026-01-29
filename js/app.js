@@ -297,7 +297,6 @@ async function generateImage(payload) {
   if (payload.width) params.append('width', payload.width);
   if (payload.height) params.append('height', payload.height);
   if (payload.seed) params.append('seed', payload.seed);
-  if (payload.guidance_scale) params.append('guidance_scale', payload.guidance_scale);
   if (payload.negative_prompt) params.append('negative_prompt', payload.negative_prompt);
   if (payload.enhance) params.append('enhance', 'true');
   if (payload.private) params.append('private', 'true');
@@ -350,29 +349,24 @@ function collectPayload() {
   const widthInput = document.getElementById('width');
   const heightInput = document.getElementById('height');
   const seedInput = document.getElementById('seed');
-  const guidanceInput = document.getElementById('guidance_scale');
   const negativePromptInput = document.getElementById('negative_prompt');
-  
+
   if (!promptInput) return {};
-  
+
   const payload = {
     prompt: promptInput.value.trim(),
     model: modelInput ? modelInput.value : ''
   };
-  
+
   if (widthInput) payload.width = Number(widthInput.value);
   if (heightInput) payload.height = Number(heightInput.value);
-  
+
   if (seedInput && seedInput.value.trim() !== "") {
       payload.seed = Number(seedInput.value);
   } else {
       payload.seed = generateRandomSeed();
   }
-  
-  if (guidanceInput) {
-      payload.guidance_scale = Number(guidanceInput.value);
-  }
-  
+
   if (negativePromptInput && negativePromptInput.value.trim()) {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
@@ -1019,14 +1013,6 @@ function setupEventListeners() {
             adjustPromptHeight();
         }
     });
-  }
-
-  const guidanceScale = document.getElementById('guidance_scale');
-  const guidanceValue = document.getElementById('guidance-value');
-  if (guidanceScale && guidanceValue) {
-      guidanceScale.addEventListener('input', () => {
-          guidanceValue.textContent = guidanceScale.value;
-      });
   }
 
   window.addEventListener('languageChanged', () => {

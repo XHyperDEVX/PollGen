@@ -257,7 +257,7 @@
             50% { opacity: 0.85; }
         }
 
-        .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: center; gap: 20px; z-index: 30; position: fixed; bottom: 0; left: 360px; right: 0; }
+        .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: center; gap: 20px; z-index: 30; position: fixed; bottom: 0; left: 360px; right: 0; top: calc(100vh - var(--api-footer-height, 80px)); }
         .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-end; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
         .prompt-actions { display: flex; gap: 12px; align-items: center; }
         .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
@@ -329,19 +329,6 @@
                         <div class="select-value"><div class="ratio-icon-container"><div class="ratio-icon" id="current-ratio-icon" style="width: 14px; height: 10px;"></div></div><span id="current-ratio-label">Landscape (4:3)</span></div>
                         <span class="select-arrow"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg></span>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel open" id="panel-intensity">
-            <div class="panel-header" onclick="togglePanel('panel-intensity')">
-                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
-                <h3 data-i18n="visualIntensityLabel">Visual Intensity</h3>
-            </div>
-            <div class="panel-content">
-                <div class="slider-container">
-                    <input type="range" id="guidance_scale" name="guidance_scale" min="1" max="20" value="7.5" step="0.5">
-                    <div class="slider-labels"><span data-i18n="intensityLow">Creative</span><span id="guidance-value">7.5</span><span data-i18n="intensityHigh">Strict</span></div>
                 </div>
             </div>
         </div>
