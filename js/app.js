@@ -440,6 +440,7 @@ function setStatus(message, type = 'info') {
 }
 
 let activeFireflyRaf = null;
+let activeFireflyRo = null;
 
 function startFireflyTicker(layer) {
   if (!layer) return;
@@ -447,33 +448,108 @@ function startFireflyTicker(layer) {
   const fireflies = Array.from(layer.querySelectorAll('.firefly'));
   if (fireflies.length === 0) return;
 
+  const bounds = { w: 0, h: 0 };
+
+  const updateBounds = () => {
+    bounds.w = layer.clientWidth || 0;
+    bounds.h = layer.clientHeight || 0;
+
+    if (!bounds.w || !bounds.h) return;
+
+    const margin = Math.min(12, Math.max(4, Math.round(Math.min(bounds.w, bounds.h) * 0.02)));
+
+    for (const el of fireflies) {
+      const size = parseFloat(el.dataset.size || '0') || 0;
+      const minX = margin;
+      const minY = margin;
+      const maxX = Math.max(minX, bounds.w - size - margin);
+      const maxY = Math.max(minY, bounds.h - size - margin);
+
+      let x = parseFloat(el.dataset.x);
+      let y = parseFloat(el.dataset.y);
+
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        const rx = parseFloat(el.dataset.rx || '0');
+        const ry = parseFloat(el.dataset.ry || '0');
+        x = rx * (maxX - minX) + minX;
+        y = ry * (maxY - minY) + minY;
+      } else {
+        x = Math.min(maxX, Math.max(minX, x));
+        y = Math.min(maxY, Math.max(minY, y));
+      }
+
+      el.dataset.x = x.toString();
+      el.dataset.y = y.toString();
+      el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    }
+  };
+
+  updateBounds();
+
+  if (activeFireflyRo) activeFireflyRo.disconnect();
+  if (window.ResizeObserver) {
+    activeFireflyRo = new ResizeObserver(updateBounds);
+    activeFireflyRo.observe(layer);
+  }
+
   const last = { t: performance.now() };
 
   const tick = (t) => {
     const dt = Math.min(0.05, Math.max(0.008, (t - last.t) / 1000));
     last.t = t;
 
+    if (!bounds.w || !bounds.h) {
+      updateBounds();
+      activeFireflyRaf = requestAnimationFrame(tick);
+      return;
+    }
+
+    const margin = Math.min(12, Math.max(4, Math.round(Math.min(bounds.w, bounds.h) * 0.02)));
+
     for (const el of fireflies) {
-      let x = parseFloat(el.dataset.x || '0');
-      let y = parseFloat(el.dataset.y || '0');
+      const size = parseFloat(el.dataset.size || '0') || 0;
+      const minX = margin;
+      const minY = margin;
+      const maxX = Math.max(minX, bounds.w - size - margin);
+      const maxY = Math.max(minY, bounds.h - size - margin);
+
+      let x = parseFloat(el.dataset.x);
+      let y = parseFloat(el.dataset.y);
       let vx = parseFloat(el.dataset.vx || '0');
       let vy = parseFloat(el.dataset.vy || '0');
+
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        const rx = parseFloat(el.dataset.rx || '0');
+        const ry = parseFloat(el.dataset.ry || '0');
+        x = rx * (maxX - minX) + minX;
+        y = ry * (maxY - minY) + minY;
+      }
 
       x += vx * dt;
       y += vy * dt;
 
-      // Bounce within [0..100] bounds
-      if (x < 0) { x = 0; vx = Math.abs(vx); }
-      if (x > 100) { x = 100; vx = -Math.abs(vx); }
-      if (y < 0) { y = 0; vy = Math.abs(vy); }
-      if (y > 100) { y = 100; vy = -Math.abs(vy); }
+      if (x < minX) {
+        x = minX;
+        vx = Math.abs(vx);
+      } else if (x > maxX) {
+        x = maxX;
+        vx = -Math.abs(vx);
+      }
+
+      if (y < minY) {
+        y = minY;
+        vy = Math.abs(vy);
+      } else if (y > maxY) {
+        y = maxY;
+        vy = -Math.abs(vy);
+      }
 
       el.dataset.x = x.toString();
       el.dataset.y = y.toString();
       el.dataset.vx = vx.toString();
       el.dataset.vy = vy.toString();
 
-      el.style.transform = `translate3d(${x}%, ${y}%, 0)`;
+      el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     }
 
     activeFireflyRaf = requestAnimationFrame(tick);
@@ -487,6 +563,10 @@ function stopFireflyTicker() {
   if (activeFireflyRaf) {
     cancelAnimationFrame(activeFireflyRaf);
     activeFireflyRaf = null;
+  }
+  if (activeFireflyRo) {
+    activeFireflyRo.disconnect();
+    activeFireflyRo = null;
   }
 }
 
@@ -540,43 +620,40 @@ function createPlaceholderCard(genId) {
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    const baseCount = Math.min(60, Math.max(34, Math.round((w * h) / 80000)));
+    const baseCount = Math.min(90, Math.max(60, Math.round((w * h) / 15000)));
     const fireflyCount = prefersReducedMotion ? 0 : baseCount;
 
     for (let i = 0; i < fireflyCount; i++) {
         const firefly = document.createElement('div');
         firefly.className = 'firefly';
 
-        // Random size
-        const size = Math.random() * 5 + 2;
+        const size = Math.random() * 4.5 + 2;
         firefly.style.width = size + 'px';
         firefly.style.height = size + 'px';
+        firefly.dataset.size = size.toString();
 
-        // Random color
         firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
 
-        // Random brightness
         const brightness = Math.random() * 0.55 + 0.45;
         firefly.style.filter = `brightness(${brightness})`;
 
-        // Start in-bounds
-        const x = Math.random() * 100;
-        const y = Math.random() * 100;
-        firefly.dataset.x = x.toString();
-        firefly.dataset.y = y.toString();
+        firefly.dataset.rx = Math.random().toString();
+        firefly.dataset.ry = Math.random().toString();
 
-        // Velocity in % per second
-        const vx = (Math.random() * 22 + 10) * (Math.random() < 0.5 ? -1 : 1);
-        const vy = (Math.random() * 22 + 10) * (Math.random() < 0.5 ? -1 : 1);
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 45 + 18; // px/s
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
         firefly.dataset.vx = vx.toString();
         firefly.dataset.vy = vy.toString();
 
         firefly.style.animationDelay = Math.random() * 4 + 's';
+        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
         fireflyLayer.appendChild(firefly);
     }
 
     if (!prefersReducedMotion && fireflyCount > 0) {
-        startFireflyTicker(fireflyLayer);
+        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
     }
 
     card.appendChild(placeholder);
