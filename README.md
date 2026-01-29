@@ -28,12 +28,11 @@ A clean, minimal web application for generating AI images using the Pollinations
 - **Guidance Scale**: Control how closely the result follows the prompt (1-20)
 - **Negative Prompt**: Describe what to avoid in the image
 - **Advanced Options**:
-  - Enhance: Let AI optimize the prompt
-  - Private: Hide from public feeds
-  - No Logo: Remove Pollinations watermark
-  - No Feed: Prevent sharing in public feed
-  - Safe: Enable safety content filters
-  - Transparent: Create transparent background (if supported)
+- Enhance: Let AI optimize the prompt
+- Private: Hide from public feeds
+- No Logo: Remove Pollinations watermark
+- No Feed: Prevent sharing in public feed
+- Safe: Enable safety content filters
 
 ## How to Use
 

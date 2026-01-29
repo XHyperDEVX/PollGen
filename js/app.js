@@ -304,8 +304,7 @@ async function generateImage(payload) {
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
-  if (payload.transparent) params.append('transparent', 'true');
-  
+
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
     headers: { 'Authorization': `Bearer ${state.apiKey}` }
@@ -379,11 +378,11 @@ function collectPayload() {
   }
   
   // Boolean flags
-  ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
+  ['enhance', 'private', 'nologo', 'nofeed', 'safe'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
   });
-  
+
   return payload;
 }
 
