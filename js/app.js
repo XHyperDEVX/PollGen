@@ -447,7 +447,7 @@ function toggleLoading(isLoading) {
     generateBtn.disabled = isLoading;
     const btnText = generateBtn.querySelector('span');
     if (btnText) {
-      btnText.textContent = i18n.t('generateBtn');
+      btnText.textContent = isLoading ? 'Generating...' : i18n.t('generateBtn');
     }
     if (isLoading) {
         generateBtn.classList.add('loading');
@@ -480,6 +480,14 @@ function createPlaceholderCard(genId) {
     const pulse = document.createElement('div');
     pulse.className = 'mini-pulse';
     placeholder.appendChild(pulse);
+
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'loading-indicator';
+    loadingIndicator.innerHTML = `
+        <div class="spinner"></div>
+        <div class="text">Generating...</div>
+    `;
+    placeholder.appendChild(loadingIndicator);
 
     card.appendChild(placeholder);
     const overlay = document.createElement('div');
@@ -546,7 +554,7 @@ if (lightboxImg) {
     lightboxImg.onclick = (e) => {
         e.stopPropagation();
         if (isDragging) return;
-        
+
         if (isZoomed) {
             lightbox.classList.remove('zoomed');
             isZoomed = false;
@@ -568,66 +576,67 @@ if (lightboxImg) {
 
     let hasMoved = false;
     let dragStartX, dragStartY;
-    
+
     lightbox.addEventListener('mousedown', (e) => {
         if (!isZoomed) return;
         isDragging = false;
         hasMoved = false;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
-        
+
         const onMouseMove = (moveEvent) => {
             const deltaX = moveEvent.clientX - dragStartX;
             const deltaY = moveEvent.clientY - dragStartY;
-            
-            if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+
+            // Minimal movement threshold to start dragging
+            if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
                 hasMoved = true;
                 isDragging = true;
             }
-            
+
             if (!hasMoved) return;
-            
+
             dragStartX = moveEvent.clientX;
             dragStartY = moveEvent.clientY;
-            
+
             const rect = lightboxImg.getBoundingClientRect();
             const containerRect = lightbox.getBoundingClientRect();
-            
+
             const scale = 2.5;
             const imageWidth = rect.width;
             const imageHeight = rect.height;
             const containerWidth = containerRect.width;
             const containerHeight = containerRect.height;
-            
+
             const maxTranslateX = (imageWidth - containerWidth) / 2;
             const maxTranslateY = (imageHeight - containerHeight) / 2;
-            
+
             currentTranslateX += deltaX;
             currentTranslateY += deltaY;
-            
+
             currentTranslateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, currentTranslateX));
             currentTranslateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, currentTranslateY));
-            
+
             lightboxImg.style.transform = `scale(${scale}) translate(${currentTranslateX / scale}px, ${currentTranslateY / scale}px)`;
         };
-        
+
         const onMouseUp = () => {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
-            
+
             if (!hasMoved) {
                 isDragging = false;
             }
-            
+
             setTimeout(() => {
                 isDragging = false;
             }, 10);
         };
-        
+
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     });
-    
+
     lightboxImg.addEventListener('mousemove', (e) => {
         if (isZoomed && isDragging) {
             lightboxImg.style.cursor = 'grabbing';
