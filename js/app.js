@@ -9,6 +9,7 @@
 
 const state = {
   apiKey: null,
+  apiKeyValid: false, // Track whether the API key is valid
   models: [],
   currentImage: null,
   isGenerating: false,
@@ -44,13 +45,7 @@ function formatExpirationTime(expiresIn) {
   const hours = Math.floor(expiresIn / 3600);
   const minutes = Math.floor((expiresIn % 3600) / 60);
   
-  const currentLang = i18n.getCurrentLanguage();
-  
-  if (currentLang === 'de') {
-    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}${i18n.t('gültig')}`;
-  } else {
-    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
-  }
+  return `${i18n.t('keyValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
 }
 
 async function validateApiKeyInfo(apiKey) {
@@ -109,41 +104,47 @@ async function updateBalance(apiKey) {
     apiKeyHint.innerHTML = i18n.t('apiKeyHint');
     state.keyInfo = null;
     state.allowedModels = null;
+    state.apiKeyValid = false;
     renderModelOptions(state.models);
+    updateGenerateButtonState();
     return;
   }
 
   // First, validate the API key
   const keyInfo = await validateApiKeyInfo(apiKey);
-  
+
   if (!keyInfo || keyInfo.valid === false) {
     apiKeyHint.textContent = i18n.t('invalidApiKey');
     state.keyInfo = null;
     state.allowedModels = null;
+    state.apiKeyValid = false;
     renderModelOptions(state.models);
+    updateGenerateButtonState();
     return;
   }
 
-  // Store key info in state
+  // Store key info in state and mark as valid
   state.keyInfo = keyInfo;
-  
+  state.apiKeyValid = true;
+
   // Update allowed models filter
   if (keyInfo.permissions && keyInfo.permissions.models) {
     state.allowedModels = keyInfo.permissions.models;
   } else {
     state.allowedModels = null;
   }
-  
+
   // Re-render models with the new filter
   renderModelOptions(state.models);
 
   // Check if the key has balance permission
-  const hasBalancePermission = keyInfo.permissions && 
-                                keyInfo.permissions.account && 
+  const hasBalancePermission = keyInfo.permissions &&
+                                keyInfo.permissions.account &&
                                 keyInfo.permissions.account.includes('balance');
 
   if (!hasBalancePermission) {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
+    updateGenerateButtonState();
     return;
   }
 
@@ -153,16 +154,18 @@ async function updateBalance(apiKey) {
   if (typeof balance === 'number' && !isNaN(balance)) {
     const formattedBalance = formatBalanceDisplay(balance);
     let displayText = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
-    
+
     // Add expiration time if available
     if (keyInfo.expiresIn !== null && keyInfo.expiresIn !== undefined) {
       displayText += formatExpirationTime(keyInfo.expiresIn);
     }
-    
+
     apiKeyHint.textContent = displayText;
   } else {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
   }
+
+  updateGenerateButtonState();
 }
 
 // ============================================================================
@@ -655,6 +658,19 @@ function stopFireflyTicker() {
   }
 }
 
+function updateGenerateButtonState() {
+  const generateBtn = document.getElementById('generate-btn');
+  if (!generateBtn) return;
+
+  // Disable if not generating and API key is invalid or missing
+  if (!state.isGenerating && !state.apiKeyValid) {
+    generateBtn.disabled = true;
+  } else if (!state.isGenerating && state.apiKeyValid) {
+    generateBtn.disabled = false;
+  }
+  // If generating, let toggleLoading handle the disabled state
+}
+
 function toggleLoading(isLoading) {
   state.isGenerating = isLoading;
   const generateBtn = document.getElementById('generate-btn');
@@ -662,9 +678,9 @@ function toggleLoading(isLoading) {
   if (!isLoading) {
     stopFireflyTicker();
   }
-  
+
   if (generateBtn) {
-    generateBtn.disabled = isLoading;
+    generateBtn.disabled = isLoading || (!state.apiKeyValid && !isLoading);
     const btnText = generateBtn.querySelector('span');
     if (btnText) {
       btnText.textContent = isLoading ? i18n.t('generatingLabel') : i18n.t('generateBtn');
@@ -1064,8 +1080,10 @@ function setupEventListeners() {
     apiKeyInput.addEventListener('input', () => {
       const key = apiKeyInput.value.trim();
       if (key) saveApiKey(key);
-      else state.apiKey = null;
-      updateBalance(state.apiKey);
+      else {
+        state.apiKey = null;
+        updateGenerateButtonState();
+      }
     });
   }
   
@@ -1184,7 +1202,7 @@ function pinApiKeyFooter() {
 
 function init() {
   i18n.updatePageLanguage();
-  
+
   const lang = i18n.getCurrentLanguage();
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
   const activeBtn = document.getElementById(`lang-${lang}`);
@@ -1198,7 +1216,7 @@ function init() {
     if (apiKeyInput) apiKeyInput.value = state.apiKey;
     updateBalance(state.apiKey);
   } else {
-      updateBalance(null);
+    updateBalance(null);
   }
   setupEventListeners();
   loadModels();
@@ -1206,6 +1224,9 @@ function init() {
 
   window.addEventListener('resize', scheduleImageCardResize);
   scheduleImageCardResize();
+
+  // Initialize generate button state
+  updateGenerateButtonState();
 }
 
 if (document.readyState === 'loading') {
