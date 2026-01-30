@@ -14,7 +14,8 @@ const state = {
   isGenerating: false,
   imageHistory: [],
   allowedModels: null, // For filtering models based on API key permissions
-  keyInfo: null // Store key info from /account/key endpoint
+  keyInfo: null, // Store key info from /account/key endpoint
+  apiKeyValid: false
 };
 
 // ============================================================================
@@ -39,18 +40,12 @@ function formatBalanceDisplay(balance) {
 }
 
 function formatExpirationTime(expiresIn) {
-  if (!expiresIn || expiresIn === null) return '';
-  
+  if (!expiresIn && expiresIn !== 0) return '';
+
   const hours = Math.floor(expiresIn / 3600);
   const minutes = Math.floor((expiresIn % 3600) / 60);
-  
-  const currentLang = i18n.getCurrentLanguage();
-  
-  if (currentLang === 'de') {
-    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}${i18n.t('gültig')}`;
-  } else {
-    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
-  }
+
+  return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
 }
 
 async function validateApiKeyInfo(apiKey) {
@@ -109,37 +104,43 @@ async function updateBalance(apiKey) {
     apiKeyHint.innerHTML = i18n.t('apiKeyHint');
     state.keyInfo = null;
     state.allowedModels = null;
+    state.apiKeyValid = false;
     renderModelOptions(state.models);
+    updateGenerateButtonState();
     return;
   }
 
   // First, validate the API key
   const keyInfo = await validateApiKeyInfo(apiKey);
-  
+
   if (!keyInfo || keyInfo.valid === false) {
     apiKeyHint.textContent = i18n.t('invalidApiKey');
     state.keyInfo = null;
     state.allowedModels = null;
+    state.apiKeyValid = false;
     renderModelOptions(state.models);
+    updateGenerateButtonState();
     return;
   }
 
   // Store key info in state
   state.keyInfo = keyInfo;
-  
+  state.apiKeyValid = true;
+
   // Update allowed models filter
   if (keyInfo.permissions && keyInfo.permissions.models) {
     state.allowedModels = keyInfo.permissions.models;
   } else {
     state.allowedModels = null;
   }
-  
+
   // Re-render models with the new filter
   renderModelOptions(state.models);
+  updateGenerateButtonState();
 
   // Check if the key has balance permission
-  const hasBalancePermission = keyInfo.permissions && 
-                                keyInfo.permissions.account && 
+  const hasBalancePermission = keyInfo.permissions &&
+                                keyInfo.permissions.account &&
                                 keyInfo.permissions.account.includes('balance');
 
   if (!hasBalancePermission) {
@@ -153,12 +154,12 @@ async function updateBalance(apiKey) {
   if (typeof balance === 'number' && !isNaN(balance)) {
     const formattedBalance = formatBalanceDisplay(balance);
     let displayText = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
-    
+
     // Add expiration time if available
     if (keyInfo.expiresIn !== null && keyInfo.expiresIn !== undefined) {
       displayText += formatExpirationTime(keyInfo.expiresIn);
     }
-    
+
     apiKeyHint.textContent = displayText;
   } else {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
@@ -191,7 +192,7 @@ function saveApiKey(key) {
 function validateApiKey() {
   const input = document.getElementById('api-key');
   if (!input) return false;
-  
+
   const key = input.value.trim();
   if (key) {
     saveApiKey(key);
@@ -199,6 +200,14 @@ function validateApiKey() {
     return true;
   }
   return false;
+}
+
+function updateGenerateButtonState() {
+  const generateBtn = document.getElementById('generate-btn');
+  if (!generateBtn) return;
+
+  const shouldDisable = state.isGenerating || !state.apiKey || !state.apiKeyValid;
+  generateBtn.disabled = shouldDisable;
 }
 
 // ============================================================================
@@ -662,9 +671,8 @@ function toggleLoading(isLoading) {
   if (!isLoading) {
     stopFireflyTicker();
   }
-  
+
   if (generateBtn) {
-    generateBtn.disabled = isLoading;
     const btnText = generateBtn.querySelector('span');
     if (btnText) {
       btnText.textContent = isLoading ? i18n.t('generatingLabel') : i18n.t('generateBtn');
@@ -675,6 +683,7 @@ function toggleLoading(isLoading) {
         generateBtn.classList.remove('loading');
     }
   }
+  updateGenerateButtonState();
 }
 
 let imageCardResizeRaf = null;
@@ -1058,14 +1067,22 @@ function setupEventListeners() {
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
     apiKeyInput.addEventListener('blur', () => {
-      validateApiKey();
-      updateBalance(state.apiKey);
+      const key = apiKeyInput.value.trim();
+      if (key) {
+        saveApiKey(key);
+        validateApiKey();
+        updateBalance(state.apiKey);
+      } else {
+        state.apiKey = null;
+        updateBalance(null);
+      }
     });
     apiKeyInput.addEventListener('input', () => {
       const key = apiKeyInput.value.trim();
       if (key) saveApiKey(key);
       else state.apiKey = null;
-      updateBalance(state.apiKey);
+      state.apiKeyValid = false;
+      updateGenerateButtonState();
     });
   }
   
@@ -1075,10 +1092,14 @@ function setupEventListeners() {
 
   if (generateBtn) {
     generateBtn.addEventListener('click', async () => {
-      if (!state.apiKey) {
+      if (!state.apiKey || !state.apiKeyValid) {
         validateApiKey();
         if (!state.apiKey) {
           setStatus(i18n.t('apiKeyMissing'), 'error');
+          return;
+        }
+        if (!state.apiKeyValid) {
+          setStatus(i18n.t('invalidApiKey'), 'error');
           return;
         }
       }
@@ -1203,6 +1224,7 @@ function init() {
   setupEventListeners();
   loadModels();
   adjustPromptHeight();
+  updateGenerateButtonState();
 
   window.addEventListener('resize', scheduleImageCardResize);
   scheduleImageCardResize();
