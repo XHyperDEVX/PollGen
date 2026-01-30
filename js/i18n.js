@@ -59,6 +59,11 @@ const translations = {
     costsLabel: 'Costs: %s Pollen',
     deleteConfirm: 'Delete this image?',
     balancePermissionError: 'Please activate the balance permission for the API key',
+    invalidApiKey: 'Please enter a valid API key.',
+    stillValidFor: ' • still valid for ',
+    hoursShort: 'h ',
+    minutesShort: 'm',
+    errorGeneration: 'Generation error',
   },
   de: {
     // Page
@@ -115,6 +120,12 @@ const translations = {
     costsLabel: 'Kostet: %s Pollen',
     deleteConfirm: 'Bild löschen?',
     balancePermissionError: 'Bitte aktiviere die Balance-Berechtigung für den API-Key',
+    invalidApiKey: 'Bitte geben Sie einen gültigen API-Schlüssel ein.',
+    stillValidFor: ' • noch ',
+    hoursShort: 'h ',
+    minutesShort: 'm',
+    gültig: ' gültig',
+    errorGeneration: 'Generierungsfehler',
   }
 };
 

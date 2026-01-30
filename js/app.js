@@ -12,7 +12,9 @@ const state = {
   models: [],
   currentImage: null,
   isGenerating: false,
-  imageHistory: []
+  imageHistory: [],
+  allowedModels: null, // For filtering models based on API key permissions
+  keyInfo: null // Store key info from /account/key endpoint
 };
 
 // ============================================================================
@@ -36,17 +38,47 @@ function formatBalanceDisplay(balance) {
   return formatted.replace('.', decimalSeparator);
 }
 
-async function updateBalance(apiKey) {
-  const apiKeyHint = document.getElementById('api-key-hint');
-  if (!apiKeyHint) return;
+function formatExpirationTime(expiresIn) {
+  if (!expiresIn || expiresIn === null) return '';
+  
+  const hours = Math.floor(expiresIn / 3600);
+  const minutes = Math.floor((expiresIn % 3600) / 60);
+  
+  const currentLang = i18n.getCurrentLanguage();
+  
+  if (currentLang === 'de') {
+    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}${i18n.t('gültig')}`;
+  } else {
+    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
+  }
+}
 
-  apiKeyHint.classList.remove('hidden');
-
+async function validateApiKeyInfo(apiKey) {
   if (!apiKey || !apiKey.trim()) {
-    apiKeyHint.innerHTML = i18n.t('apiKeyHint');
-    return;
+    return null;
   }
 
+  try {
+    const response = await fetch('https://gen.pollinations.ai/account/key', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey.trim()}`
+      }
+    });
+
+    if (!response.ok) {
+      return { valid: false };
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log('Key validation API call failed:', error.message);
+    return { valid: false };
+  }
+}
+
+async function fetchBalance(apiKey) {
   try {
     const response = await fetch('https://gen.pollinations.ai/account/balance', {
       method: 'GET',
@@ -56,22 +88,79 @@ async function updateBalance(apiKey) {
     });
 
     if (!response.ok) {
-      apiKeyHint.textContent = i18n.t('balancePermissionError');
-      return;
+      return null;
     }
 
     const data = await response.json();
-    const balance = data.balance;
-
-    if (typeof balance === 'number' && !isNaN(balance)) {
-      const formattedBalance = formatBalanceDisplay(balance);
-      apiKeyHint.textContent = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
-      return;
-    }
-
-    apiKeyHint.textContent = i18n.t('balancePermissionError');
+    return data.balance;
   } catch (error) {
     console.log('Balance API call failed:', error.message);
+    return null;
+  }
+}
+
+async function updateBalance(apiKey) {
+  const apiKeyHint = document.getElementById('api-key-hint');
+  if (!apiKeyHint) return;
+
+  apiKeyHint.classList.remove('hidden');
+
+  if (!apiKey || !apiKey.trim()) {
+    apiKeyHint.innerHTML = i18n.t('apiKeyHint');
+    state.keyInfo = null;
+    state.allowedModels = null;
+    renderModelOptions(state.models);
+    return;
+  }
+
+  // First, validate the API key
+  const keyInfo = await validateApiKeyInfo(apiKey);
+  
+  if (!keyInfo || keyInfo.valid === false) {
+    apiKeyHint.textContent = i18n.t('invalidApiKey');
+    state.keyInfo = null;
+    state.allowedModels = null;
+    renderModelOptions(state.models);
+    return;
+  }
+
+  // Store key info in state
+  state.keyInfo = keyInfo;
+  
+  // Update allowed models filter
+  if (keyInfo.permissions && keyInfo.permissions.models) {
+    state.allowedModels = keyInfo.permissions.models;
+  } else {
+    state.allowedModels = null;
+  }
+  
+  // Re-render models with the new filter
+  renderModelOptions(state.models);
+
+  // Check if the key has balance permission
+  const hasBalancePermission = keyInfo.permissions && 
+                                keyInfo.permissions.account && 
+                                keyInfo.permissions.account.includes('balance');
+
+  if (!hasBalancePermission) {
+    apiKeyHint.textContent = i18n.t('balancePermissionError');
+    return;
+  }
+
+  // Fetch balance if permission exists
+  const balance = await fetchBalance(apiKey);
+
+  if (typeof balance === 'number' && !isNaN(balance)) {
+    const formattedBalance = formatBalanceDisplay(balance);
+    let displayText = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
+    
+    // Add expiration time if available
+    if (keyInfo.expiresIn !== null && keyInfo.expiresIn !== undefined) {
+      displayText += formatExpirationTime(keyInfo.expiresIn);
+    }
+    
+    apiKeyHint.textContent = displayText;
+  } else {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
   }
 }
@@ -181,7 +270,7 @@ function formatModelPrice(model) {
   const pricing = model.pricing || {};
   let completionTokens = pricing.completionImageTokens || pricing.completion || 0;
   if (typeof completionTokens === 'string') completionTokens = parseFloat(completionTokens);
-  if (!completionTokens || completionTokens === 0) return '0';
+  if (!completionTokens || completionTokens === 0) return { price: '0', currency: 'Pollen' };
   
   let priceStr;
   if (completionTokens < 0.000001) priceStr = completionTokens.toExponential(2);
@@ -189,7 +278,11 @@ function formatModelPrice(model) {
   else if (completionTokens < 1) priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
   else priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
   
-  return priceStr;
+  // Get currency and capitalize first letter
+  let currency = pricing.currency || 'pollen';
+  currency = currency.charAt(0).toUpperCase() + currency.slice(1);
+  
+  return { price: priceStr, currency };
 }
 
 function renderModelOptions(models) {
@@ -202,7 +295,13 @@ function renderModelOptions(models) {
   select.innerHTML = '';
   modelPopover.innerHTML = '';
   
-  const sortedModels = [...models].sort((a, b) => {
+  // Filter models by permissions if allowedModels is set
+  let filteredModels = models;
+  if (state.allowedModels && Array.isArray(state.allowedModels)) {
+    filteredModels = models.filter(model => state.allowedModels.includes(model.name));
+  }
+  
+  const sortedModels = [...filteredModels].sort((a, b) => {
     let priceA = a.pricing?.completionImageTokens || a.pricing?.completion || 0;
     let priceB = b.pricing?.completionImageTokens || b.pricing?.completion || 0;
     if (typeof priceA === 'string') priceA = parseFloat(priceA) || 0;
@@ -210,10 +309,16 @@ function renderModelOptions(models) {
     return priceA - priceB;
   });
   
+  // Calculate max width needed for descriptions
+  let maxWidth = 280; // Default minimum width
+  const measureCanvas = document.createElement('canvas');
+  const ctx = measureCanvas.getContext('2d');
+  ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  
   sortedModels.forEach(model => {
     const name = model.name || 'Unknown';
-    const description = model.description || model.name || '';
-    const price = formatModelPrice(model);
+    const description = model.description || '';
+    const priceInfo = formatModelPrice(model);
     
     const option = document.createElement('option');
     option.value = model.name;
@@ -224,14 +329,31 @@ function renderModelOptions(models) {
     item.className = 'popover-item';
     if (model.name === previousValue) item.classList.add('selected');
     
-    let label = name;
-    if (price !== '0') label += ` - ${price} Pollen`;
+    // Create display text with name and description
+    let displayHTML = `<div class="model-badge" style="background-color: ${stringToColor(name)}"></div>`;
+    displayHTML += '<div class="model-info">';
     
-    item.innerHTML = `
-      <div class="model-badge" style="background-color: ${stringToColor(name)}"></div>
-      <span>${label}</span>
-    `;
-    item.title = description;
+    if (description && description !== name) {
+      displayHTML += `<div class="model-name-desc">${name}</div>`;
+      displayHTML += `<div class="model-description">${description}</div>`;
+      
+      // Measure width for both lines
+      const nameWidth = ctx.measureText(name).width;
+      const descWidth = ctx.measureText(description).width;
+      const textWidth = Math.max(nameWidth, descWidth) + 80; // Add padding for badge and margins
+      maxWidth = Math.max(maxWidth, textWidth);
+    } else {
+      displayHTML += `<div class="model-name-single">${name}</div>`;
+      const textWidth = ctx.measureText(name).width + 80;
+      maxWidth = Math.max(maxWidth, textWidth);
+    }
+    
+    if (priceInfo.price !== '0') {
+      displayHTML += `<div class="model-price">${priceInfo.price} ${priceInfo.currency}</div>`;
+    }
+    
+    displayHTML += '</div>';
+    item.innerHTML = displayHTML;
     
     item.onclick = (e) => {
       e.stopPropagation();
@@ -247,6 +369,9 @@ function renderModelOptions(models) {
     
     modelPopover.appendChild(item);
   });
+  
+  // Set popover width to accommodate longest description
+  modelPopover.style.width = Math.min(maxWidth, 450) + 'px';
   
   if (previousValue && [...select.options].some(opt => opt.value === previousValue)) {
     select.value = previousValue;
@@ -279,8 +404,8 @@ function stringToColor(str) {
 function updateCostDisplay(model) {
   const costText = document.getElementById('cost-text');
   if (costText) {
-    const price = formatModelPrice(model);
-    costText.textContent = price;
+    const priceInfo = formatModelPrice(model);
+    costText.textContent = priceInfo.price;
   }
 }
 
