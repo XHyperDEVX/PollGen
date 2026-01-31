@@ -258,7 +258,7 @@
         }
 
         .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: center; gap: 20px; z-index: 30; position: fixed; bottom: 0; left: 360px; right: 0; top: calc(100vh - var(--api-footer-height, 80px)); }
-        .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-end; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
+        .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: center; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
         .prompt-actions { display: flex; gap: 12px; align-items: center; }
         .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
 
@@ -270,10 +270,10 @@
         #prompt::placeholder { color: #6a6a6c; }
 
         .upload-icon-container {
-            position: relative;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin-right: 16px;
-            margin-bottom: 4px;
         }
 
         .upload-icon {
@@ -453,8 +453,8 @@
                 <div class="upload-icon-container" title="">
                     <svg class="upload-icon disabled" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7,10 12,15 17,10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                        <polyline points="17,8 12,3 7,8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
                     <span class="tooltip" data-i18n="uploadTooltip">Coming Soon!</span>
                 </div>
