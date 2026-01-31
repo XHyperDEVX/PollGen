@@ -258,10 +258,9 @@
         }
 
         .prompt-bar { min-height: 80px; height: auto; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: center; gap: 20px; z-index: 30; position: fixed; bottom: 0; left: 360px; right: 0; top: calc(100vh - var(--api-footer-height, 80px)); }
-        .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-end; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
+        .prompt-input-wrapper { flex: 1; min-height: 52px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: center; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; }
         .prompt-actions { display: flex; gap: 12px; align-items: center; }
         .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
-        .prompt-label { font-size: 11px; font-weight: 700; color: var(--accent); margin-right: 16px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
 
         #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: auto; display: block; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
         #prompt::-webkit-scrollbar { width: 6px; }
@@ -269,6 +268,68 @@
         #prompt::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
         #prompt::-webkit-scrollbar-thumb:hover { background: #4a4a4c; }
         #prompt::placeholder { color: #6a6a6c; }
+
+        .upload-icon-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .upload-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            opacity: 0.6;
+            cursor: not-allowed;
+            transition: opacity 0.2s ease;
+        }
+
+        .upload-icon.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .upload-icon-container:hover .upload-icon.disabled {
+            opacity: 0.6;
+        }
+
+        .upload-icon-container .tooltip {
+            visibility: hidden;
+            width: 120px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 6px 8px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .upload-icon-container .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+        }
+
+        .upload-icon-container:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
 
         .cost-display { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 12px; align-self: center; text-align: center; }
         .cost-display .cost-label { font-size: 9px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -381,7 +442,7 @@
             <div class="empty-state" id="placeholder">
                 <div class="empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1h1v1h-1zM21 12h1v1h-1zM2 11h1v1H2zM12 21h1v1h-1zM19.07 4.93l.7.7.7-.7-.7-.7zM4.93 19.07l.7.7.7-.7-.7-.7zM19.07 19.07l.7.7.7-.7-.7-.7zM4.93 4.93l.7.7.7-.7-.7-.7z"/><path d="M12 7l1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7z"/></svg></div>
                 <h2 data-i18n="pageTitle">Generate Images Now</h2>
-                <p data-i18n="promptLabel">Describe your desired image in the prompt field.</p>
+                <p data-i18n="startScreenIntro">Describe your vision and bring it to life</p>
             </div>
             <div class="gallery-feed" id="gallery-feed"></div>
         </div>
@@ -390,7 +451,14 @@
 
         <div class="prompt-bar">
             <div class="prompt-input-wrapper">
-                <span class="prompt-label" data-i18n="promptLabel">Prompt</span>
+                <div class="upload-icon-container" title="">
+                    <svg class="upload-icon disabled" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17,8 12,3 7,8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span class="tooltip" data-i18n="uploadTooltip">Coming Soon!</span>
+                </div>
                 <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="1"></textarea>
             </div>
             <div class="prompt-actions">
