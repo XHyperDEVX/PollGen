@@ -14,7 +14,8 @@ const state = {
   isGenerating: false,
   imageHistory: [],
   allowedModels: null, // For filtering models based on API key permissions
-  keyInfo: null // Store key info from /account/key endpoint
+  keyInfo: null, // Store key info from /account/key endpoint
+  keyInfoApiKey: null // Which API key the keyInfo was validated for
 };
 
 // ============================================================================
@@ -106,48 +107,64 @@ function setGenerateButtonEnabled(enabled) {
   generateBtn.disabled = !enabled;
 }
 
+function isApiKeyValidForGeneration() {
+  return Boolean(
+    state.apiKey &&
+      state.keyInfo &&
+      state.keyInfoApiKey === state.apiKey &&
+      state.keyInfo.valid !== false
+  );
+}
+
 async function updateBalance(apiKey) {
   const apiKeyHint = document.getElementById('api-key-hint');
   if (!apiKeyHint) return;
 
   apiKeyHint.classList.remove('hidden');
 
-  if (!apiKey || !apiKey.trim()) {
+  const trimmedKey = (apiKey || '').trim();
+
+  if (!trimmedKey) {
     apiKeyHint.innerHTML = i18n.t('apiKeyHint');
     state.keyInfo = null;
+    state.keyInfoApiKey = null;
     state.allowedModels = null;
     setGenerateButtonEnabled(false);
     renderModelOptions(state.models);
     return;
   }
 
-  // First, validate the API key
-  const keyInfo = await validateApiKeyInfo(apiKey);
+  let keyInfo = state.keyInfo;
 
-  if (!keyInfo || keyInfo.valid === false) {
-    apiKeyHint.textContent = i18n.t('invalidApiKey');
-    state.keyInfo = null;
-    state.allowedModels = null;
-    setGenerateButtonEnabled(false);
-    renderModelOptions(state.models);
-    return;
+  if (!keyInfo || state.keyInfoApiKey !== trimmedKey) {
+    keyInfo = await validateApiKeyInfo(trimmedKey);
+
+    if (state.apiKey !== trimmedKey) return;
+
+    if (!keyInfo || keyInfo.valid === false) {
+      apiKeyHint.textContent = i18n.t('invalidApiKey');
+      state.keyInfo = null;
+      state.keyInfoApiKey = null;
+      state.allowedModels = null;
+      setGenerateButtonEnabled(false);
+      renderModelOptions(state.models);
+      return;
+    }
+
+    state.keyInfo = keyInfo;
+    state.keyInfoApiKey = trimmedKey;
   }
 
-  // Store key info in state
-  state.keyInfo = keyInfo;
   setGenerateButtonEnabled(true);
 
-  // Update allowed models filter
   if (keyInfo.permissions && keyInfo.permissions.models) {
     state.allowedModels = keyInfo.permissions.models;
   } else {
     state.allowedModels = null;
   }
 
-  // Re-render models with the new filter
   renderModelOptions(state.models);
 
-  // Check if the key has balance permission
   const hasBalancePermission =
     keyInfo.permissions &&
     keyInfo.permissions.account &&
@@ -158,14 +175,14 @@ async function updateBalance(apiKey) {
     return;
   }
 
-  // Fetch balance if permission exists
-  const balance = await fetchBalance(apiKey);
+  const balance = await fetchBalance(trimmedKey);
+
+  if (state.apiKey !== trimmedKey) return;
 
   if (typeof balance === 'number' && !isNaN(balance)) {
     const formattedBalance = formatBalanceDisplay(balance);
     let displayText = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
 
-    // Add expiration time if available
     if (keyInfo.expiresIn !== null && keyInfo.expiresIn !== undefined) {
       displayText += ` • ${formatExpirationTime(keyInfo.expiresIn)}`;
     }
@@ -673,17 +690,22 @@ function toggleLoading(isLoading) {
   if (!isLoading) {
     stopFireflyTicker();
   }
-  
+
   if (generateBtn) {
-    generateBtn.disabled = isLoading;
+    if (isLoading) {
+      generateBtn.disabled = true;
+    } else {
+      setGenerateButtonEnabled(isApiKeyValidForGeneration());
+    }
+
     const btnText = generateBtn.querySelector('span');
     if (btnText) {
       btnText.textContent = isLoading ? i18n.t('generatingLabel') : i18n.t('generateBtn');
     }
     if (isLoading) {
-        generateBtn.classList.add('loading');
+      generateBtn.classList.add('loading');
     } else {
-        generateBtn.classList.remove('loading');
+      generateBtn.classList.remove('loading');
     }
   }
 }
@@ -1078,6 +1100,13 @@ function setupEventListeners() {
       const key = apiKeyInput.value.trim();
       if (key) saveApiKey(key);
       else state.apiKey = null;
+
+      if (state.keyInfoApiKey && state.keyInfoApiKey !== state.apiKey) {
+        state.keyInfo = null;
+        state.keyInfoApiKey = null;
+        state.allowedModels = null;
+        renderModelOptions(state.models);
+      }
 
       // Disable generate until validation on blur succeeds
       setGenerateButtonEnabled(false);

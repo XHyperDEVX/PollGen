@@ -452,8 +452,29 @@
 
         function positionPopover(btn, popover) {
             const rect = btn.getBoundingClientRect();
-            popover.style.left = rect.left + 'px';
-            popover.style.top = (rect.bottom + 8) + 'px';
+            const margin = 8;
+            const viewportPad = 12;
+
+            const popRect = popover.getBoundingClientRect();
+
+            let left = rect.left;
+            const maxLeft = window.innerWidth - popRect.width - viewportPad;
+            left = Math.max(viewportPad, Math.min(left, maxLeft));
+
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            let top;
+            if (spaceBelow < popRect.height + margin && spaceAbove > spaceBelow) {
+                top = rect.top - popRect.height - margin;
+            } else {
+                top = rect.bottom + margin;
+            }
+
+            top = Math.max(viewportPad, Math.min(top, window.innerHeight - popRect.height - viewportPad));
+
+            popover.style.left = left + 'px';
+            popover.style.top = top + 'px';
             popover.style.bottom = 'auto';
         }
 
