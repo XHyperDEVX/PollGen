@@ -19,6 +19,8 @@ const translations = {
     // Form Fields
     promptLabel: 'Prompt',
     promptPlaceholder: 'Describe the image you want to generate',
+    startScreenIntro: 'Describe your vision and bring it to life',
+    uploadTooltip: 'Coming Soon!',
     modelLabel: 'Model',
     aspectRatioLabel: 'Aspect Ratio',
     parametersLabel: 'Parameters',
@@ -80,6 +82,8 @@ const translations = {
     // Form Fields
     promptLabel: 'Prompt',
     promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten',
+    startScreenIntro: 'Beschreiben Sie Ihre Vision und bringen Sie sie zum Leben',
+    uploadTooltip: 'Bald verfügbar!',
     modelLabel: 'Modell',
     aspectRatioLabel: 'Seitenverhältnis',
     parametersLabel: 'Parameter',
