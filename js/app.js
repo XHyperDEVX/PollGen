@@ -14,7 +14,8 @@ const state = {
   isGenerating: false,
   imageHistory: [],
   allowedModels: null, // For filtering models based on API key permissions
-  keyInfo: null // Store key info from /account/key endpoint
+  keyInfo: null, // Store key info from /account/key endpoint
+  keyInfoApiKey: null // Which API key the keyInfo was validated for
 };
 
 // ============================================================================
@@ -39,18 +40,13 @@ function formatBalanceDisplay(balance) {
 }
 
 function formatExpirationTime(expiresIn) {
-  if (!expiresIn || expiresIn === null) return '';
-  
-  const hours = Math.floor(expiresIn / 3600);
-  const minutes = Math.floor((expiresIn % 3600) / 60);
-  
-  const currentLang = i18n.getCurrentLanguage();
-  
-  if (currentLang === 'de') {
-    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}${i18n.t('gültig')}`;
-  } else {
-    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
-  }
+  if (expiresIn === null || expiresIn === undefined) return '';
+
+  const seconds = Math.max(0, Number(expiresIn) || 0);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  return `${i18n.t('keyValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
 }
 
 async function validateApiKeyInfo(apiKey) {
@@ -99,66 +95,98 @@ async function fetchBalance(apiKey) {
   }
 }
 
+function setGenerateButtonEnabled(enabled) {
+  const generateBtn = document.getElementById('generate-btn');
+  if (!generateBtn) return;
+
+  if (state.isGenerating) {
+    generateBtn.disabled = true;
+    return;
+  }
+
+  generateBtn.disabled = !enabled;
+}
+
+function isApiKeyValidForGeneration() {
+  return Boolean(
+    state.apiKey &&
+      state.keyInfo &&
+      state.keyInfoApiKey === state.apiKey &&
+      state.keyInfo.valid !== false
+  );
+}
+
 async function updateBalance(apiKey) {
   const apiKeyHint = document.getElementById('api-key-hint');
   if (!apiKeyHint) return;
 
   apiKeyHint.classList.remove('hidden');
 
-  if (!apiKey || !apiKey.trim()) {
+  const trimmedKey = (apiKey || '').trim();
+
+  if (!trimmedKey) {
     apiKeyHint.innerHTML = i18n.t('apiKeyHint');
     state.keyInfo = null;
+    state.keyInfoApiKey = null;
     state.allowedModels = null;
+    setGenerateButtonEnabled(false);
     renderModelOptions(state.models);
     return;
   }
 
-  // First, validate the API key
-  const keyInfo = await validateApiKeyInfo(apiKey);
-  
-  if (!keyInfo || keyInfo.valid === false) {
-    apiKeyHint.textContent = i18n.t('invalidApiKey');
-    state.keyInfo = null;
-    state.allowedModels = null;
-    renderModelOptions(state.models);
-    return;
+  let keyInfo = state.keyInfo;
+
+  if (!keyInfo || state.keyInfoApiKey !== trimmedKey) {
+    keyInfo = await validateApiKeyInfo(trimmedKey);
+
+    if (state.apiKey !== trimmedKey) return;
+
+    if (!keyInfo || keyInfo.valid === false) {
+      apiKeyHint.textContent = i18n.t('invalidApiKey');
+      state.keyInfo = null;
+      state.keyInfoApiKey = null;
+      state.allowedModels = null;
+      setGenerateButtonEnabled(false);
+      renderModelOptions(state.models);
+      return;
+    }
+
+    state.keyInfo = keyInfo;
+    state.keyInfoApiKey = trimmedKey;
   }
 
-  // Store key info in state
-  state.keyInfo = keyInfo;
-  
-  // Update allowed models filter
+  setGenerateButtonEnabled(true);
+
   if (keyInfo.permissions && keyInfo.permissions.models) {
     state.allowedModels = keyInfo.permissions.models;
   } else {
     state.allowedModels = null;
   }
-  
-  // Re-render models with the new filter
+
   renderModelOptions(state.models);
 
-  // Check if the key has balance permission
-  const hasBalancePermission = keyInfo.permissions && 
-                                keyInfo.permissions.account && 
-                                keyInfo.permissions.account.includes('balance');
+  const hasBalancePermission =
+    keyInfo.permissions &&
+    keyInfo.permissions.account &&
+    keyInfo.permissions.account.includes('balance');
 
   if (!hasBalancePermission) {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
     return;
   }
 
-  // Fetch balance if permission exists
-  const balance = await fetchBalance(apiKey);
+  const balance = await fetchBalance(trimmedKey);
+
+  if (state.apiKey !== trimmedKey) return;
 
   if (typeof balance === 'number' && !isNaN(balance)) {
     const formattedBalance = formatBalanceDisplay(balance);
     let displayText = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
-    
-    // Add expiration time if available
+
     if (keyInfo.expiresIn !== null && keyInfo.expiresIn !== undefined) {
-      displayText += formatExpirationTime(keyInfo.expiresIn);
+      displayText += ` • ${formatExpirationTime(keyInfo.expiresIn)}`;
     }
-    
+
     apiKeyHint.textContent = displayText;
   } else {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
@@ -662,17 +690,22 @@ function toggleLoading(isLoading) {
   if (!isLoading) {
     stopFireflyTicker();
   }
-  
+
   if (generateBtn) {
-    generateBtn.disabled = isLoading;
+    if (isLoading) {
+      generateBtn.disabled = true;
+    } else {
+      setGenerateButtonEnabled(isApiKeyValidForGeneration());
+    }
+
     const btnText = generateBtn.querySelector('span');
     if (btnText) {
       btnText.textContent = isLoading ? i18n.t('generatingLabel') : i18n.t('generateBtn');
     }
     if (isLoading) {
-        generateBtn.classList.add('loading');
+      generateBtn.classList.add('loading');
     } else {
-        generateBtn.classList.remove('loading');
+      generateBtn.classList.remove('loading');
     }
   }
 }
@@ -1057,15 +1090,26 @@ function adjustPromptHeight() {
 function setupEventListeners() {
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
-    apiKeyInput.addEventListener('blur', () => {
+    apiKeyInput.addEventListener('blur', async () => {
       validateApiKey();
-      updateBalance(state.apiKey);
+      await updateBalance(state.apiKey);
     });
+
+    // Avoid rate limits: do not call /account/key while typing
     apiKeyInput.addEventListener('input', () => {
       const key = apiKeyInput.value.trim();
       if (key) saveApiKey(key);
       else state.apiKey = null;
-      updateBalance(state.apiKey);
+
+      if (state.keyInfoApiKey && state.keyInfoApiKey !== state.apiKey) {
+        state.keyInfo = null;
+        state.keyInfoApiKey = null;
+        state.allowedModels = null;
+        renderModelOptions(state.models);
+      }
+
+      // Disable generate until validation on blur succeeds
+      setGenerateButtonEnabled(false);
     });
   }
   
@@ -1184,7 +1228,7 @@ function pinApiKeyFooter() {
 
 function init() {
   i18n.updatePageLanguage();
-  
+
   const lang = i18n.getCurrentLanguage();
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
   const activeBtn = document.getElementById(`lang-${lang}`);
@@ -1192,13 +1236,16 @@ function init() {
 
   pinApiKeyFooter();
 
+  // Default disabled until validated
+  setGenerateButtonEnabled(false);
+
   loadApiKey();
   if (state.apiKey) {
     const apiKeyInput = document.getElementById('api-key');
     if (apiKeyInput) apiKeyInput.value = state.apiKey;
     updateBalance(state.apiKey);
   } else {
-      updateBalance(null);
+    updateBalance(null);
   }
   setupEventListeners();
   loadModels();

@@ -60,7 +60,7 @@ const translations = {
     deleteConfirm: 'Delete this image?',
     balancePermissionError: 'Please activate the balance permission for the API key',
     invalidApiKey: 'Please enter a valid API key.',
-    stillValidFor: ' • still valid for ',
+    keyValidFor: 'Key valid for ',
     hoursShort: 'h ',
     minutesShort: 'm',
     errorGeneration: 'Generation error',
@@ -121,10 +121,9 @@ const translations = {
     deleteConfirm: 'Bild löschen?',
     balancePermissionError: 'Bitte aktiviere die Balance-Berechtigung für den API-Key',
     invalidApiKey: 'Bitte geben Sie einen gültigen API-Schlüssel ein.',
-    stillValidFor: ' • noch ',
+    keyValidFor: 'Key gültig für ',
     hoursShort: 'h ',
     minutesShort: 'm',
-    gültig: ' gültig',
     errorGeneration: 'Generierungsfehler',
   }
 };
