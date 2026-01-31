@@ -280,6 +280,8 @@
         .generate-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 24px rgba(37,99,235,0.4); filter: brightness(1.1); }
         .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(0.5); transform: none !important; }
         .generate-btn:disabled svg { opacity: 0.7; }
+        .generate-btn.disabled-state { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.8); background: #666; transform: none !important; box-shadow: none; }
+        .generate-btn.disabled-state:hover { transform: none !important; filter: grayscale(0.8) brightness(0.9); }
         .generate-btn .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
         .generate-btn.loading .spinner { display: block; }
         .generate-btn.loading svg { display: none; }
@@ -290,6 +292,10 @@
         .popover-item { padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; color: var(--text-secondary); }
         .popover-item:hover { background-color: #303033; color: #fff; }
         .popover-item.selected { background-color: rgba(37,99,235,0.15); color: #fff; font-weight: 500; }
+
+        /* Expanded dropdown styles */
+        #aspect-ratio-popover { max-height: none; min-height: 400px; }
+        #model-popover { max-height: 500px; }
 
         .model-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
         .model-name-desc { font-weight: 500; color: var(--text-primary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -47,7 +47,7 @@ function formatExpirationTime(expiresIn) {
   const currentLang = i18n.getCurrentLanguage();
   
   if (currentLang === 'de') {
-    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}${i18n.t('gültig')}`;
+    return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
   } else {
     return `${i18n.t('stillValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
   }
@@ -110,6 +110,7 @@ async function updateBalance(apiKey) {
     state.keyInfo = null;
     state.allowedModels = null;
     renderModelOptions(state.models);
+    updateGenerateButtonState();
     return;
   }
 
@@ -121,6 +122,7 @@ async function updateBalance(apiKey) {
     state.keyInfo = null;
     state.allowedModels = null;
     renderModelOptions(state.models);
+    updateGenerateButtonState();
     return;
   }
 
@@ -136,6 +138,9 @@ async function updateBalance(apiKey) {
   
   // Re-render models with the new filter
   renderModelOptions(state.models);
+  
+  // Update generate button state
+  updateGenerateButtonState();
 
   // Check if the key has balance permission
   const hasBalancePermission = keyInfo.permissions && 
@@ -199,6 +204,27 @@ function validateApiKey() {
     return true;
   }
   return false;
+}
+
+function updateGenerateButtonState() {
+  const generateBtn = document.getElementById('generate-btn');
+  if (!generateBtn) return;
+
+  // Check if API key is valid
+  const isValidApiKey = state.keyInfo && state.keyInfo.valid === true;
+  const hasApiKey = state.apiKey && state.apiKey.trim().length > 0;
+  
+  // Disable button if no API key or invalid API key
+  const shouldDisable = !hasApiKey || !isValidApiKey;
+  
+  generateBtn.disabled = shouldDisable || state.isGenerating;
+  
+  // Add/remove visual styling for disabled state
+  if (shouldDisable) {
+    generateBtn.classList.add('disabled-state');
+  } else {
+    generateBtn.classList.remove('disabled-state');
+  }
 }
 
 // ============================================================================
@@ -1057,15 +1083,19 @@ function adjustPromptHeight() {
 function setupEventListeners() {
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
+    // Only validate on blur to avoid rate limiting
     apiKeyInput.addEventListener('blur', () => {
       validateApiKey();
       updateBalance(state.apiKey);
     });
+    
+    // Save API key on input but don't validate
     apiKeyInput.addEventListener('input', () => {
       const key = apiKeyInput.value.trim();
       if (key) saveApiKey(key);
       else state.apiKey = null;
-      updateBalance(state.apiKey);
+      // Don't call updateBalance on every keystroke - only save and update button state
+      updateGenerateButtonState();
     });
   }
   
@@ -1200,6 +1230,10 @@ function init() {
   } else {
       updateBalance(null);
   }
+  
+  // Update generate button state on initialization
+  updateGenerateButtonState();
+  
   setupEventListeners();
   loadModels();
   adjustPromptHeight();
