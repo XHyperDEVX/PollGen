@@ -343,10 +343,15 @@ function renderModelOptions(models) {
   const ctx = measureCanvas.getContext('2d');
   ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
   
+  // Get premium label text for width calculation
+  const premiumLabel = i18n.t('premiumModelLabel');
+  const premiumLabelWidth = ctx.measureText(premiumLabel).width + 30; // Add padding for badge
+  
   sortedModels.forEach(model => {
     const name = model.name || 'Unknown';
     const description = model.description || '';
     const priceInfo = formatModelPrice(model);
+    const isPremium = model.paid_only === true;
     
     const option = document.createElement('option');
     option.value = model.name;
@@ -369,11 +374,11 @@ function renderModelOptions(models) {
       const nameWidth = ctx.measureText(name).width;
       const descWidth = ctx.measureText(description).width;
       const textWidth = Math.max(nameWidth, descWidth) + 80; // Add padding for badge and margins
-      maxWidth = Math.max(maxWidth, textWidth);
+      maxWidth = Math.max(maxWidth, textWidth + (isPremium ? premiumLabelWidth : 0));
     } else {
       displayHTML += `<div class="model-name-single">${name}</div>`;
       const textWidth = ctx.measureText(name).width + 80;
-      maxWidth = Math.max(maxWidth, textWidth);
+      maxWidth = Math.max(maxWidth, textWidth + (isPremium ? premiumLabelWidth : 0));
     }
     
     if (priceInfo.price !== '0') {
@@ -381,14 +386,18 @@ function renderModelOptions(models) {
     }
     
     displayHTML += '</div>';
+    
+    // Add premium indicator if model is paid_only
+    if (isPremium) {
+      displayHTML += `<span class="model-premium" title="${i18n.t('paidOnlyError')}">⭐ ${premiumLabel}</span>`;
+    }
+    
     item.innerHTML = displayHTML;
     
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
-      currentModelName.textContent = name;
-      const btnBadge = document.querySelector('#model-select-btn .model-badge');
-      if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
+      updateSelectedModelDisplay(model, name, isPremium);
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
       item.classList.add('selected');
       updateCostDisplay(model);
@@ -405,19 +414,30 @@ function renderModelOptions(models) {
     select.value = previousValue;
     const model = sortedModels.find(m => m.name === previousValue);
     if (model) {
-      currentModelName.textContent = model.name;
-      const btnBadge = document.querySelector('#model-select-btn .model-badge');
-      if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
+      updateSelectedModelDisplay(model, model.name, model.paid_only === true);
       updateCostDisplay(model);
     }
   } else if (sortedModels.length > 0) {
     select.value = sortedModels[0].name;
-    currentModelName.textContent = sortedModels[0].name;
-    const btnBadge = document.querySelector('#model-select-btn .model-badge');
-    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
+    updateSelectedModelDisplay(sortedModels[0], sortedModels[0].name, sortedModels[0].paid_only === true);
     updateCostDisplay(sortedModels[0]);
     modelPopover.querySelector('.popover-item')?.classList.add('selected');
   }
+}
+
+function updateSelectedModelDisplay(model, name, isPremium) {
+  const currentModelName = document.getElementById('current-model-name');
+  const btnBadge = document.querySelector('#model-select-btn .model-badge');
+  
+  if (currentModelName) {
+    if (isPremium) {
+      currentModelName.innerHTML = `<span class="model-name-text">${name}</span><span class="model-premium model-premium-inline">⭐ ${i18n.t('premiumModelLabel')}</span>`;
+    } else {
+      currentModelName.textContent = name;
+    }
+  }
+  
+  if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
 }
 
 function stringToColor(str) {
@@ -486,8 +506,18 @@ function parseErrorMessage(text, status) {
             const inner = JSON.parse(msg);
             msg = inner.message || inner.error || msg;
         }
+        // Check for 402 payment required error with premium model message
+        if (status === 402 && typeof msg === 'string' && 
+            (msg.toLowerCase().includes('premium model') || msg.toLowerCase().includes('paid balance'))) {
+            return `${i18n.t('errorGeneration')}: ${status} - ${i18n.t('paidOnlyError')}`;
+        }
         return `${i18n.t('errorGeneration')}: ${status} - ${msg}`;
     } catch (e) {
+        // Check for 402 payment required error with premium model message
+        if (status === 402 && typeof text === 'string' && 
+            (text.toLowerCase().includes('premium model') || text.toLowerCase().includes('paid balance'))) {
+            return `${i18n.t('errorGeneration')}: ${status} - ${i18n.t('paidOnlyError')}`;
+        }
         return `${i18n.t('errorGeneration')}: ${status} - ${text}`;
     }
 }
