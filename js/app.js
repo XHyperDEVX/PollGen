@@ -313,6 +313,11 @@ function formatModelPrice(model) {
   return { price: priceStr, currency };
 }
 
+function getModelPremiumBadge(model) {
+  const isPremium = model && model.paid_only === true;
+  return isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">⭐</span>` : '';
+}
+
 function renderModelOptions(models) {
   const select = document.getElementById('model');
   const modelPopover = document.getElementById('model-popover');
@@ -347,8 +352,7 @@ function renderModelOptions(models) {
     const name = model.name || 'Unknown';
     const description = model.description || '';
     const priceInfo = formatModelPrice(model);
-    const isPremium = model.paid_only === true;
-    const premiumBadge = isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">⭐</span>` : '';
+    const premiumBadge = getModelPremiumBadge(model);
     
     const option = document.createElement('option');
     option.value = model.name;
@@ -363,6 +367,7 @@ function renderModelOptions(models) {
     let displayHTML = `<div class="model-badge" style="background-color: ${stringToColor(name)}"></div>`;
     displayHTML += '<div class="model-info">';
     
+    const isPremium = model.paid_only === true;
     const premiumWidth = isPremium ? 24 : 0;
     
     if (description && description !== name) {
@@ -409,9 +414,7 @@ function renderModelOptions(models) {
     select.value = previousValue;
     const model = sortedModels.find(m => m.name === previousValue);
     if (model) {
-      const isPremium = model.paid_only === true;
-      const premiumBadge = isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">⭐</span>` : '';
-      currentModelName.innerHTML = model.name + premiumBadge;
+      currentModelName.innerHTML = model.name + getModelPremiumBadge(model);
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
       updateCostDisplay(model);
@@ -419,9 +422,7 @@ function renderModelOptions(models) {
   } else if (sortedModels.length > 0) {
     select.value = sortedModels[0].name;
     const model = sortedModels[0];
-    const isPremium = model.paid_only === true;
-    const premiumBadge = isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">⭐</span>` : '';
-    currentModelName.innerHTML = model.name + premiumBadge;
+    currentModelName.innerHTML = model.name + getModelPremiumBadge(model);
     const btnBadge = document.querySelector('#model-select-btn .model-badge');
     if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
     updateCostDisplay(model);
