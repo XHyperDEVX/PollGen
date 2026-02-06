@@ -347,7 +347,9 @@ function renderModelOptions(models) {
     const name = model.name || 'Unknown';
     const description = model.description || '';
     const priceInfo = formatModelPrice(model);
-    
+    const isPremium = model.paid_only === true;
+    const premiumLabel = i18n.t('premiumModelLabel');
+
     const option = document.createElement('option');
     option.value = model.name;
     option.textContent = name;
@@ -356,37 +358,39 @@ function renderModelOptions(models) {
     const item = document.createElement('div');
     item.className = 'popover-item';
     if (model.name === previousValue) item.classList.add('selected');
-    
+
     // Create display text with name and description
     let displayHTML = `<div class="model-badge" style="background-color: ${stringToColor(name)}"></div>`;
     displayHTML += '<div class="model-info">';
-    
+
     if (description && description !== name) {
-      displayHTML += `<div class="model-name-desc">${name}</div>`;
+      displayHTML += `<div class="model-name-desc">${name}${isPremium ? ` <span class="model-premium">⭐</span>` : ''}</div>`;
       displayHTML += `<div class="model-description">${description}</div>`;
-      
+
       // Measure width for both lines
       const nameWidth = ctx.measureText(name).width;
       const descWidth = ctx.measureText(description).width;
-      const textWidth = Math.max(nameWidth, descWidth) + 80; // Add padding for badge and margins
+      const premiumWidth = isPremium ? ctx.measureText(' ⭐').width : 0;
+      const textWidth = Math.max(nameWidth, descWidth) + 80 + premiumWidth; // Add padding for badge, margins, and premium indicator
       maxWidth = Math.max(maxWidth, textWidth);
     } else {
-      displayHTML += `<div class="model-name-single">${name}</div>`;
-      const textWidth = ctx.measureText(name).width + 80;
+      displayHTML += `<div class="model-name-single">${name}${isPremium ? ` <span class="model-premium">⭐</span>` : ''}</div>`;
+      const premiumWidth = isPremium ? ctx.measureText(' ⭐').width : 0;
+      const textWidth = ctx.measureText(name).width + 80 + premiumWidth;
       maxWidth = Math.max(maxWidth, textWidth);
     }
-    
+
     if (priceInfo.price !== '0') {
       displayHTML += `<div class="model-price">${priceInfo.price} ${priceInfo.currency}</div>`;
     }
-    
+
     displayHTML += '</div>';
     item.innerHTML = displayHTML;
     
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
-      currentModelName.textContent = name;
+      currentModelName.textContent = isPremium ? `${name} ⭐` : name;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
@@ -400,22 +404,25 @@ function renderModelOptions(models) {
   
   // Set popover width to accommodate longest description
   modelPopover.style.width = Math.min(maxWidth, 450) + 'px';
-  
+
   if (previousValue && [...select.options].some(opt => opt.value === previousValue)) {
     select.value = previousValue;
     const model = sortedModels.find(m => m.name === previousValue);
     if (model) {
-      currentModelName.textContent = model.name;
+      const isPremium = model.paid_only === true;
+      currentModelName.textContent = isPremium ? `${model.name} ⭐` : model.name;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
       updateCostDisplay(model);
     }
   } else if (sortedModels.length > 0) {
-    select.value = sortedModels[0].name;
-    currentModelName.textContent = sortedModels[0].name;
+    const firstModel = sortedModels[0];
+    select.value = firstModel.name;
+    const isPremium = firstModel.paid_only === true;
+    currentModelName.textContent = isPremium ? `${firstModel.name} ⭐` : firstModel.name;
     const btnBadge = document.querySelector('#model-select-btn .model-badge');
-    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
-    updateCostDisplay(sortedModels[0]);
+    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(firstModel.name);
+    updateCostDisplay(firstModel);
     modelPopover.querySelector('.popover-item')?.classList.add('selected');
   }
 }
@@ -486,8 +493,16 @@ function parseErrorMessage(text, status) {
             const inner = JSON.parse(msg);
             msg = inner.message || inner.error || msg;
         }
+        // Check for 402 error related to premium models
+        if (status === 402 && (msg.toLowerCase().includes('premium model') || msg.toLowerCase().includes('paid balance'))) {
+            return `${i18n.t('errorGeneration')}: ${status} - ${i18n.t('paidOnlyError')}`;
+        }
         return `${i18n.t('errorGeneration')}: ${status} - ${msg}`;
     } catch (e) {
+        // Check for 402 error in raw text
+        if (status === 402 && (text.toLowerCase().includes('premium model') || text.toLowerCase().includes('paid balance'))) {
+            return `${i18n.t('errorGeneration')}: ${status} - ${i18n.t('paidOnlyError')}`;
+        }
         return `${i18n.t('errorGeneration')}: ${status} - ${text}`;
     }
 }
