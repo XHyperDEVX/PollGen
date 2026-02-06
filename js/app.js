@@ -347,6 +347,8 @@ function renderModelOptions(models) {
     const name = model.name || 'Unknown';
     const description = model.description || '';
     const priceInfo = formatModelPrice(model);
+    const isPremium = model.paid_only === true;
+    const premiumBadge = isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">⭐</span>` : '';
     
     const option = document.createElement('option');
     option.value = model.name;
@@ -361,18 +363,20 @@ function renderModelOptions(models) {
     let displayHTML = `<div class="model-badge" style="background-color: ${stringToColor(name)}"></div>`;
     displayHTML += '<div class="model-info">';
     
+    const premiumWidth = isPremium ? 24 : 0;
+    
     if (description && description !== name) {
-      displayHTML += `<div class="model-name-desc">${name}</div>`;
+      displayHTML += `<div class="model-name-desc">${name}${premiumBadge}</div>`;
       displayHTML += `<div class="model-description">${description}</div>`;
       
       // Measure width for both lines
-      const nameWidth = ctx.measureText(name).width;
+      const nameWidth = ctx.measureText(name).width + premiumWidth;
       const descWidth = ctx.measureText(description).width;
       const textWidth = Math.max(nameWidth, descWidth) + 80; // Add padding for badge and margins
       maxWidth = Math.max(maxWidth, textWidth);
     } else {
-      displayHTML += `<div class="model-name-single">${name}</div>`;
-      const textWidth = ctx.measureText(name).width + 80;
+      displayHTML += `<div class="model-name-single">${name}${premiumBadge}</div>`;
+      const textWidth = ctx.measureText(name).width + premiumWidth + 80;
       maxWidth = Math.max(maxWidth, textWidth);
     }
     
@@ -386,7 +390,7 @@ function renderModelOptions(models) {
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
-      currentModelName.textContent = name;
+      currentModelName.innerHTML = name + premiumBadge;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
@@ -405,17 +409,22 @@ function renderModelOptions(models) {
     select.value = previousValue;
     const model = sortedModels.find(m => m.name === previousValue);
     if (model) {
-      currentModelName.textContent = model.name;
+      const isPremium = model.paid_only === true;
+      const premiumBadge = isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">⭐</span>` : '';
+      currentModelName.innerHTML = model.name + premiumBadge;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
       updateCostDisplay(model);
     }
   } else if (sortedModels.length > 0) {
     select.value = sortedModels[0].name;
-    currentModelName.textContent = sortedModels[0].name;
+    const model = sortedModels[0];
+    const isPremium = model.paid_only === true;
+    const premiumBadge = isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">⭐</span>` : '';
+    currentModelName.innerHTML = model.name + premiumBadge;
     const btnBadge = document.querySelector('#model-select-btn .model-badge');
-    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
-    updateCostDisplay(sortedModels[0]);
+    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
+    updateCostDisplay(model);
     modelPopover.querySelector('.popover-item')?.classList.add('selected');
   }
 }
@@ -486,8 +495,17 @@ function parseErrorMessage(text, status) {
             const inner = JSON.parse(msg);
             msg = inner.message || inner.error || msg;
         }
+        
+        // Handle premium model 402 error
+        if (status === 402 && (msg.toLowerCase().includes('premium model') || msg.toLowerCase().includes('paid balance'))) {
+            return `${i18n.t('errorGeneration')}: ${status} - ${i18n.t('paidOnlyError')}`;
+        }
+        
         return `${i18n.t('errorGeneration')}: ${status} - ${msg}`;
     } catch (e) {
+        if (status === 402 && (text.toLowerCase().includes('premium model') || text.toLowerCase().includes('paid balance'))) {
+            return `${i18n.t('errorGeneration')}: ${status} - ${i18n.t('paidOnlyError')}`;
+        }
         return `${i18n.t('errorGeneration')}: ${status} - ${text}`;
     }
 }
