@@ -66,8 +66,10 @@ const translations = {
     hoursShort: 'h ',
     minutesShort: 'm',
     errorGeneration: 'Generation error',
-    premiumModelLabel: 'Premium',
+    paidOnlyLabel: 'Paid only',
     paidOnlyError: 'This model requires paid pollen',
+    tokensPerMillion: '/million tokens',
+    perImage: 'per image',
   },
   de: {
     // Page
@@ -131,8 +133,10 @@ const translations = {
     hoursShort: 'h ',
     minutesShort: 'm',
     errorGeneration: 'Generierungsfehler',
-    premiumModelLabel: 'Premium',
+    paidOnlyLabel: 'Paid only',
     paidOnlyError: 'Dieses Modell erfordert bezahltes Pollen',
+    tokensPerMillion: '/Million Token',
+    perImage: 'pro Bild',
   }
 };
 
