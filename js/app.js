@@ -347,6 +347,7 @@ function renderModelOptions(models) {
     const name = model.name || 'Unknown';
     const description = model.description || '';
     const priceInfo = formatModelPrice(model);
+    const isPremium = model.paid_only === true;
     
     const option = document.createElement('option');
     option.value = model.name;
@@ -362,17 +363,17 @@ function renderModelOptions(models) {
     displayHTML += '<div class="model-info">';
     
     if (description && description !== name) {
-      displayHTML += `<div class="model-name-desc">${name}</div>`;
+      displayHTML += `<div class="model-name-desc">${name}${isPremium ? ' <span class="model-premium">⭐</span>' : ''}</div>`;
       displayHTML += `<div class="model-description">${description}</div>`;
       
       // Measure width for both lines
-      const nameWidth = ctx.measureText(name).width;
+      const nameWidth = ctx.measureText(name + (isPremium ? ' ⭐' : '')).width;
       const descWidth = ctx.measureText(description).width;
       const textWidth = Math.max(nameWidth, descWidth) + 80; // Add padding for badge and margins
       maxWidth = Math.max(maxWidth, textWidth);
     } else {
-      displayHTML += `<div class="model-name-single">${name}</div>`;
-      const textWidth = ctx.measureText(name).width + 80;
+      displayHTML += `<div class="model-name-single">${name}${isPremium ? ' <span class="model-premium">⭐</span>' : ''}</div>`;
+      const textWidth = ctx.measureText(name + (isPremium ? ' ⭐' : '')).width + 80;
       maxWidth = Math.max(maxWidth, textWidth);
     }
     
@@ -386,7 +387,7 @@ function renderModelOptions(models) {
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
-      currentModelName.textContent = name;
+      currentModelName.textContent = name + (isPremium ? ' ⭐' : '');
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
@@ -405,14 +406,14 @@ function renderModelOptions(models) {
     select.value = previousValue;
     const model = sortedModels.find(m => m.name === previousValue);
     if (model) {
-      currentModelName.textContent = model.name;
+      currentModelName.textContent = model.name + (model.paid_only === true ? ' ⭐' : '');
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
       updateCostDisplay(model);
     }
   } else if (sortedModels.length > 0) {
     select.value = sortedModels[0].name;
-    currentModelName.textContent = sortedModels[0].name;
+    currentModelName.textContent = sortedModels[0].name + (sortedModels[0].paid_only === true ? ' ⭐' : '');
     const btnBadge = document.querySelector('#model-select-btn .model-badge');
     if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
     updateCostDisplay(sortedModels[0]);
@@ -485,6 +486,10 @@ function parseErrorMessage(text, status) {
         if (typeof msg === 'string' && msg.startsWith('{')) {
             const inner = JSON.parse(msg);
             msg = inner.message || inner.error || msg;
+        }
+        // Check for 402 payment error with premium model message
+        if (status === 402 && (msg.toLowerCase().includes('premium model') || msg.toLowerCase().includes('paid balance'))) {
+            return `${i18n.t('errorGeneration')}: ${status} - ${i18n.t('paidOnlyError')}`;
         }
         return `${i18n.t('errorGeneration')}: ${status} - ${msg}`;
     } catch (e) {
