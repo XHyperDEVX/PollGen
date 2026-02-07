@@ -315,7 +315,11 @@ function formatModelPrice(model) {
 
 function getModelPremiumBadge(model) {
   const isPremium = model && model.paid_only === true;
-  return isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">⭐</span>` : '';
+  return isPremium ? ` <span class="model-premium" title="${i18n.t('premiumModelLabel')}">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align: middle; margin-top: -2px;">
+      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+    </svg>
+  </span>` : '';
 }
 
 function renderModelOptions(models) {
@@ -375,12 +379,15 @@ function renderModelOptions(models) {
       displayHTML += `<div class="model-description">${description}</div>`;
       
       // Measure width for both lines
+      ctx.font = '500 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
       const nameWidth = ctx.measureText(name).width + premiumWidth;
+      ctx.font = '400 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
       const descWidth = ctx.measureText(description).width;
       const textWidth = Math.max(nameWidth, descWidth) + 80; // Add padding for badge and margins
       maxWidth = Math.max(maxWidth, textWidth);
     } else {
       displayHTML += `<div class="model-name-single">${name}${premiumBadge}</div>`;
+      ctx.font = '400 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
       const textWidth = ctx.measureText(name).width + premiumWidth + 80;
       maxWidth = Math.max(maxWidth, textWidth);
     }
