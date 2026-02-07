@@ -132,7 +132,7 @@ const translations = {
     hoursShort: 'h ',
     minutesShort: 'm',
     errorGeneration: 'Generierungsfehler',
-    paidOnlyLabel: 'Nur bezahlt',
+    paidOnlyLabel: 'Paid only',
     paidOnlyError: 'Dieses Modell erfordert bezahltes Pollen',
     tokensPerMillion: '/Million Token',
   }
