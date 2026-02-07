@@ -298,7 +298,7 @@ function formatModelPrice(model) {
   const pricing = model.pricing || {};
   let completionTokens = pricing.completionImageTokens || pricing.completion || 0;
   if (typeof completionTokens === 'string') completionTokens = parseFloat(completionTokens);
-  
+
   let priceStr = '0';
   if (completionTokens && completionTokens !== 0) {
     if (completionTokens < 0.000001) priceStr = completionTokens.toExponential(2);
@@ -306,19 +306,19 @@ function formatModelPrice(model) {
     else if (completionTokens < 1) priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
     else priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
   }
-  
+
   // Get currency and capitalize first letter
   let currency = pricing.currency || 'pollen';
   currency = currency.charAt(0).toUpperCase() + currency.slice(1);
-  
+
   // Check for text token pricing
   let textTokenPrice = null;
   const promptTextTokens = pricing.promptTextTokens || pricing.prompt_text || 0;
   const promptImageTokens = pricing.promptImageTokens || pricing.prompt_image || 0;
-  
+
   // Use promptTextTokens if available, otherwise fall back to promptImageTokens
   const textTokenValue = promptTextTokens || promptImageTokens;
-  
+
   if (textTokenValue && textTokenValue !== 0) {
     const tokensPerMillion = textTokenValue * 1000000;
     if (tokensPerMillion < 0.01) {
@@ -327,8 +327,8 @@ function formatModelPrice(model) {
       textTokenPrice = tokensPerMillion.toString().replace(/\.?0+$/, '');
     }
   }
-  
-  return { price: priceStr, currency, textTokenPrice };
+
+  return { price: priceStr, currency, textTokenPrice, hasTextTokens: !!textTokenPrice };
 }
 
 function renderModelOptions(models) {
@@ -399,14 +399,24 @@ function renderModelOptions(models) {
     }
     
     if (priceInfo.price !== '0') {
-      displayHTML += `<div class="model-price">${priceInfo.price} ${priceInfo.currency}</div>`;
-      // Measure price line width
-      const priceWidth = ctx.measureText(`${priceInfo.price} ${priceInfo.currency}`).width + 50;
-      maxWidth = Math.max(maxWidth, priceWidth);
-    }
-    
-    if (priceInfo.textTokenPrice) {
-      const textPriceStr = `${priceInfo.textTokenPrice}${i18n.t('tokensPerMillion')}`;
+      if (priceInfo.hasTextTokens) {
+        // Combine image price and text token price on one line
+        const imagePriceStr = `${priceInfo.price} ${priceInfo.currency.toLowerCase()} ${i18n.t('perImage')}`;
+        const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
+        const combinedPriceStr = `${imagePriceStr}・${textPriceStr}`;
+        displayHTML += `<div class="model-price">${combinedPriceStr}</div>`;
+        // Measure combined line width
+        const combinedWidth = ctx.measureText(combinedPriceStr).width + 50;
+        maxWidth = Math.max(maxWidth, combinedWidth);
+      } else {
+        displayHTML += `<div class="model-price">${priceInfo.price} ${priceInfo.currency}</div>`;
+        // Measure price line width
+        const priceWidth = ctx.measureText(`${priceInfo.price} ${priceInfo.currency}`).width + 50;
+        maxWidth = Math.max(maxWidth, priceWidth);
+      }
+    } else if (priceInfo.textTokenPrice) {
+      // Only text token pricing available
+      const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
       displayHTML += `<div class="model-price text-token-price">${textPriceStr}</div>`;
       // Measure text token price line width
       const textTokenWidth = ctx.measureText(textPriceStr).width + 50;
