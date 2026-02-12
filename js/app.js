@@ -314,10 +314,10 @@ function formatModelPrice(model) {
   const pricing = model.pricing || {};
   const isVideoModel = model.output_modalities && model.output_modalities.includes('video');
 
-  // Use completionVideoSeconds for video models, completionImageTokens for image models
+  // Use completionVideoTokens for video models, completionImageTokens for image models
   let completionTokens;
   if (isVideoModel) {
-    completionTokens = pricing.completionVideoSeconds || 0;
+    completionTokens = pricing.completionVideoTokens || 0;
   } else {
     completionTokens = pricing.completionImageTokens || pricing.completion || 0;
   }
@@ -325,7 +325,7 @@ function formatModelPrice(model) {
 
   let priceStr = '0';
   if (completionTokens && completionTokens !== 0) {
-    if (completionTokens < 0.000001) priceStr = completionTokens.toExponential(2);
+    if (completionTokens < 0.00001) priceStr = completionTokens.toExponential(2);
     else if (completionTokens < 0.01) priceStr = completionTokens.toFixed(6).replace(/\.?0+$/, '');
     else if (completionTokens < 1) priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
     else priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
@@ -375,10 +375,10 @@ function renderModelOptions(models) {
     const isVideoA = a.output_modalities && a.output_modalities.includes('video');
     const isVideoB = b.output_modalities && b.output_modalities.includes('video');
     let priceA = isVideoA
-      ? (a.pricing?.completionVideoSeconds || 0)
+      ? (a.pricing?.completionVideoTokens || 0)
       : (a.pricing?.completionImageTokens || a.pricing?.completion || 0);
     let priceB = isVideoB
-      ? (b.pricing?.completionVideoSeconds || 0)
+      ? (b.pricing?.completionVideoTokens || 0)
       : (b.pricing?.completionImageTokens || b.pricing?.completion || 0);
     if (typeof priceA === 'string') priceA = parseFloat(priceA) || 0;
     if (typeof priceB === 'string') priceB = parseFloat(priceB) || 0;
@@ -550,7 +550,7 @@ function updateCostDisplay(model) {
     // Format the price
     let priceStr;
     if (price === 0) priceStr = '0';
-    else if (price < 0.000001) priceStr = price.toExponential(2);
+    else if (price < 0.00001) priceStr = price.toExponential(2);
     else if (price < 0.01) priceStr = price.toFixed(6).replace(/\.?0+$/, '');
     else if (price < 1) priceStr = price.toFixed(4).replace(/\.?0+$/, '');
     else priceStr = price.toFixed(2).replace(/\.?0+$/, '');
@@ -603,7 +603,8 @@ async function generateImage(payload) {
 async function generateVideo(payload) {
   if (!state.apiKey) throw new Error(i18n.t('apiKeyMissing'));
 
-  const endpoint = `https://gen.pollinations.ai/video/${encodeURIComponent(payload.prompt)}`;
+  // Video uses the same /image endpoint, just with a video model and duration parameter
+  const endpoint = `https://gen.pollinations.ai/image/${encodeURIComponent(payload.prompt)}`;
   const params = new URLSearchParams();
   if (payload.model) params.append('model', payload.model);
   if (payload.width) params.append('width', payload.width);
