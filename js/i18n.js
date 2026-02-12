@@ -80,6 +80,7 @@ const translations = {
     paidOnlyError: 'This model requires paid pollen',
     tokensPerMillion: '/million tokens',
     perImage: 'per image',
+    perSecond: 'per second',
   },
   de: {
     // Page
@@ -157,6 +158,7 @@ const translations = {
     paidOnlyError: 'Dieses Modell erfordert bezahltes Pollen',
     tokensPerMillion: '/Million Token',
     perImage: 'pro Bild',
+    perSecond: 'pro Sekunde',
   }
 };
 

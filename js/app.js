@@ -312,7 +312,15 @@ async function loadModels() {
 
 function formatModelPrice(model) {
   const pricing = model.pricing || {};
-  let completionTokens = pricing.completionImageTokens || pricing.completion || 0;
+  const isVideoModel = model.output_modalities && model.output_modalities.includes('video');
+
+  // Use completionVideoSeconds for video models, completionImageTokens for image models
+  let completionTokens;
+  if (isVideoModel) {
+    completionTokens = pricing.completionVideoSeconds || 0;
+  } else {
+    completionTokens = pricing.completionImageTokens || pricing.completion || 0;
+  }
   if (typeof completionTokens === 'string') completionTokens = parseFloat(completionTokens);
 
   let priceStr = '0';
@@ -344,7 +352,7 @@ function formatModelPrice(model) {
     }
   }
 
-  return { price: priceStr, currency, textTokenPrice, hasTextTokens: !!textTokenPrice };
+  return { price: priceStr, currency, textTokenPrice, hasTextTokens: !!textTokenPrice, isVideoModel };
 }
 
 function renderModelOptions(models) {
@@ -364,8 +372,14 @@ function renderModelOptions(models) {
   }
   
   const sortedModels = [...filteredModels].sort((a, b) => {
-    let priceA = a.pricing?.completionImageTokens || a.pricing?.completion || 0;
-    let priceB = b.pricing?.completionImageTokens || b.pricing?.completion || 0;
+    const isVideoA = a.output_modalities && a.output_modalities.includes('video');
+    const isVideoB = b.output_modalities && b.output_modalities.includes('video');
+    let priceA = isVideoA
+      ? (a.pricing?.completionVideoSeconds || 0)
+      : (a.pricing?.completionImageTokens || a.pricing?.completion || 0);
+    let priceB = isVideoB
+      ? (b.pricing?.completionVideoSeconds || 0)
+      : (b.pricing?.completionImageTokens || b.pricing?.completion || 0);
     if (typeof priceA === 'string') priceA = parseFloat(priceA) || 0;
     if (typeof priceB === 'string') priceB = parseFloat(priceB) || 0;
     return priceA - priceB;
@@ -416,18 +430,23 @@ function renderModelOptions(models) {
     
     if (priceInfo.price !== '0') {
       if (priceInfo.hasTextTokens) {
-        // Combine image price and text token price on one line
-        const imagePriceStr = `${priceInfo.price} ${priceInfo.currency.toLowerCase()} ${i18n.t('perImage')}`;
+        // Combine image/video price and text token price on one line
+        const unitLabel = priceInfo.isVideoModel ? i18n.t('perSecond') : i18n.t('perImage');
+        const mediaPriceStr = `${priceInfo.price} ${priceInfo.currency.toLowerCase()} ${unitLabel}`;
         const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
-        const combinedPriceStr = `${imagePriceStr}・${textPriceStr}`;
+        const combinedPriceStr = `${mediaPriceStr}・${textPriceStr}`;
         displayHTML += `<div class="model-price">${combinedPriceStr}</div>`;
         // Measure combined line width
         const combinedWidth = ctx.measureText(combinedPriceStr).width + 50;
         maxWidth = Math.max(maxWidth, combinedWidth);
       } else {
-        displayHTML += `<div class="model-price">${priceInfo.price} ${priceInfo.currency}</div>`;
+        const unitLabel = priceInfo.isVideoModel ? i18n.t('perSecond') : '';
+        const priceDisplay = unitLabel
+          ? `${priceInfo.price} ${priceInfo.currency} ${unitLabel}`
+          : `${priceInfo.price} ${priceInfo.currency}`;
+        displayHTML += `<div class="model-price">${priceDisplay}</div>`;
         // Measure price line width
-        const priceWidth = ctx.measureText(`${priceInfo.price} ${priceInfo.currency}`).width + 50;
+        const priceWidth = ctx.measureText(priceDisplay).width + 50;
         maxWidth = Math.max(maxWidth, priceWidth);
       }
     } else if (priceInfo.textTokenPrice) {
@@ -500,11 +519,43 @@ window.updateModelOptionsForMode = function(mode) {
   renderModelOptions(modelsToRender);
 };
 
+// Function to update cost display based on currently selected model (exposed to window)
+window.updateCurrentCostDisplay = function() {
+  const select = document.getElementById('model');
+  if (!select) return;
+  const currentModelName = select.value;
+  const models = state.currentMode === 'video' ? state.videoModels : state.models;
+  const model = models.find(m => m.name === currentModelName);
+  if (model) {
+    updateCostDisplay(model);
+  }
+};
+
 function updateCostDisplay(model) {
   const costText = document.getElementById('cost-text');
   if (costText) {
     const priceInfo = formatModelPrice(model);
-    costText.textContent = priceInfo.price;
+    const durationInput = document.getElementById('duration');
+    const modeInput = document.getElementById('mode');
+    const isVideoMode = modeInput && modeInput.value === 'video';
+
+    let price = parseFloat(priceInfo.price) || 0;
+
+    // For video models, multiply by duration
+    if (isVideoMode && priceInfo.isVideoModel && durationInput) {
+      const duration = parseInt(durationInput.value, 10) || 5;
+      price = price * duration;
+    }
+
+    // Format the price
+    let priceStr;
+    if (price === 0) priceStr = '0';
+    else if (price < 0.000001) priceStr = price.toExponential(2);
+    else if (price < 0.01) priceStr = price.toFixed(6).replace(/\.?0+$/, '');
+    else if (price < 1) priceStr = price.toFixed(4).replace(/\.?0+$/, '');
+    else priceStr = price.toFixed(2).replace(/\.?0+$/, '');
+
+    costText.textContent = priceStr;
   }
 }
 
@@ -555,6 +606,8 @@ async function generateVideo(payload) {
   const endpoint = `https://gen.pollinations.ai/video/${encodeURIComponent(payload.prompt)}`;
   const params = new URLSearchParams();
   if (payload.model) params.append('model', payload.model);
+  if (payload.width) params.append('width', payload.width);
+  if (payload.height) params.append('height', payload.height);
   if (payload.duration) params.append('duration', payload.duration);
   if (payload.seed) params.append('seed', payload.seed);
   if (payload.negative_prompt) params.append('negative_prompt', payload.negative_prompt);
@@ -637,11 +690,9 @@ function collectPayload() {
     mode: mode
   };
 
-  // Only include width/height for image mode
-  if (mode === 'image') {
-    if (widthInput) payload.width = Number(widthInput.value);
-    if (heightInput) payload.height = Number(heightInput.value);
-  }
+  // Include width/height for both image and video modes
+  if (widthInput) payload.width = Number(widthInput.value);
+  if (heightInput) payload.height = Number(heightInput.value);
 
   // Include duration for video mode
   if (mode === 'video' && durationInput) {
@@ -995,9 +1046,9 @@ function createVideoPlaceholderCard(genId) {
     card.className = 'video-card';
     card.id = `gen-card-${genId}`;
 
-    // Use a fixed 16:9 aspect ratio for videos
-    const w = 1024;
-    const h = 576;
+    // Use the selected aspect ratio for videos
+    const w = Number(document.getElementById('width').value) || 1024;
+    const h = Number(document.getElementById('height').value) || 576;
     const ratio = (h / w) * 100;
 
     card.dataset.w = w.toString();

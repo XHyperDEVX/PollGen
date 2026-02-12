@@ -581,6 +581,9 @@
         function togglePanel(id) { document.getElementById(id).classList.toggle('open'); }
         function changeLanguage(lang) { i18n.setLanguage(lang); document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active')); document.getElementById(`lang-${lang}`).classList.add('active'); }
 
+        // Video-supported aspect ratios
+        const VIDEO_ASPECT_RATIOS = ['1:1', '16:9', '9:16'];
+
         function switchMode(mode) {
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`mode-${mode}`).classList.add('active');
@@ -592,20 +595,61 @@
             const prompt = document.getElementById('prompt');
 
             if (mode === 'video') {
-                aspectGroup.classList.add('hidden');
+                // Show aspect ratio but filter to video-supported ratios only
+                aspectGroup.classList.remove('hidden');
                 durationGroup.classList.remove('hidden');
                 if (generateBtnText) generateBtnText.textContent = i18n.t('generateVideoBtn') || 'Generate Video';
                 if (prompt) prompt.placeholder = i18n.t('videoPromptPlaceholder') || 'Describe the video you want to generate';
+
+                // Filter aspect ratio options for video
+                document.querySelectorAll('#aspect-ratio-popover .popover-item').forEach(item => {
+                    const ratio = item.dataset.ratio;
+                    if (VIDEO_ASPECT_RATIOS.includes(ratio)) {
+                        item.classList.remove('hidden');
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+
+                // Auto-select 16:9 if current selection is not video-compatible
+                const currentSelected = document.querySelector('#aspect-ratio-popover .popover-item.selected');
+                if (currentSelected && !VIDEO_ASPECT_RATIOS.includes(currentSelected.dataset.ratio)) {
+                    // Select 16:9 as default for video
+                    const widescreenOption = document.querySelector('#aspect-ratio-popover .popover-item[data-ratio="16:9"]');
+                    if (widescreenOption) {
+                        document.querySelectorAll('#aspect-ratio-popover .popover-item').forEach(i => i.classList.remove('selected'));
+                        widescreenOption.classList.add('selected');
+                        document.getElementById('current-ratio-label').textContent = widescreenOption.textContent.trim();
+                        document.getElementById('width').value = widescreenOption.dataset.w;
+                        document.getElementById('height').value = widescreenOption.dataset.h;
+                        const btnIcon = document.getElementById('current-ratio-icon');
+                        const itemIcon = widescreenOption.querySelector('.ratio-icon');
+                        if (btnIcon && itemIcon) {
+                            btnIcon.style.width = itemIcon.style.width;
+                            btnIcon.style.height = itemIcon.style.height;
+                        }
+                    }
+                }
             } else {
                 aspectGroup.classList.remove('hidden');
                 durationGroup.classList.add('hidden');
                 if (generateBtnText) generateBtnText.textContent = i18n.t('generateBtn');
                 if (prompt) prompt.placeholder = i18n.t('promptPlaceholder');
+
+                // Show all aspect ratio options for images
+                document.querySelectorAll('#aspect-ratio-popover .popover-item').forEach(item => {
+                    item.classList.remove('hidden');
+                });
             }
 
             // Update model options based on mode
             if (window.updateModelOptionsForMode) {
                 window.updateModelOptionsForMode(mode);
+            }
+
+            // Update cost display for new mode
+            if (window.updateCurrentCostDisplay) {
+                window.updateCurrentCostDisplay();
             }
         }
 
@@ -620,6 +664,10 @@
                     const val = this.value;
                     if (durationValue) durationValue.textContent = val + 's';
                     if (durationHidden) durationHidden.value = val;
+                    // Update cost display when duration changes
+                    if (window.updateCurrentCostDisplay) {
+                        window.updateCurrentCostDisplay();
+                    }
                 });
             }
         });
