@@ -60,6 +60,7 @@ const translations = {
     statusVideoSuccess: 'Video generated successfully',
     statusError: 'An error occurred',
     videoError: 'Failed to generate video',
+    betaNotice: 'Video generation is in beta. Some models may ignore certain parameters.',
 
     // Model Loading
     modelLoading: 'Loading models...',
@@ -138,6 +139,7 @@ const translations = {
     statusVideoSuccess: 'Video erfolgreich generiert',
     statusError: 'Ein Fehler ist aufgetreten',
     videoError: 'Fehler bei der Videogenerierung',
+    betaNotice: 'Die Videogenerierung befindet sich in der Beta-Phase. Einige Modelle ignorieren möglicherweise bestimmte Parameter.',
 
     // Model Loading
     modelLoading: 'Modelle werden geladen...',

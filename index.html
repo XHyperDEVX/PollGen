@@ -211,6 +211,9 @@
         /* Duration Slider */
         .duration-value { font-size: 13px; color: var(--text-primary); font-weight: 500; margin-left: 8px; }
 
+        /* Beta Notice */
+        .beta-notice { font-size: 11px; color: var(--text-muted); margin-top: 8px; font-style: italic; opacity: 0.7; }
+
         .image-card-overlay { position: absolute; top: 20px; right: 20px; display: flex; gap: 12px; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease; transform: translateY(-10px); pointer-events: none; }
         .image-card:hover .image-card-overlay, .video-card:hover .image-card-overlay { opacity: 1; transform: translateY(0); }
         .overlay-btn { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); color: white; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: auto; }
@@ -461,6 +464,7 @@
                             <span>10s</span>
                         </div>
                     </div>
+                    <div class="beta-notice" data-i18n="betaNotice">Video generation is in beta. Some models may ignore certain parameters.</div>
                 </div>
             </div>
         </div>
@@ -595,41 +599,11 @@
             const prompt = document.getElementById('prompt');
 
             if (mode === 'video') {
-                // Show aspect ratio but filter to video-supported ratios only
-                aspectGroup.classList.remove('hidden');
+                // Hide aspect ratio for video mode (not fully supported)
+                aspectGroup.classList.add('hidden');
                 durationGroup.classList.remove('hidden');
                 if (generateBtnText) generateBtnText.textContent = i18n.t('generateVideoBtn') || 'Generate Video';
                 if (prompt) prompt.placeholder = i18n.t('videoPromptPlaceholder') || 'Describe the video you want to generate';
-
-                // Filter aspect ratio options for video
-                document.querySelectorAll('#aspect-ratio-popover .popover-item').forEach(item => {
-                    const ratio = item.dataset.ratio;
-                    if (VIDEO_ASPECT_RATIOS.includes(ratio)) {
-                        item.classList.remove('hidden');
-                    } else {
-                        item.classList.add('hidden');
-                    }
-                });
-
-                // Auto-select 16:9 if current selection is not video-compatible
-                const currentSelected = document.querySelector('#aspect-ratio-popover .popover-item.selected');
-                if (currentSelected && !VIDEO_ASPECT_RATIOS.includes(currentSelected.dataset.ratio)) {
-                    // Select 16:9 as default for video
-                    const widescreenOption = document.querySelector('#aspect-ratio-popover .popover-item[data-ratio="16:9"]');
-                    if (widescreenOption) {
-                        document.querySelectorAll('#aspect-ratio-popover .popover-item').forEach(i => i.classList.remove('selected'));
-                        widescreenOption.classList.add('selected');
-                        document.getElementById('current-ratio-label').textContent = widescreenOption.textContent.trim();
-                        document.getElementById('width').value = widescreenOption.dataset.w;
-                        document.getElementById('height').value = widescreenOption.dataset.h;
-                        const btnIcon = document.getElementById('current-ratio-icon');
-                        const itemIcon = widescreenOption.querySelector('.ratio-icon');
-                        if (btnIcon && itemIcon) {
-                            btnIcon.style.width = itemIcon.style.width;
-                            btnIcon.style.height = itemIcon.style.height;
-                        }
-                    }
-                }
             } else {
                 aspectGroup.classList.remove('hidden');
                 durationGroup.classList.add('hidden');
