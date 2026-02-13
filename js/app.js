@@ -10,9 +10,12 @@
 const state = {
   apiKey: null,
   models: [],
+  videoModels: [],
+  currentMode: 'image', // 'image' or 'video'
   currentImage: null,
   isGenerating: false,
   imageHistory: [],
+  videoHistory: [],
   allowedModels: null, // For filtering models based on API key permissions
   keyInfo: null, // Store key info from /account/key endpoint
   keyInfoApiKey: null // Which API key the keyInfo was validated for
@@ -130,7 +133,8 @@ async function updateBalance(apiKey) {
     state.keyInfoApiKey = null;
     state.allowedModels = null;
     setGenerateButtonEnabled(false);
-    renderModelOptions(state.models);
+    const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+    renderModelOptions(modelsToRender);
     return;
   }
 
@@ -147,7 +151,8 @@ async function updateBalance(apiKey) {
       state.keyInfoApiKey = null;
       state.allowedModels = null;
       setGenerateButtonEnabled(false);
-      renderModelOptions(state.models);
+      const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+      renderModelOptions(modelsToRender);
       return;
     }
 
@@ -163,7 +168,9 @@ async function updateBalance(apiKey) {
     state.allowedModels = null;
   }
 
-  renderModelOptions(state.models);
+  // Render models based on current mode
+  const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+  renderModelOptions(modelsToRender);
 
   const hasBalancePermission =
     keyInfo.permissions &&
@@ -244,17 +251,24 @@ async function fetchModelsFromAPI() {
       throw new Error(`Failed to fetch models: ${response.status}`);
     }
     const data = await response.json();
-    
-    // Filter for image models only
+
+    // Filter for image models (exclude video models for image mode)
     const imageModels = data.filter(model => {
       const modalities = model.output_modalities || [];
       return modalities.includes('image') && !modalities.includes('video');
     });
-    
+
+    // Filter for video models
+    const videoModels = data.filter(model => {
+      const modalities = model.output_modalities || [];
+      return modalities.includes('video');
+    });
+
     localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify(imageModels));
+    localStorage.setItem('pollinations_video_models_cache', JSON.stringify(videoModels));
     localStorage.setItem(MODELS_CACHE_TIMESTAMP_KEY, Date.now().toString());
-    
-    return imageModels;
+
+    return { imageModels, videoModels };
   } catch (error) {
     console.error('Error fetching models:', error);
     throw error;
@@ -264,11 +278,15 @@ async function fetchModelsFromAPI() {
 function getCachedModels() {
   try {
     const cached = localStorage.getItem(MODELS_CACHE_KEY);
+    const videoCached = localStorage.getItem('pollinations_video_models_cache');
     const timestamp = localStorage.getItem(MODELS_CACHE_TIMESTAMP_KEY);
     if (!cached || !timestamp) return null;
     const age = Date.now() - parseInt(timestamp, 10);
     if (age > CACHE_DURATION_MS) return null;
-    return JSON.parse(cached);
+    return {
+      imageModels: JSON.parse(cached),
+      videoModels: videoCached ? JSON.parse(videoCached) : []
+    };
   } catch (error) {
     console.error('Error reading cached models:', error);
     return null;
@@ -278,15 +296,17 @@ function getCachedModels() {
 async function loadModels() {
   setStatus(i18n.t('modelLoading'), 'info');
   try {
-    const models = await fetchModelsFromAPI();
-    state.models = models;
-    renderModelOptions(models);
+    const { imageModels, videoModels } = await fetchModelsFromAPI();
+    state.models = imageModels;
+    state.videoModels = videoModels;
+    renderModelOptions(state.currentMode === 'video' ? videoModels : imageModels);
     setStatus('', '');
   } catch (error) {
     const cached = getCachedModels();
-    if (cached && cached.length > 0) {
-      state.models = cached;
-      renderModelOptions(cached);
+    if (cached && cached.imageModels && cached.imageModels.length > 0) {
+      state.models = cached.imageModels;
+      state.videoModels = cached.videoModels || [];
+      renderModelOptions(state.currentMode === 'video' ? state.videoModels : state.models);
       setStatus('', '');
     } else {
       setStatus(i18n.t('modelLoadError'), 'error');
@@ -296,15 +316,29 @@ async function loadModels() {
 
 function formatModelPrice(model) {
   const pricing = model.pricing || {};
-  let completionTokens = pricing.completionImageTokens || pricing.completion || 0;
+  const isVideoModel = model.output_modalities && model.output_modalities.includes('video');
+
+  // Use completionVideoTokens/completionVideoSeconds for video models, completionImageTokens for image models
+  let completionTokens;
+  if (isVideoModel) {
+    // Some video models use completionVideoTokens, others use completionVideoSeconds
+    completionTokens = pricing.completionVideoTokens || pricing.completionVideoSeconds || 0;
+  } else {
+    completionTokens = pricing.completionImageTokens || pricing.completion || 0;
+  }
   if (typeof completionTokens === 'string') completionTokens = parseFloat(completionTokens);
 
+  // Format as decimal number (not exponential)
   let priceStr = '0';
   if (completionTokens && completionTokens !== 0) {
-    if (completionTokens < 0.000001) priceStr = completionTokens.toExponential(2);
-    else if (completionTokens < 0.01) priceStr = completionTokens.toFixed(6).replace(/\.?0+$/, '');
-    else if (completionTokens < 1) priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
-    else priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
+    if (completionTokens < 0.01) {
+      // For small values, use up to 8 decimal places to show values like 0.0000018
+      priceStr = completionTokens.toFixed(8).replace(/\.?0+$/, '');
+    } else if (completionTokens < 1) {
+      priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
+    } else {
+      priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
+    }
   }
 
   // Get currency and capitalize first letter
@@ -328,16 +362,16 @@ function formatModelPrice(model) {
     }
   }
 
-  return { price: priceStr, currency, textTokenPrice, hasTextTokens: !!textTokenPrice };
+  return { price: priceStr, currency, textTokenPrice, hasTextTokens: !!textTokenPrice, isVideoModel };
 }
 
-function renderModelOptions(models) {
+function renderModelOptions(models, forceReset = false) {
   const select = document.getElementById('model');
   const modelPopover = document.getElementById('model-popover');
   const currentModelName = document.getElementById('current-model-name');
   if (!select || !modelPopover) return;
   
-  const previousValue = select.value;
+  const previousValue = forceReset ? '' : select.value;
   select.innerHTML = '';
   modelPopover.innerHTML = '';
   
@@ -348,8 +382,14 @@ function renderModelOptions(models) {
   }
   
   const sortedModels = [...filteredModels].sort((a, b) => {
-    let priceA = a.pricing?.completionImageTokens || a.pricing?.completion || 0;
-    let priceB = b.pricing?.completionImageTokens || b.pricing?.completion || 0;
+    const isVideoA = a.output_modalities && a.output_modalities.includes('video');
+    const isVideoB = b.output_modalities && b.output_modalities.includes('video');
+    let priceA = isVideoA
+      ? (a.pricing?.completionVideoTokens || a.pricing?.completionVideoSeconds || 0)
+      : (a.pricing?.completionImageTokens || a.pricing?.completion || 0);
+    let priceB = isVideoB
+      ? (b.pricing?.completionVideoTokens || b.pricing?.completionVideoSeconds || 0)
+      : (b.pricing?.completionImageTokens || b.pricing?.completion || 0);
     if (typeof priceA === 'string') priceA = parseFloat(priceA) || 0;
     if (typeof priceB === 'string') priceB = parseFloat(priceB) || 0;
     return priceA - priceB;
@@ -400,18 +440,23 @@ function renderModelOptions(models) {
     
     if (priceInfo.price !== '0') {
       if (priceInfo.hasTextTokens) {
-        // Combine image price and text token price on one line
-        const imagePriceStr = `${priceInfo.price} ${priceInfo.currency.toLowerCase()} ${i18n.t('perImage')}`;
+        // Combine image/video price and text token price on one line
+        const unitLabel = priceInfo.isVideoModel ? i18n.t('perSecond') : i18n.t('perImage');
+        const mediaPriceStr = `${priceInfo.price} ${priceInfo.currency.toLowerCase()} ${unitLabel}`;
         const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
-        const combinedPriceStr = `${imagePriceStr}・${textPriceStr}`;
+        const combinedPriceStr = `${mediaPriceStr}・${textPriceStr}`;
         displayHTML += `<div class="model-price">${combinedPriceStr}</div>`;
         // Measure combined line width
         const combinedWidth = ctx.measureText(combinedPriceStr).width + 50;
         maxWidth = Math.max(maxWidth, combinedWidth);
       } else {
-        displayHTML += `<div class="model-price">${priceInfo.price} ${priceInfo.currency}</div>`;
+        const unitLabel = priceInfo.isVideoModel ? i18n.t('perSecond') : '';
+        const priceDisplay = unitLabel
+          ? `${priceInfo.price} ${priceInfo.currency} ${unitLabel}`
+          : `${priceInfo.price} ${priceInfo.currency}`;
+        displayHTML += `<div class="model-price">${priceDisplay}</div>`;
         // Measure price line width
-        const priceWidth = ctx.measureText(`${priceInfo.price} ${priceInfo.currency}`).width + 50;
+        const priceWidth = ctx.measureText(priceDisplay).width + 50;
         maxWidth = Math.max(maxWidth, priceWidth);
       }
     } else if (priceInfo.textTokenPrice) {
@@ -477,11 +522,55 @@ function stringToColor(str) {
   return '#' + '00000'.substring(0, 6 - c.length) + c;
 }
 
+// Function to update model options when switching modes (exposed to window for inline script)
+window.updateModelOptionsForMode = function(mode) {
+  state.currentMode = mode;
+  const modelsToRender = mode === 'video' ? state.videoModels : state.models;
+  // Force reset to ensure no cross-contamination between image and video modes
+  renderModelOptions(modelsToRender, true);
+};
+
+// Function to update cost display based on currently selected model (exposed to window)
+window.updateCurrentCostDisplay = function() {
+  const select = document.getElementById('model');
+  if (!select) return;
+  const currentModelName = select.value;
+  const models = state.currentMode === 'video' ? state.videoModels : state.models;
+  const model = models.find(m => m.name === currentModelName);
+  if (model) {
+    updateCostDisplay(model);
+  }
+};
+
 function updateCostDisplay(model) {
   const costText = document.getElementById('cost-text');
   if (costText) {
     const priceInfo = formatModelPrice(model);
-    costText.textContent = priceInfo.price;
+    const durationInput = document.getElementById('duration');
+    const modeInput = document.getElementById('mode');
+    const isVideoMode = modeInput && modeInput.value === 'video';
+
+    let price = parseFloat(priceInfo.price) || 0;
+
+    // For video models, multiply by duration
+    if (isVideoMode && priceInfo.isVideoModel && durationInput) {
+      const duration = parseInt(durationInput.value, 10) || 5;
+      price = price * duration;
+    }
+
+    // Format the price as decimal (not exponential)
+    let priceStr;
+    if (price === 0) priceStr = '0';
+    else if (price < 0.01) {
+      // For small values, use up to 8 decimal places
+      priceStr = price.toFixed(8).replace(/\.?0+$/, '');
+    } else if (price < 1) {
+      priceStr = price.toFixed(4).replace(/\.?0+$/, '');
+    } else {
+      priceStr = price.toFixed(2).replace(/\.?0+$/, '');
+    }
+
+    costText.textContent = priceStr;
   }
 }
 
@@ -526,6 +615,45 @@ async function generateImage(payload) {
   };
 }
 
+async function generateVideo(payload) {
+  if (!state.apiKey) throw new Error(i18n.t('apiKeyMissing'));
+
+  // Video uses the same /image endpoint, just with a video model and duration parameter
+  const endpoint = `https://gen.pollinations.ai/image/${encodeURIComponent(payload.prompt)}`;
+  const params = new URLSearchParams();
+  if (payload.model) params.append('model', payload.model);
+  if (payload.width) params.append('width', payload.width);
+  if (payload.height) params.append('height', payload.height);
+  if (payload.duration) params.append('duration', payload.duration);
+  if (payload.seed) params.append('seed', payload.seed);
+  if (payload.negative_prompt) params.append('negative_prompt', payload.negative_prompt);
+  if (payload.enhance) params.append('enhance', 'true');
+  if (payload.private) params.append('private', 'true');
+  if (payload.nologo) params.append('nologo', 'true');
+  if (payload.nofeed) params.append('nofeed', 'true');
+  if (payload.safe) params.append('safe', 'true');
+
+  const url = `${endpoint}?${params.toString()}`;
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${state.apiKey}` }
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(parseErrorMessage(errorText, response.status));
+  }
+
+  const blob = await response.blob();
+  const videoUrl = URL.createObjectURL(blob);
+
+  return {
+    success: true,
+    videoData: videoUrl,
+    contentType: blob.type,
+    sourceUrl: url
+  };
+}
+
 function parseErrorMessage(text, status) {
     try {
         const json = JSON.parse(text);
@@ -565,16 +693,27 @@ function collectPayload() {
   const heightInput = document.getElementById('height');
   const seedInput = document.getElementById('seed');
   const negativePromptInput = document.getElementById('negative_prompt');
+  const modeInput = document.getElementById('mode');
+  const durationInput = document.getElementById('duration');
 
   if (!promptInput) return {};
 
+  const mode = modeInput ? modeInput.value : 'image';
+
   const payload = {
     prompt: promptInput.value.trim(),
-    model: modelInput ? modelInput.value : ''
+    model: modelInput ? modelInput.value : '',
+    mode: mode
   };
 
+  // Include width/height for both image and video modes
   if (widthInput) payload.width = Number(widthInput.value);
   if (heightInput) payload.height = Number(heightInput.value);
+
+  // Include duration for video mode
+  if (mode === 'video' && durationInput) {
+    payload.duration = Number(durationInput.value);
+  }
 
   if (seedInput && seedInput.value.trim() !== "") {
       payload.seed = Number(seedInput.value);
@@ -585,13 +724,13 @@ function collectPayload() {
   if (negativePromptInput && negativePromptInput.value.trim()) {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
-  
+
   // Boolean flags
   ['enhance', 'private', 'nologo', 'nofeed', 'safe'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
   });
-  
+
   return payload;
 }
 
@@ -748,6 +887,8 @@ function stopFireflyTicker() {
 function toggleLoading(isLoading) {
   state.isGenerating = isLoading;
   const generateBtn = document.getElementById('generate-btn');
+  const modeInput = document.getElementById('mode');
+  const isVideoMode = modeInput && modeInput.value === 'video';
 
   if (!isLoading) {
     stopFireflyTicker();
@@ -760,9 +901,13 @@ function toggleLoading(isLoading) {
       setGenerateButtonEnabled(isApiKeyValidForGeneration());
     }
 
-    const btnText = generateBtn.querySelector('span');
+    const btnText = generateBtn.querySelector('#generate-btn-text');
     if (btnText) {
-      btnText.textContent = isLoading ? i18n.t('generatingLabel') : i18n.t('generateBtn');
+      if (isLoading) {
+        btnText.textContent = isVideoMode ? i18n.t('generatingVideoLabel') : i18n.t('generatingLabel');
+      } else {
+        btnText.textContent = isVideoMode ? i18n.t('generateVideoBtn') : i18n.t('generateBtn');
+      }
     }
     if (isLoading) {
       generateBtn.classList.add('loading');
@@ -802,7 +947,7 @@ function applyImageCardSizing(card) {
 }
 
 function resizeAllImageCards() {
-  document.querySelectorAll('.image-card').forEach(applyImageCardSizing);
+  document.querySelectorAll('.image-card, .video-card').forEach(applyImageCardSizing);
 }
 
 function scheduleImageCardResize() {
@@ -890,11 +1035,11 @@ function createPlaceholderCard(genId) {
 function displayResultInCard(genId, data) {
     const card = document.getElementById(`gen-card-${genId}`);
     if (!card) return;
-    
+
     const placeholder = card.querySelector('.noise-placeholder');
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
-    
+
     const img = new Image();
     img.src = data.imageData;
     img.onclick = () => openLightbox(data.imageData);
@@ -909,6 +1054,115 @@ function displayResultInCard(genId, data) {
             downloadImage(data.imageData, `pollgen-${genId}.png`);
         };
         addThumbnailToMiniView(genId, data.imageData);
+    };
+}
+
+function createVideoPlaceholderCard(genId) {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.id = `gen-card-${genId}`;
+
+    // Use the selected aspect ratio for videos
+    const w = Number(document.getElementById('width').value) || 1024;
+    const h = Number(document.getElementById('height').value) || 576;
+    const ratio = (h / w) * 100;
+
+    card.dataset.w = w.toString();
+    card.dataset.h = h.toString();
+    applyImageCardSizing(card);
+
+    const placeholder = document.createElement('div');
+    placeholder.className = 'noise-placeholder';
+    placeholder.style.paddingBottom = `${ratio}%`;
+
+    // Create firefly animation (bounded to video area)
+    const fireflyLayer = document.createElement('div');
+    fireflyLayer.className = 'firefly-layer';
+    placeholder.appendChild(fireflyLayer);
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+
+    for (let i = 0; i < fireflyCount; i++) {
+        const firefly = document.createElement('div');
+        firefly.className = 'firefly';
+
+        const size = Math.random() * 4.5 + 2;
+        firefly.style.width = size + 'px';
+        firefly.style.height = size + 'px';
+        firefly.dataset.size = size.toString();
+
+        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+        const brightness = Math.random() * 0.55 + 0.45;
+        firefly.style.filter = `brightness(${brightness})`;
+
+        firefly.dataset.rx = Math.random().toString();
+        firefly.dataset.ry = Math.random().toString();
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 45 + 18;
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
+        firefly.dataset.vx = vx.toString();
+        firefly.dataset.vy = vy.toString();
+
+        firefly.style.animationDelay = Math.random() * 4 + 's';
+        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+        fireflyLayer.appendChild(firefly);
+    }
+
+    if (!prefersReducedMotion && fireflyCount > 0) {
+        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+    }
+
+    card.appendChild(placeholder);
+    const overlay = document.createElement('div');
+    overlay.className = 'image-card-overlay';
+    overlay.innerHTML = `
+        <button class="overlay-btn download-btn hidden" title="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+        </button>
+    `;
+    card.appendChild(overlay);
+
+    return card;
+}
+
+function displayVideoResultInCard(genId, data) {
+    const card = document.getElementById(`gen-card-${genId}`);
+    if (!card) return;
+
+    const placeholder = card.querySelector('.noise-placeholder');
+    const overlay = card.querySelector('.image-card-overlay');
+    const downloadBtn = card.querySelector('.download-btn');
+
+    const video = document.createElement('video');
+    video.src = data.videoData;
+    video.controls = true;
+    video.autoplay = false;
+    video.preload = 'metadata';
+    video.style.background = '#000';
+
+    video.onloadedmetadata = () => {
+        placeholder.remove();
+        card.insertBefore(video, overlay);
+        video.offsetHeight;
+        video.classList.add('loaded');
+        downloadBtn.classList.remove('hidden');
+        downloadBtn.title = i18n.t('videoDownloadBtn');
+        downloadBtn.onclick = (e) => {
+            e.stopPropagation();
+            downloadVideo(data.videoData, `pollgen-video-${genId}.mp4`);
+        };
+        addVideoThumbnailToMiniView(genId, data.videoData);
+    };
+
+    video.onerror = () => {
+        setStatus(i18n.t('videoError'), 'error');
     };
 }
 
@@ -1080,11 +1334,49 @@ if (lightbox && lightboxImg) {
 function addThumbnailToMiniView(genId, src) {
     const miniView = document.getElementById('mini-view');
     if (!miniView) return;
-    
+
     miniView.classList.add('visible');
     const thumb = document.createElement('img');
     thumb.className = 'mini-thumb';
     thumb.src = src;
+    thumb.onclick = () => {
+        const card = document.getElementById(`gen-card-${genId}`);
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+    miniView.appendChild(thumb);
+    miniView.scrollLeft = miniView.scrollWidth;
+}
+
+async function downloadVideo(url, filename) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+        console.error("Video download failed", e);
+        window.open(url, '_blank');
+    }
+}
+
+function addVideoThumbnailToMiniView(genId, src) {
+    const miniView = document.getElementById('mini-view');
+    if (!miniView) return;
+
+    miniView.classList.add('visible');
+    const thumb = document.createElement('video');
+    thumb.className = 'mini-thumb';
+    thumb.src = src;
+    thumb.muted = true;
+    thumb.preload = 'metadata';
     thumb.onclick = () => {
         const card = document.getElementById(`gen-card-${genId}`);
         if (card) {
@@ -1117,6 +1409,12 @@ function addToImageHistory(historyItem) {
   if (!historyItem || !historyItem.imageData) return;
   state.imageHistory.unshift(historyItem);
   if (state.imageHistory.length > 18) state.imageHistory.pop();
+}
+
+function addToVideoHistory(historyItem) {
+  if (!historyItem || !historyItem.videoData) return;
+  state.videoHistory.unshift(historyItem);
+  if (state.videoHistory.length > 18) state.videoHistory.pop();
 }
 
 function adjustPromptHeight() {
@@ -1167,7 +1465,8 @@ function setupEventListeners() {
         state.keyInfo = null;
         state.keyInfoApiKey = null;
         state.allowedModels = null;
-        renderModelOptions(state.models);
+        const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+        renderModelOptions(modelsToRender);
       }
 
       // Disable generate until validation on blur succeeds
@@ -1199,11 +1498,12 @@ function setupEventListeners() {
       }
 
       const genId = Date.now();
-      const card = createPlaceholderCard(genId);
-      
+      const isVideoMode = payload.mode === 'video';
+      const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
+
       if (emptyState) emptyState.style.display = 'none';
       galleryFeed.appendChild(card);
-      
+
       // Full scroll to bottom
       setTimeout(() => {
           const scrollContainer = document.getElementById('canvas-workspace');
@@ -1213,9 +1513,15 @@ function setupEventListeners() {
       toggleLoading(true);
       setStatus('', '');
       try {
-        const response = await generateImage(payload);
-        displayResultInCard(genId, response);
-        addToImageHistory(response);
+        if (isVideoMode) {
+          const response = await generateVideo(payload);
+          displayVideoResultInCard(genId, response);
+          addToVideoHistory(response);
+        } else {
+          const response = await generateImage(payload);
+          displayResultInCard(genId, response);
+          addToImageHistory(response);
+        }
         if (state.apiKey) updateBalance(state.apiKey);
       } catch (error) {
         setStatus(error.message || i18n.t('statusError'), 'error');
@@ -1247,7 +1553,8 @@ function setupEventListeners() {
   }
 
   window.addEventListener('languageChanged', () => {
-      renderModelOptions(state.models);
+      const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+      renderModelOptions(modelsToRender);
       updateBalance(state.apiKey);
   });
 }

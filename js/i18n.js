@@ -19,10 +19,14 @@ const translations = {
     // Form Fields
     promptLabel: 'Prompt',
     promptPlaceholder: 'Describe the image you want to generate',
+    videoPromptPlaceholder: 'Describe the video you want to generate',
     startScreenIntro: 'Describe your vision and bring it to life',
     uploadTooltip: 'Coming Soon!',
     modelLabel: 'Model',
     aspectRatioLabel: 'Aspect Ratio',
+    imageModeLabel: 'Image',
+    videoModeLabel: 'Video',
+    durationLabel: 'Duration',
     parametersLabel: 'Parameters',
     seedLabel: 'Seed',
     seedPlaceholder: 'Random',
@@ -38,9 +42,12 @@ const translations = {
 
     // Buttons
     generateBtn: 'Generate Image',
+    generateVideoBtn: 'Generate Video',
+    videoDownloadBtn: 'Download Video',
 
     // Common
     generatingLabel: 'Generating...',
+    generatingVideoLabel: 'Generating video...',
     costLabel: 'Cost',
     pollenLabel: 'Pollen',
 
@@ -48,8 +55,12 @@ const translations = {
     statusPromptMissing: 'Please enter a prompt',
     statusModelMissing: 'Please select a model',
     statusGenerating: 'Generating image...',
+    statusGeneratingVideo: 'Generating video...',
     statusSuccess: 'Image generated successfully',
+    statusVideoSuccess: 'Video generated successfully',
     statusError: 'An error occurred',
+    videoError: 'Failed to generate video',
+    betaNotice: 'Video generation is in beta. Some models may ignore certain parameters.',
 
     // Model Loading
     modelLoading: 'Loading models...',
@@ -70,6 +81,7 @@ const translations = {
     paidOnlyError: 'This model requires paid pollen',
     tokensPerMillion: '/million tokens',
     perImage: 'per image',
+    perSecond: 'per second',
   },
   de: {
     // Page
@@ -86,10 +98,14 @@ const translations = {
     // Form Fields
     promptLabel: 'Prompt',
     promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten',
+    videoPromptPlaceholder: 'Beschreiben Sie das Video, das Sie generieren möchten',
     startScreenIntro: 'Beschreiben Sie Ihre Vision und bringen Sie sie zum Leben',
     uploadTooltip: 'Bald verfügbar!',
     modelLabel: 'Modell',
     aspectRatioLabel: 'Seitenverhältnis',
+    imageModeLabel: 'Bild',
+    videoModeLabel: 'Video',
+    durationLabel: 'Dauer',
     parametersLabel: 'Parameter',
     seedLabel: 'Seed',
     seedPlaceholder: 'Zufällig',
@@ -105,9 +121,12 @@ const translations = {
 
     // Buttons
     generateBtn: 'Bild generieren',
+    generateVideoBtn: 'Video generieren',
+    videoDownloadBtn: 'Video herunterladen',
 
     // Common
     generatingLabel: 'Generiere...',
+    generatingVideoLabel: 'Video wird generiert...',
     costLabel: 'Kosten',
     pollenLabel: 'Pollen',
 
@@ -115,8 +134,12 @@ const translations = {
     statusPromptMissing: 'Bitte geben Sie einen Prompt ein',
     statusModelMissing: 'Bitte wählen Sie ein Modell',
     statusGenerating: 'Bild wird generiert...',
+    statusGeneratingVideo: 'Video wird generiert...',
     statusSuccess: 'Bild erfolgreich generiert',
+    statusVideoSuccess: 'Video erfolgreich generiert',
     statusError: 'Ein Fehler ist aufgetreten',
+    videoError: 'Fehler bei der Videogenerierung',
+    betaNotice: 'Die Videogenerierung befindet sich in der Beta-Phase. Einige Modelle ignorieren möglicherweise bestimmte Parameter.',
 
     // Model Loading
     modelLoading: 'Modelle werden geladen...',
@@ -137,6 +160,7 @@ const translations = {
     paidOnlyError: 'Dieses Modell erfordert bezahltes Pollen',
     tokensPerMillion: '/Million Token',
     perImage: 'pro Bild',
+    perSecond: 'pro Sekunde',
   }
 };
 
