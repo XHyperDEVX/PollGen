@@ -133,7 +133,8 @@ async function updateBalance(apiKey) {
     state.keyInfoApiKey = null;
     state.allowedModels = null;
     setGenerateButtonEnabled(false);
-    renderModelOptions(state.models);
+    const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+    renderModelOptions(modelsToRender);
     return;
   }
 
@@ -150,7 +151,8 @@ async function updateBalance(apiKey) {
       state.keyInfoApiKey = null;
       state.allowedModels = null;
       setGenerateButtonEnabled(false);
-      renderModelOptions(state.models);
+      const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+      renderModelOptions(modelsToRender);
       return;
     }
 
@@ -166,7 +168,9 @@ async function updateBalance(apiKey) {
     state.allowedModels = null;
   }
 
-  renderModelOptions(state.models);
+  // Render models based on current mode
+  const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+  renderModelOptions(modelsToRender);
 
   const hasBalancePermission =
     keyInfo.permissions &&
@@ -314,21 +318,27 @@ function formatModelPrice(model) {
   const pricing = model.pricing || {};
   const isVideoModel = model.output_modalities && model.output_modalities.includes('video');
 
-  // Use completionVideoTokens for video models, completionImageTokens for image models
+  // Use completionVideoTokens/completionVideoSeconds for video models, completionImageTokens for image models
   let completionTokens;
   if (isVideoModel) {
-    completionTokens = pricing.completionVideoTokens || 0;
+    // Some video models use completionVideoTokens, others use completionVideoSeconds
+    completionTokens = pricing.completionVideoTokens || pricing.completionVideoSeconds || 0;
   } else {
     completionTokens = pricing.completionImageTokens || pricing.completion || 0;
   }
   if (typeof completionTokens === 'string') completionTokens = parseFloat(completionTokens);
 
+  // Format as decimal number (not exponential)
   let priceStr = '0';
   if (completionTokens && completionTokens !== 0) {
-    if (completionTokens < 0.00001) priceStr = completionTokens.toExponential(2);
-    else if (completionTokens < 0.01) priceStr = completionTokens.toFixed(6).replace(/\.?0+$/, '');
-    else if (completionTokens < 1) priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
-    else priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
+    if (completionTokens < 0.01) {
+      // For small values, use up to 8 decimal places to show values like 0.0000018
+      priceStr = completionTokens.toFixed(8).replace(/\.?0+$/, '');
+    } else if (completionTokens < 1) {
+      priceStr = completionTokens.toFixed(4).replace(/\.?0+$/, '');
+    } else {
+      priceStr = completionTokens.toFixed(2).replace(/\.?0+$/, '');
+    }
   }
 
   // Get currency and capitalize first letter
@@ -355,13 +365,13 @@ function formatModelPrice(model) {
   return { price: priceStr, currency, textTokenPrice, hasTextTokens: !!textTokenPrice, isVideoModel };
 }
 
-function renderModelOptions(models) {
+function renderModelOptions(models, forceReset = false) {
   const select = document.getElementById('model');
   const modelPopover = document.getElementById('model-popover');
   const currentModelName = document.getElementById('current-model-name');
   if (!select || !modelPopover) return;
   
-  const previousValue = select.value;
+  const previousValue = forceReset ? '' : select.value;
   select.innerHTML = '';
   modelPopover.innerHTML = '';
   
@@ -375,10 +385,10 @@ function renderModelOptions(models) {
     const isVideoA = a.output_modalities && a.output_modalities.includes('video');
     const isVideoB = b.output_modalities && b.output_modalities.includes('video');
     let priceA = isVideoA
-      ? (a.pricing?.completionVideoTokens || 0)
+      ? (a.pricing?.completionVideoTokens || a.pricing?.completionVideoSeconds || 0)
       : (a.pricing?.completionImageTokens || a.pricing?.completion || 0);
     let priceB = isVideoB
-      ? (b.pricing?.completionVideoTokens || 0)
+      ? (b.pricing?.completionVideoTokens || b.pricing?.completionVideoSeconds || 0)
       : (b.pricing?.completionImageTokens || b.pricing?.completion || 0);
     if (typeof priceA === 'string') priceA = parseFloat(priceA) || 0;
     if (typeof priceB === 'string') priceB = parseFloat(priceB) || 0;
@@ -516,7 +526,8 @@ function stringToColor(str) {
 window.updateModelOptionsForMode = function(mode) {
   state.currentMode = mode;
   const modelsToRender = mode === 'video' ? state.videoModels : state.models;
-  renderModelOptions(modelsToRender);
+  // Force reset to ensure no cross-contamination between image and video modes
+  renderModelOptions(modelsToRender, true);
 };
 
 // Function to update cost display based on currently selected model (exposed to window)
@@ -547,13 +558,17 @@ function updateCostDisplay(model) {
       price = price * duration;
     }
 
-    // Format the price
+    // Format the price as decimal (not exponential)
     let priceStr;
     if (price === 0) priceStr = '0';
-    else if (price < 0.00001) priceStr = price.toExponential(2);
-    else if (price < 0.01) priceStr = price.toFixed(6).replace(/\.?0+$/, '');
-    else if (price < 1) priceStr = price.toFixed(4).replace(/\.?0+$/, '');
-    else priceStr = price.toFixed(2).replace(/\.?0+$/, '');
+    else if (price < 0.01) {
+      // For small values, use up to 8 decimal places
+      priceStr = price.toFixed(8).replace(/\.?0+$/, '');
+    } else if (price < 1) {
+      priceStr = price.toFixed(4).replace(/\.?0+$/, '');
+    } else {
+      priceStr = price.toFixed(2).replace(/\.?0+$/, '');
+    }
 
     costText.textContent = priceStr;
   }
@@ -1450,7 +1465,8 @@ function setupEventListeners() {
         state.keyInfo = null;
         state.keyInfoApiKey = null;
         state.allowedModels = null;
-        renderModelOptions(state.models);
+        const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+        renderModelOptions(modelsToRender);
       }
 
       // Disable generate until validation on blur succeeds
@@ -1537,7 +1553,8 @@ function setupEventListeners() {
   }
 
   window.addEventListener('languageChanged', () => {
-      renderModelOptions(state.models);
+      const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+      renderModelOptions(modelsToRender);
       updateBalance(state.apiKey);
   });
 }
