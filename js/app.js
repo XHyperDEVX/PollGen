@@ -624,6 +624,7 @@ async function generateVideo(payload) {
   if (payload.model) params.append('model', payload.model);
   if (payload.width) params.append('width', payload.width);
   if (payload.height) params.append('height', payload.height);
+  if (payload.aspectRatio) params.append('aspectRatio', payload.aspectRatio);
   if (payload.duration) params.append('duration', payload.duration);
   if (payload.seed) params.append('seed', payload.seed);
   if (payload.negative_prompt) params.append('negative_prompt', payload.negative_prompt);
@@ -691,6 +692,7 @@ function collectPayload() {
   const modelInput = document.getElementById('model');
   const widthInput = document.getElementById('width');
   const heightInput = document.getElementById('height');
+  const aspectRatioInput = document.getElementById('aspect-ratio');
   const seedInput = document.getElementById('seed');
   const negativePromptInput = document.getElementById('negative_prompt');
   const modeInput = document.getElementById('mode');
@@ -709,6 +711,11 @@ function collectPayload() {
   // Include width/height for both image and video modes
   if (widthInput) payload.width = Number(widthInput.value);
   if (heightInput) payload.height = Number(heightInput.value);
+
+  // Include aspectRatio for video mode
+  if (mode === 'video' && aspectRatioInput && aspectRatioInput.value) {
+    payload.aspectRatio = aspectRatioInput.value;
+  }
 
   // Include duration for video mode
   if (mode === 'video' && durationInput) {

@@ -577,6 +577,7 @@
     <form id="generation-form" style="display: none;">
         <input type="hidden" name="width" id="width" value="1366">
         <input type="hidden" name="height" id="height" value="1025">
+        <input type="hidden" name="aspectRatio" id="aspect-ratio" value="4:3">
         <input type="hidden" name="mode" id="mode" value="image">
         <input type="hidden" name="duration" id="duration-hidden" value="5">
     </form>
@@ -586,7 +587,7 @@
         function changeLanguage(lang) { i18n.setLanguage(lang); document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active')); document.getElementById(`lang-${lang}`).classList.add('active'); }
 
         // Video-supported aspect ratios
-        const VIDEO_ASPECT_RATIOS = ['1:1', '16:9', '9:16'];
+        const VIDEO_ASPECT_RATIOS = ['16:9', '9:16', '2:3', '3:2', '1:1'];
 
         function switchMode(mode) {
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
@@ -599,11 +600,46 @@
             const prompt = document.getElementById('prompt');
 
             if (mode === 'video') {
-                // Hide aspect ratio for video mode (not fully supported)
-                aspectGroup.classList.add('hidden');
+                // Show aspect ratio for video mode with filtered options
+                aspectGroup.classList.remove('hidden');
                 durationGroup.classList.remove('hidden');
                 if (generateBtnText) generateBtnText.textContent = i18n.t('generateVideoBtn') || 'Generate Video';
                 if (prompt) prompt.placeholder = i18n.t('videoPromptPlaceholder') || 'Describe the video you want to generate';
+
+                // Filter aspect ratio options for video mode
+                const items = document.querySelectorAll('#aspect-ratio-popover .popover-item');
+                let hasSelectedVideoRatio = false;
+                const selectedItem = document.querySelector('#aspect-ratio-popover .popover-item.selected');
+
+                items.forEach(item => {
+                    const ratio = item.dataset.ratio;
+                    if (VIDEO_ASPECT_RATIOS.includes(ratio)) {
+                        item.classList.remove('hidden');
+                        if (item === selectedItem) {
+                            hasSelectedVideoRatio = true;
+                        }
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+
+                // Auto-select 16:9 if current ratio is not supported for video
+                if (!hasSelectedVideoRatio) {
+                    const defaultVideoItem = document.querySelector('#aspect-ratio-popover .popover-item[data-ratio="16:9"]');
+                    if (defaultVideoItem) {
+                        items.forEach(i => i.classList.remove('selected'));
+                        defaultVideoItem.classList.add('selected');
+                        document.getElementById('current-ratio-label').textContent = defaultVideoItem.textContent.trim();
+                        document.getElementById('width').value = defaultVideoItem.dataset.w;
+                        document.getElementById('height').value = defaultVideoItem.dataset.h;
+                        document.getElementById('aspect-ratio').value = defaultVideoItem.dataset.ratio;
+
+                        const btnIcon = document.getElementById('current-ratio-icon');
+                        const itemIcon = defaultVideoItem.querySelector('.ratio-icon');
+                        btnIcon.style.width = itemIcon.style.width;
+                        btnIcon.style.height = itemIcon.style.height;
+                    }
+                }
             } else {
                 aspectGroup.classList.remove('hidden');
                 durationGroup.classList.add('hidden');
@@ -691,12 +727,13 @@
                 document.getElementById('current-ratio-label').textContent = item.textContent.trim();
                 document.getElementById('width').value = item.dataset.w;
                 document.getElementById('height').value = item.dataset.h;
-                
+                document.getElementById('aspect-ratio').value = item.dataset.ratio;
+
                 const btnIcon = document.getElementById('current-ratio-icon');
                 const itemIcon = item.querySelector('.ratio-icon');
                 btnIcon.style.width = itemIcon.style.width;
                 btnIcon.style.height = itemIcon.style.height;
-                
+
                 aspectPopover.classList.remove('visible');
             };
         });
