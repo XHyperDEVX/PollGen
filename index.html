@@ -208,6 +208,20 @@
         .mode-btn.active { background: var(--accent); color: white; }
         .mode-btn svg { width: 16px; height: 16px; }
 
+        /* Parallel Mode Toggle */
+        .parallel-toggle { display: flex; background: var(--input-bg); border-radius: 8px; padding: 4px; margin-bottom: 16px; border: 1px solid var(--border-subtle); }
+        .parallel-btn { flex: 1; padding: 8px 12px; border: none; background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 6px; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .parallel-btn:hover { color: var(--text-primary); }
+        .parallel-btn.active { background: rgba(37,99,235,0.3); color: var(--text-primary); }
+        .parallel-btn svg { width: 14px; height: 14px; }
+        .parallel-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 16px; opacity: 0.8; }
+
+        /* Parallel Status Badge */
+        .parallel-status-badge { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 500; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; z-index: 10; }
+        .parallel-status-badge.active { color: #60a5fa; }
+        .parallel-status-badge.completed { color: var(--success); }
+        .parallel-status-badge.error { color: var(--error); }
+
         /* Duration Slider */
         .duration-value { font-size: 13px; color: var(--text-primary); font-weight: 500; margin-left: 8px; }
 
@@ -436,6 +450,17 @@
                         <span data-i18n="videoModeLabel">Video</span>
                     </button>
                 </div>
+                <div class="parallel-toggle">
+                    <button type="button" class="parallel-btn active" id="parallel-single" onclick="switchParallelMode(false)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                        <span data-i18n="singleModeLabel">Single</span>
+                    </button>
+                    <button type="button" class="parallel-btn" id="parallel-mode" onclick="switchParallelMode(true)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        <span data-i18n="parallelModeLabel">Parallel</span>
+                    </button>
+                </div>
+                <div class="parallel-hint hidden" id="parallel-hint" data-i18n="parallelModeHint">Generate multiple images at once (one prompt per line)</div>
                 <div class="form-group">
                     <label class="form-label" data-i18n="modelLabel">Model</label>
                     <div class="custom-select" id="model-select-btn">

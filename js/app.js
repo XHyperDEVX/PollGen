@@ -18,7 +18,14 @@ const state = {
   videoHistory: [],
   allowedModels: null, // For filtering models based on API key permissions
   keyInfo: null, // Store key info from /account/key endpoint
-  keyInfoApiKey: null // Which API key the keyInfo was validated for
+  keyInfoApiKey: null, // Which API key the keyInfo was validated for
+  // Parallel mode state
+  parallelMode: false,
+  activeJobs: new Map(), // Track active parallel jobs by genId
+  parallelQueue: [], // Queue of pending jobs
+  maxConcurrent: 3, // Maximum concurrent API requests
+  completedCount: 0,
+  failedCount: 0
 };
 
 // ============================================================================
@@ -558,6 +565,17 @@ function updateCostDisplay(model) {
       price = price * duration;
     }
 
+    // In parallel mode, multiply by number of prompts
+    if (state.parallelMode) {
+      const promptInput = document.getElementById('prompt');
+      if (promptInput && promptInput.value.trim()) {
+        const prompts = parsePrompts(promptInput.value);
+        if (prompts.length > 1) {
+          price = price * prompts.length;
+        }
+      }
+    }
+
     // Format the price as decimal (not exponential)
     let priceStr;
     if (price === 0) priceStr = '0';
@@ -571,6 +589,19 @@ function updateCostDisplay(model) {
     }
 
     costText.textContent = priceStr;
+  }
+}
+
+// Update cost display when prompt changes in parallel mode
+function updateParallelCostDisplay() {
+  if (!state.parallelMode) return;
+  const select = document.getElementById('model');
+  if (!select) return;
+  const currentModelName = select.value;
+  const models = state.currentMode === 'video' ? state.videoModels : state.models;
+  const model = models.find(m => m.name === currentModelName);
+  if (model) {
+    updateCostDisplay(model);
   }
 }
 
@@ -682,6 +713,224 @@ function parseErrorMessage(text, status) {
         return `${i18n.t('errorGeneration')}: ${status} - ${text}`;
     }
 }
+
+// ============================================================================
+// PARALLEL MODE
+// ============================================================================
+
+function parsePrompts(text) {
+  if (!text || typeof text !== 'string') return [];
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+}
+
+function updateParallelProgress() {
+  const generateBtn = document.getElementById('generate-btn');
+  const btnText = generateBtn?.querySelector('#generate-btn-text');
+  if (!btnText) return;
+
+  const total = state.parallelQueue.length + state.activeJobs.size;
+  const current = state.completedCount + state.failedCount + 1;
+  
+  if (total > 1) {
+    const active = Math.min(current, total);
+    btnText.textContent = i18n.t('generatingProgress', [active, total]);
+  }
+}
+
+function addParallelStatusBadge(card, status, jobIndex, totalJobs) {
+  const existingBadge = card.querySelector('.parallel-status-badge');
+  if (existingBadge) existingBadge.remove();
+
+  const badge = document.createElement('div');
+  badge.className = `parallel-status-badge ${status}`;
+  badge.innerHTML = `<span class="badge-index">${jobIndex + 1}/${totalJobs}</span><span class="badge-status"></span>`;
+  
+  const statusSpan = badge.querySelector('.badge-status');
+  switch (status) {
+    case 'active':
+      statusSpan.textContent = '⏳';
+      break;
+    case 'completed':
+      statusSpan.textContent = '✓';
+      break;
+    case 'error':
+      statusSpan.textContent = '✗';
+      break;
+  }
+
+  card.insertBefore(badge, card.firstChild);
+}
+
+async function processParallelJob(job, jobIndex, totalJobs) {
+  const { genId, payload, isVideoMode } = job;
+  const card = document.getElementById(`gen-card-${genId}`);
+  
+  if (card) {
+    addParallelStatusBadge(card, 'active', jobIndex, totalJobs);
+  }
+
+  state.activeJobs.set(genId, { job, status: 'active', jobIndex });
+
+  try {
+    if (isVideoMode) {
+      const response = await generateVideo(payload);
+      displayVideoResultInCard(genId, response);
+      addToVideoHistory(response);
+    } else {
+      const response = await generateImage(payload);
+      displayResultInCard(genId, response);
+      addToImageHistory(response);
+    }
+    
+    state.completedCount++;
+    if (card) {
+      addParallelStatusBadge(card, 'completed', jobIndex, totalJobs);
+    }
+    state.activeJobs.set(genId, { job, status: 'completed', jobIndex });
+    return { success: true, genId };
+  } catch (error) {
+    state.failedCount++;
+    if (card) {
+      addParallelStatusBadge(card, 'error', jobIndex, totalJobs);
+      const placeholder = card.querySelector('.noise-placeholder');
+      if (placeholder) {
+        placeholder.style.background = 'linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)';
+      }
+    }
+    state.activeJobs.set(genId, { job, status: 'error', jobIndex, error });
+    console.error(`Parallel job ${genId} failed:`, error);
+    return { success: false, genId, error };
+  }
+}
+
+async function processParallelQueue(totalJobs) {
+  while (state.parallelQueue.length > 0 || state.activeJobs.size > 0) {
+    // Start new jobs up to maxConcurrent
+    while (state.activeJobs.size < state.maxConcurrent && state.parallelQueue.length > 0) {
+      const job = state.parallelQueue.shift();
+      const jobIndex = totalJobs - state.parallelQueue.length - 1;
+      processParallelJob(job, jobIndex, totalJobs).then(() => {
+        updateParallelProgress();
+      });
+    }
+
+    // Wait a bit before checking again
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Clean up completed jobs from activeJobs
+    for (const [genId, jobState] of state.activeJobs) {
+      if (jobState.status === 'completed' || jobState.status === 'error') {
+        state.activeJobs.delete(genId);
+      }
+    }
+  }
+}
+
+async function generateParallel(payloads, basePayload, isVideoMode) {
+  const galleryFeed = document.getElementById('gallery-feed');
+  const emptyState = document.getElementById('placeholder');
+  
+  if (emptyState) emptyState.style.display = 'none';
+  
+  state.parallelQueue = [];
+  state.activeJobs.clear();
+  state.completedCount = 0;
+  state.failedCount = 0;
+  
+  const totalJobs = payloads.length;
+  const baseSeed = basePayload.seed || generateRandomSeed();
+
+  // Create placeholder cards and queue jobs
+  payloads.forEach((prompt, index) => {
+    const genId = Date.now() + index;
+    const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
+    galleryFeed.appendChild(card);
+
+    const jobPayload = {
+      ...basePayload,
+      prompt: prompt,
+      seed: baseSeed + index // Increment seed for each prompt
+    };
+
+    state.parallelQueue.push({
+      genId,
+      payload: jobPayload,
+      isVideoMode
+    });
+  });
+
+  // Scroll to show new cards
+  setTimeout(() => {
+    const scrollContainer = document.getElementById('canvas-workspace');
+    if (scrollContainer) {
+      const firstCard = galleryFeed.querySelector('.image-card, .video-card:last-of-type');
+      if (firstCard) {
+        firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, 50);
+
+  toggleLoading(true);
+  updateParallelProgress();
+
+  try {
+    await processParallelQueue(totalJobs);
+    
+    // Update balance after all jobs complete
+    if (state.apiKey) {
+      await updateBalance(state.apiKey);
+    }
+
+    // Show summary
+    if (state.failedCount > 0) {
+      setStatus(i18n.t('parallelComplete', [state.completedCount, state.failedCount]), state.completedCount > 0 ? 'info' : 'error');
+    } else {
+      setStatus('', '');
+    }
+  } catch (error) {
+    setStatus(error.message || i18n.t('statusError'), 'error');
+    console.error(error);
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+function switchParallelMode(enabled) {
+  state.parallelMode = enabled;
+  
+  const singleBtn = document.getElementById('parallel-single');
+  const parallelBtn = document.getElementById('parallel-mode');
+  const hint = document.getElementById('parallel-hint');
+  const prompt = document.getElementById('prompt');
+  
+  if (singleBtn && parallelBtn) {
+    singleBtn.classList.toggle('active', !enabled);
+    parallelBtn.classList.toggle('active', enabled);
+  }
+  
+  if (hint) {
+    hint.classList.toggle('hidden', !enabled);
+  }
+  
+  if (prompt) {
+    if (enabled) {
+      prompt.placeholder = i18n.t('parallelPromptHint');
+    } else {
+      const modeInput = document.getElementById('mode');
+      const isVideoMode = modeInput && modeInput.value === 'video';
+      prompt.placeholder = isVideoMode ? i18n.t('videoPromptPlaceholder') : i18n.t('promptPlaceholder');
+    }
+  }
+
+  // Update cost display
+  updateParallelCostDisplay();
+}
+
+// Expose switchParallelMode to window for inline onclick handlers
+window.switchParallelMode = switchParallelMode;
 
 function generateRandomSeed() {
   return Math.floor(100000 + Math.random() * 900000);
@@ -1504,8 +1753,56 @@ function setupEventListeners() {
         return;
       }
 
-      const genId = Date.now();
       const isVideoMode = payload.mode === 'video';
+
+      // Handle parallel mode
+      if (state.parallelMode) {
+        const prompts = parsePrompts(payload.prompt);
+        if (prompts.length === 0) {
+          setStatus(i18n.t('statusPromptMissing'), 'error');
+          return;
+        }
+        if (prompts.length === 1) {
+          // Single prompt in parallel mode - just do single generation
+          const genId = Date.now();
+          const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
+          if (emptyState) emptyState.style.display = 'none';
+          galleryFeed.appendChild(card);
+          setTimeout(() => {
+            const scrollContainer = document.getElementById('canvas-workspace');
+            if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          }, 50);
+
+          toggleLoading(true);
+          setStatus('', '');
+          try {
+            if (isVideoMode) {
+              const response = await generateVideo(payload);
+              displayVideoResultInCard(genId, response);
+              addToVideoHistory(response);
+            } else {
+              const response = await generateImage(payload);
+              displayResultInCard(genId, response);
+              addToImageHistory(response);
+            }
+            if (state.apiKey) updateBalance(state.apiKey);
+          } catch (error) {
+            setStatus(error.message || i18n.t('statusError'), 'error');
+            console.error(error);
+            card.remove();
+            if (galleryFeed.children.length === 0 && emptyState) emptyState.style.display = 'block';
+          } finally {
+            toggleLoading(false);
+          }
+        } else {
+          // Multiple prompts - parallel generation
+          await generateParallel(prompts, payload, isVideoMode);
+        }
+        return;
+      }
+
+      // Single mode generation
+      const genId = Date.now();
       const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
 
       if (emptyState) emptyState.style.display = 'none';
@@ -1543,18 +1840,39 @@ function setupEventListeners() {
 
   const promptInput = document.getElementById('prompt');
   if (promptInput) {
-    promptInput.addEventListener('input', adjustPromptHeight);
+    promptInput.addEventListener('input', () => {
+      adjustPromptHeight();
+      // Update cost display in parallel mode when prompt changes
+      if (state.parallelMode) {
+        updateParallelCostDisplay();
+      }
+    });
     promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.ctrlKey) {
-            e.preventDefault();
-            generateBtn.click();
-        } else if ((e.key === 'Enter' || e.key === '.') && e.ctrlKey) {
-            e.preventDefault();
-            const start = promptInput.selectionStart;
-            const end = promptInput.selectionEnd;
-            promptInput.value = promptInput.value.substring(0, start) + "\n" + promptInput.value.substring(end);
-            promptInput.selectionStart = promptInput.selectionEnd = start + 1;
-            adjustPromptHeight();
+        // In parallel mode, Enter adds new line (Ctrl+Enter submits)
+        // In single mode, Enter submits (Ctrl+Enter adds new line)
+        if (e.key === 'Enter') {
+          if (state.parallelMode) {
+            if (e.ctrlKey) {
+              // Ctrl+Enter in parallel mode: submit
+              e.preventDefault();
+              generateBtn.click();
+            }
+            // Plain Enter in parallel mode: allow default (new line)
+          } else {
+            if (!e.ctrlKey) {
+              // Plain Enter in single mode: submit
+              e.preventDefault();
+              generateBtn.click();
+            } else {
+              // Ctrl+Enter in single mode: add new line
+              e.preventDefault();
+              const start = promptInput.selectionStart;
+              const end = promptInput.selectionEnd;
+              promptInput.value = promptInput.value.substring(0, start) + "\n" + promptInput.value.substring(end);
+              promptInput.selectionStart = promptInput.selectionEnd = start + 1;
+              adjustPromptHeight();
+            }
+          }
         }
     });
   }
@@ -1563,6 +1881,11 @@ function setupEventListeners() {
       const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
       renderModelOptions(modelsToRender);
       updateBalance(state.apiKey);
+      // Update parallel mode UI text
+      if (state.parallelMode) {
+        const prompt = document.getElementById('prompt');
+        if (prompt) prompt.placeholder = i18n.t('parallelPromptHint');
+      }
   });
 }
 

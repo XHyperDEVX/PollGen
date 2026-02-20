@@ -82,6 +82,15 @@ const translations = {
     tokensPerMillion: '/million tokens',
     perImage: 'per image',
     perSecond: 'per second',
+
+    // Parallel Mode
+    parallelModeLabel: 'Parallel',
+    singleModeLabel: 'Single',
+    parallelModeHint: 'Generate multiple images at once (one prompt per line)',
+    parallelPromptHint: 'Enter one prompt per line for parallel generation',
+    generatingProgress: 'Generating %d of %d...',
+    parallelComplete: '%d completed, %d failed',
+    parallelJobError: 'Job failed',
   },
   de: {
     // Page
@@ -161,6 +170,15 @@ const translations = {
     tokensPerMillion: '/Million Token',
     perImage: 'pro Bild',
     perSecond: 'pro Sekunde',
+
+    // Parallel Mode
+    parallelModeLabel: 'Parallel',
+    singleModeLabel: 'Einzel',
+    parallelModeHint: 'Mehrere Bilder gleichzeitig generieren (ein Prompt pro Zeile)',
+    parallelPromptHint: 'Geben Sie einen Prompt pro Zeile für parallele Generierung ein',
+    generatingProgress: 'Generiere %d von %d...',
+    parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
+    parallelJobError: 'Aufgabe fehlgeschlagen',
   }
 };
 
@@ -187,7 +205,13 @@ class I18n {
       return key;
     }
     if (replacement !== null) {
+      if (Array.isArray(replacement)) {
+        replacement.forEach((r, i) => {
+          translation = translation.replace(/%[sd]/, r);
+        });
+      } else {
         translation = translation.replace('%s', replacement);
+      }
     }
     return translation;
   }
