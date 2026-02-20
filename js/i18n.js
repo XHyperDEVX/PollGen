@@ -84,10 +84,7 @@ const translations = {
     perSecond: 'per second',
 
     // Parallel Mode
-    parallelModeLabel: 'Parallel',
-    singleModeLabel: 'Single',
-    parallelModeHint: 'Generate multiple images at once (one prompt per line)',
-    parallelPromptHint: 'Enter one prompt per line for parallel generation',
+    parallelModeLabel: 'Allow parallel generation',
     generatingProgress: 'Generating %d of %d...',
     parallelComplete: '%d completed, %d failed',
     parallelJobError: 'Job failed',
@@ -172,10 +169,7 @@ const translations = {
     perSecond: 'pro Sekunde',
 
     // Parallel Mode
-    parallelModeLabel: 'Parallel',
-    singleModeLabel: 'Einzel',
-    parallelModeHint: 'Mehrere Bilder gleichzeitig generieren (ein Prompt pro Zeile)',
-    parallelPromptHint: 'Geben Sie einen Prompt pro Zeile für parallele Generierung ein',
+    parallelModeLabel: 'Parallele Generierung erlauben',
     generatingProgress: 'Generiere %d von %d...',
     parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
     parallelJobError: 'Aufgabe fehlgeschlagen',
