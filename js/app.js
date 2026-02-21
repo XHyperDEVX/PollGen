@@ -1539,6 +1539,9 @@ function setupEventListeners() {
 
   if (generateBtn) {
     generateBtn.addEventListener('click', async () => {
+      // Check screen resolution on generate button click
+      checkResolution();
+
       if (!state.apiKey) {
         validateApiKey();
         if (!state.apiKey) {
