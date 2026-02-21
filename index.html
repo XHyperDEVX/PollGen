@@ -411,6 +411,27 @@
         .status-msg.success { background: #059669; color: white; display: block; }
         .status-msg.error { background: #DC2626; color: white; display: block; }
 
+        /* Resolution Warning */
+        .resolution-warning {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 215, 0, 0.15);
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            color: #FFD700;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+        }
+        .resolution-warning.visible { display: block; }
+
     </style>
 </head>
 <body>
@@ -435,6 +456,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                         <span data-i18n="videoModeLabel">Video</span>
                     </button>
+                </div>
+                <div class="checkbox-item" style="margin-bottom: 12px;">
+                    <input type="checkbox" id="hide-premium-models" name="hide-premium-models">
+                    <span data-i18n="hidePremiumModelsLabel">Hide premium models</span>
                 </div>
                 <div class="form-group">
                     <label class="form-label" data-i18n="modelLabel">Model</label>
@@ -574,6 +599,7 @@
     </main>
 
     <div id="status" class="status-msg"></div>
+    <div id="resolution-warning" class="resolution-warning" data-i18n="resolutionWarning">For optimal use, a resolution of at least 1080p is recommended.</div>
     <form id="generation-form" style="display: none;">
         <input type="hidden" name="width" id="width" value="1366">
         <input type="hidden" name="height" id="height" value="1025">
