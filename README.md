@@ -1,7 +1,7 @@
 
-# [Pollinations Image Generator (PollGen)](https://xhyperdevx.github.io/PollGen)
+# [Pollinations Generator (PollGen)](https://xhyperdevx.github.io/PollGen)
 
-A clean, minimal web application for generating AI images using the Pollinations API. Built with vanilla JavaScript, HTML, and CSS.
+A clean, minimal web application for generating AI images and videos using the Pollinations API. Built with vanilla JavaScript, HTML, and CSS.
 
 ## Features
 
@@ -19,13 +19,9 @@ A clean, minimal web application for generating AI images using the Pollinations
 - Graceful fallback to cached models if API is unavailable
 
 ### ⚙️ Generation Options
-- **Prompt**: Detailed image description (required)
-- **Model Selection**: Choose from available image generation models
-- **Dimensions**: Custom width and height (64-2048px)
-- **Aspect Ratio Presets**: 16:9, 9:16, 1:1, 3:4, or custom
-- **Seed**: Control randomness (0 = random)
-- **Quality**: Low, Medium, High, HD
-- **Guidance Scale**: Control how closely the result follows the prompt (1-20)
+- **Prompt**: Detailed image or video description (required)
+- **Aspect Ratio Presets**: Different options for images and videos
+- **Seed**: Control randomness
 - **Negative Prompt**: Describe what to avoid in the image
 - **Advanced Options**:
   - Enhance: Let AI optimize the prompt
@@ -33,17 +29,16 @@ A clean, minimal web application for generating AI images using the Pollinations
   - No Logo: Remove Pollinations watermark
   - No Feed: Prevent sharing in public feed
   - Safe: Enable safety content filters
-  - Transparent: Create transparent background (if supported)
 
 ## How to Use
 
 1. **Open PollGen**: https://xhyperdevx.github.io/PollGen
 2. **Enter your API Key**: Get a API key from [pollinations.ai](https://enter.pollinations.ai) and enter it in the API Key field
-3. **Describe your image**: Enter a detailed description of the image you want to generate
+3. **Describe your image or video**: Enter a detailed description of what you want to generate
 4. **Select a model**: Choose from the available image generation models
-5. **Adjust settings** (optional): Customize dimensions, quality, guidance, and other parameters
-6. **Generate**: Click the "Generate Image" button
-7. **Download**: Once generated, download your image or open the source link
+5. **Adjust settings** (optional): Customize dimensions, quality and other parameters
+6. **Generate**: Click the "Generate" button
+7. **Download**: Once generated, download your image or video or open the source link
 
 ## Language Support
 
@@ -64,7 +59,7 @@ Supported languages:
 
 - **No backend required**: Fully static frontend application
 - **Vanilla JavaScript**: No frameworks or dependencies
-- **Dynamic model loading**: Fetches latest models from Pollinations API
+- **Dynamic model loading**: Fetches latest models from Pollinations API (both image and video models)
 - **Caching**: 24-hour cache for models to reduce API calls
 - **Responsive**: Mobile-first design that works on all screen sizes
 - **Accessible**: Semantic HTML with proper ARIA labels

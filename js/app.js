@@ -19,6 +19,7 @@ const state = {
   allowedModels: null, // For filtering models based on API key permissions
   keyInfo: null, // Store key info from /account/key endpoint
   keyInfoApiKey: null, // Which API key the keyInfo was validated for
+  hidePremiumModels: false, // Whether to hide premium (paid_only) models
   // Parallel mode state
   parallelMode: false,
   parallelCount: 2, // Number of images to generate in parallel
@@ -214,6 +215,27 @@ async function updateBalance(apiKey) {
 // API KEY MANAGEMENT
 // ============================================================================
 
+// Premium Models Filter
+function loadHidePremiumModels() {
+  const saved = localStorage.getItem('pollgen_hide_premium_models');
+  if (saved !== null) {
+    state.hidePremiumModels = saved === 'true';
+  } else {
+    state.hidePremiumModels = false;
+  }
+  // Update checkbox state
+  const checkbox = document.getElementById('hide-premium-models');
+  if (checkbox) {
+    checkbox.checked = state.hidePremiumModels;
+  }
+  return state.hidePremiumModels;
+}
+
+function saveHidePremiumModels(hide) {
+  state.hidePremiumModels = hide;
+  localStorage.setItem('pollgen_hide_premium_models', hide.toString());
+}
+
 function loadApiKey() {
   const saved = sessionStorage.getItem('pollinations_api_key');
   if (saved && saved.trim()) {
@@ -380,15 +402,20 @@ function renderModelOptions(models, forceReset = false) {
   const modelPopover = document.getElementById('model-popover');
   const currentModelName = document.getElementById('current-model-name');
   if (!select || !modelPopover) return;
-  
+
   const previousValue = forceReset ? '' : select.value;
   select.innerHTML = '';
   modelPopover.innerHTML = '';
-  
+
   // Filter models by permissions if allowedModels is set
   let filteredModels = models;
   if (state.allowedModels && Array.isArray(state.allowedModels)) {
     filteredModels = models.filter(model => state.allowedModels.includes(model.name));
+  }
+
+  // Filter out premium models if hidePremiumModels is enabled
+  if (state.hidePremiumModels) {
+    filteredModels = filteredModels.filter(model => model.paid_only !== true);
   }
   
   const sortedModels = [...filteredModels].sort((a, b) => {
@@ -1071,6 +1098,40 @@ function collectPayload() {
 // ============================================================================
 // UI UPDATES
 // ============================================================================
+
+function checkResolution() {
+  const resolutionWarning = document.getElementById('resolution-warning');
+  if (!resolutionWarning) return;
+
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  // Add buffer to prevent false alarms on 1080p monitors
+  // Accounts for browser chrome (tabs, address bar, bookmarks, etc.)
+  const is1080p = width >= 1910 && height >= 900;
+
+  if (is1080p) {
+    resolutionWarning.classList.remove('visible');
+  } else {
+    resolutionWarning.classList.add('visible');
+  }
+}
+
+function checkMobileDevice() {
+  const mobileWarning = document.getElementById('mobile-warning');
+  if (!mobileWarning) return;
+
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  // Consider screen mobile if significantly smaller than typical desktop
+  // Using 768px as common breakpoint for tablets/mobiles
+  const isMobile = width < 768 || height < 600;
+
+  if (isMobile) {
+    mobileWarning.classList.add('visible');
+  } else {
+    mobileWarning.classList.remove('visible');
+  }
+}
 
 function setStatus(message, type = 'info') {
   const statusBox = document.getElementById('status');
@@ -1817,6 +1878,16 @@ function adjustPromptHeight() {
 // ============================================================================
 
 function setupEventListeners() {
+  // Premium models filter checkbox
+  const hidePremiumCheckbox = document.getElementById('hide-premium-models');
+  if (hidePremiumCheckbox) {
+    hidePremiumCheckbox.addEventListener('change', () => {
+      saveHidePremiumModels(hidePremiumCheckbox.checked);
+      const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+      renderModelOptions(modelsToRender, true);
+    });
+  }
+
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
     apiKeyInput.addEventListener('blur', async () => {
@@ -1849,6 +1920,11 @@ function setupEventListeners() {
 
   if (generateBtn) {
     generateBtn.addEventListener('click', async () => {
+      // Check screen resolution on generate button click
+      checkResolution();
+      // Check for mobile devices on generate button click
+      checkMobileDevice();
+
       if (!state.apiKey) {
         validateApiKey();
         if (!state.apiKey) {
@@ -2100,6 +2176,17 @@ function init() {
 
   // Default disabled until validated
   setGenerateButtonEnabled(false);
+
+  // Load premium models filter setting
+  loadHidePremiumModels();
+
+  // Check screen resolution
+  checkResolution();
+  window.addEventListener('resize', checkResolution);
+
+  // Check for mobile devices
+  checkMobileDevice();
+  window.addEventListener('resize', checkMobileDevice);
 
   loadApiKey();
   if (state.apiKey) {

@@ -83,6 +83,11 @@ const translations = {
     perImage: 'per image',
     perSecond: 'per second',
 
+    // Premium Filter
+    hidePremiumModelsLabel: 'Hide premium models',
+
+    // Resolution Warning
+    resolutionWarning: 'For optimal use, a resolution of at least 1080p is recommended.',
     // Parallel Mode
     parallelModeLabel: 'Parallel Generation',
     generateLabel: 'Generate',
@@ -176,6 +181,11 @@ const translations = {
     perImage: 'pro Bild',
     perSecond: 'pro Sekunde',
 
+    // Premium Filter
+    hidePremiumModelsLabel: 'Premium-Modelle ausblenden',
+
+    // Resolution Warning
+    resolutionWarning: 'Für die optimale Nutzung wird eine Auflösung von mindestens 1080p empfohlen.',
     // Parallel Mode
     parallelModeLabel: 'Parallele Generierung',
     generateLabel: 'Generiere',
