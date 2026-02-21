@@ -84,7 +84,8 @@ const translations = {
     perSecond: 'per second',
 
     // Parallel Mode
-    parallelModeLabel: 'Allow parallel generation',
+    parallelModeLabel: 'Parallel Generation',
+    countLabel: '×',
     generatingProgress: 'Generating %d of %d...',
     parallelComplete: '%d completed, %d failed',
     parallelJobError: 'Job failed',
@@ -169,7 +170,8 @@ const translations = {
     perSecond: 'pro Sekunde',
 
     // Parallel Mode
-    parallelModeLabel: 'Parallele Generierung erlauben',
+    parallelModeLabel: 'Parallele Generierung',
+    countLabel: '×',
     generatingProgress: 'Generiere %d von %d...',
     parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
     parallelJobError: 'Aufgabe fehlgeschlagen',

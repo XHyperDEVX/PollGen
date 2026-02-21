@@ -21,11 +21,14 @@ const state = {
   keyInfoApiKey: null, // Which API key the keyInfo was validated for
   // Parallel mode state
   parallelMode: false,
+  parallelCount: 2, // Number of images to generate in parallel
   activeJobs: new Map(), // Track active parallel jobs by genId
   parallelQueue: [], // Queue of pending jobs
   maxConcurrent: 3, // Maximum concurrent API requests
   completedCount: 0,
-  failedCount: 0
+  failedCount: 0,
+  currentSetId: null, // ID of current parallel set
+  currentSetJobs: 0 // Number of jobs in current set
 };
 
 // ============================================================================
@@ -565,6 +568,11 @@ function updateCostDisplay(model) {
       price = price * duration;
     }
 
+    // In parallel mode, multiply by count
+    if (state.parallelMode && state.parallelCount > 1) {
+      price = price * state.parallelCount;
+    }
+
     // Format the price as decimal (not exponential)
     let priceStr;
     if (price === 0) priceStr = '0';
@@ -711,15 +719,23 @@ function updateParallelProgress() {
   const btnText = generateBtn?.querySelector('#generate-btn-text');
   if (!btnText) return;
 
-  const total = state.parallelQueue.length + state.activeJobs.size;
-  if (total > 1) {
-    const current = state.completedCount + state.failedCount + 1;
-    const active = Math.min(current, total);
-    btnText.textContent = i18n.t('generatingProgress', [active, total]);
+  // Only show progress during active parallel generation
+  if (state.parallelMode && state.currentSetJobs > 0) {
+    const activeCount = state.activeJobs.size;
+    const queueCount = state.parallelQueue.length;
+    const total = state.currentSetJobs;
+    const completed = state.completedCount;
+    
+    if (total > 1) {
+      btnText.textContent = i18n.t('generatingProgress', [completed + 1, total]);
+    }
   }
 }
 
 function addParallelStatusBadge(card, status, jobIndex, totalJobs) {
+  // Only show badges during parallel generation
+  if (!state.parallelMode) return;
+  
   const existingBadge = card.querySelector('.parallel-status-badge');
   if (existingBadge) existingBadge.remove();
 
@@ -743,15 +759,20 @@ function addParallelStatusBadge(card, status, jobIndex, totalJobs) {
   card.insertBefore(badge, card.firstChild);
 }
 
-async function processParallelJob(job, jobIndex, totalJobs) {
+function removeParallelStatusBadge(card) {
+  const badge = card.querySelector('.parallel-status-badge');
+  if (badge) badge.remove();
+}
+
+async function processParallelJob(job, jobIndex, totalJobs, setId) {
   const { genId, payload, isVideoMode } = job;
   const card = document.getElementById(`gen-card-${genId}`);
   
-  if (card) {
+  if (card && setId === state.currentSetId) {
     addParallelStatusBadge(card, 'active', jobIndex, totalJobs);
   }
 
-  state.activeJobs.set(genId, { job, status: 'active', jobIndex });
+  state.activeJobs.set(genId, { job, status: 'active', jobIndex, setId });
 
   try {
     if (isVideoMode) {
@@ -765,21 +786,21 @@ async function processParallelJob(job, jobIndex, totalJobs) {
     }
     
     state.completedCount++;
-    if (card) {
+    if (card && setId === state.currentSetId) {
       addParallelStatusBadge(card, 'completed', jobIndex, totalJobs);
     }
-    state.activeJobs.set(genId, { job, status: 'completed', jobIndex });
+    state.activeJobs.set(genId, { job, status: 'completed', jobIndex, setId });
     return { success: true, genId };
   } catch (error) {
     state.failedCount++;
-    if (card) {
+    if (card && setId === state.currentSetId) {
       addParallelStatusBadge(card, 'error', jobIndex, totalJobs);
       const placeholder = card.querySelector('.noise-placeholder');
       if (placeholder) {
         placeholder.style.background = 'linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)';
       }
     }
-    state.activeJobs.set(genId, { job, status: 'error', jobIndex, error });
+    state.activeJobs.set(genId, { job, status: 'error', jobIndex, setId, error });
     console.error(`Parallel job ${genId} failed:`, error);
     return { success: false, genId, error };
   }
@@ -787,11 +808,10 @@ async function processParallelJob(job, jobIndex, totalJobs) {
 
 let parallelProcessorRunning = false;
 
-async function startParallelProcessor() {
+async function startParallelProcessor(setId, totalJobs) {
   if (parallelProcessorRunning) return;
   parallelProcessorRunning = true;
 
-  const galleryFeed = document.getElementById('gallery-feed');
   const emptyState = document.getElementById('placeholder');
 
   if (emptyState) emptyState.style.display = 'none';
@@ -804,8 +824,7 @@ async function startParallelProcessor() {
       // Start new jobs up to maxConcurrent
       while (state.activeJobs.size < state.maxConcurrent && state.parallelQueue.length > 0) {
         const job = state.parallelQueue.shift();
-        const totalJobs = state.completedCount + state.failedCount + state.activeJobs.size + state.parallelQueue.length + 1;
-        processParallelJob(job, state.completedCount + state.failedCount + state.activeJobs.size, totalJobs).then(() => {
+        processParallelJob(job, state.completedCount + state.failedCount + state.activeJobs.size, totalJobs, setId).then(() => {
           updateParallelProgress();
         });
       }
@@ -840,39 +859,58 @@ async function startParallelProcessor() {
   } finally {
     toggleLoading(false);
     parallelProcessorRunning = false;
+    // Clear set tracking
+    state.currentSetId = null;
+    state.currentSetJobs = 0;
   }
 }
 
-function addParallelJob(payload, isVideoMode) {
+function addParallelJobs(payload, isVideoMode, count) {
   const galleryFeed = document.getElementById('gallery-feed');
   const emptyState = document.getElementById('placeholder');
   
   if (emptyState) emptyState.style.display = 'none';
   
-  // Generate unique seed for each job
-  const jobPayload = {
-    ...payload,
-    seed: generateRandomSeed()
-  };
+  // Create a new set ID for this batch
+  const setId = Date.now();
+  state.currentSetId = setId;
+  state.currentSetJobs = count;
+  state.completedCount = 0;
+  state.failedCount = 0;
+  
+  // Create a container for the parallel set
+  const setContainer = document.createElement('div');
+  setContainer.className = 'parallel-set';
+  setContainer.id = `parallel-set-${setId}`;
+  galleryFeed.appendChild(setContainer);
 
-  const genId = Date.now() + Math.random(); // Ensure unique ID
-  const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
-  galleryFeed.appendChild(card);
+  // Create placeholder cards for each job
+  for (let i = 0; i < count; i++) {
+    const jobPayload = {
+      ...payload,
+      seed: generateRandomSeed()
+    };
 
-  state.parallelQueue.push({
-    genId,
-    payload: jobPayload,
-    isVideoMode
-  });
+    const genId = Date.now() + i + Math.random();
+    const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
+    setContainer.appendChild(card);
 
-  // Scroll to show new card
+    state.parallelQueue.push({
+      genId,
+      payload: jobPayload,
+      isVideoMode,
+      setId
+    });
+  }
+
+  // Scroll to show new cards
   setTimeout(() => {
     const scrollContainer = document.getElementById('canvas-workspace');
     if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
   }, 50);
 
-  // Start processor if not already running
-  startParallelProcessor();
+  // Start processor
+  startParallelProcessor(setId, count);
 }
 
 function switchParallelMode(enabled) {
@@ -883,6 +921,50 @@ function switchParallelMode(enabled) {
   if (checkbox && checkbox.checked !== enabled) {
     checkbox.checked = enabled;
   }
+  
+  // Show/hide the count input
+  const countWrapper = document.getElementById('parallel-count-wrapper');
+  if (countWrapper) {
+    countWrapper.classList.toggle('visible', enabled);
+  }
+  
+  // Update cost display
+  window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
+}
+
+function updateParallelCount(delta) {
+  const input = document.getElementById('parallel-count');
+  if (!input) return;
+  
+  let value = parseInt(input.value, 10) || 2;
+  value = Math.max(2, Math.min(10, value + delta));
+  input.value = value;
+  state.parallelCount = value;
+  
+  // Update cost display
+  window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
+}
+
+function setupParallelCountHandlers() {
+  const input = document.getElementById('parallel-count');
+  if (!input) return;
+  
+  // Click to increment/decrement
+  input.addEventListener('click', (e) => {
+    e.preventDefault();
+    const rect = input.getBoundingClientRect();
+    const isTop = e.clientY < rect.top + rect.height / 2;
+    updateParallelCount(isTop ? -1 : 1);
+  });
+  
+  // Scroll wheel to change value
+  input.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    updateParallelCount(e.deltaY > 0 ? -1 : 1);
+  }, { passive: false });
+  
+  // Initialize state from input
+  state.parallelCount = parseInt(input.value, 10) || 2;
 }
 
 // Expose switchParallelMode to window for inline onchange handlers
@@ -1713,9 +1795,9 @@ function setupEventListeners() {
 
       const isVideoMode = payload.mode === 'video';
 
-      // In parallel mode, add job to queue and process
+      // In parallel mode, generate multiple images at once
       if (state.parallelMode) {
-        addParallelJob(payload, isVideoMode);
+        addParallelJobs(payload, isVideoMode, state.parallelCount);
         return;
       }
 
@@ -1779,6 +1861,9 @@ function setupEventListeners() {
       renderModelOptions(modelsToRender);
       updateBalance(state.apiKey);
   });
+  
+  // Setup parallel count handlers
+  setupParallelCountHandlers();
 }
 
 // ============================================================================
