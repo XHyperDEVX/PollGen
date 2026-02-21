@@ -89,6 +89,10 @@ const translations = {
     generatingProgress: 'Generating %d of %d...',
     parallelComplete: '%d completed, %d failed',
     parallelJobError: 'Job failed',
+
+    // Context Menu
+    downloadImage: 'Download Image',
+    downloadVideo: 'Download Video',
   },
   de: {
     // Page
@@ -175,6 +179,10 @@ const translations = {
     generatingProgress: 'Generiere %d von %d...',
     parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
     parallelJobError: 'Aufgabe fehlgeschlagen',
+
+    // Context Menu
+    downloadImage: 'Bild herunterladen',
+    downloadVideo: 'Video herunterladen',
   }
 };
 

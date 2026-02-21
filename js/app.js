@@ -937,7 +937,7 @@ function updateParallelCount(delta) {
   if (!input) return;
   
   let value = parseInt(input.value, 10) || 2;
-  value = Math.max(2, Math.min(10, value + delta));
+  value = Math.max(2, Math.min(9, value + delta));
   input.value = value;
   state.parallelCount = value;
   
@@ -947,18 +947,23 @@ function updateParallelCount(delta) {
 
 function setupParallelCountHandlers() {
   const input = document.getElementById('parallel-count');
-  if (!input) return;
+  const wrapper = document.getElementById('parallel-count-wrapper');
+  if (!input || !wrapper) return;
   
-  // Click to increment/decrement
-  input.addEventListener('click', (e) => {
+  // Left-click to increment
+  wrapper.addEventListener('click', (e) => {
     e.preventDefault();
-    const rect = input.getBoundingClientRect();
-    const isTop = e.clientY < rect.top + rect.height / 2;
-    updateParallelCount(isTop ? -1 : 1);
+    updateParallelCount(1);
+  });
+  
+  // Right-click to decrement
+  wrapper.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    updateParallelCount(-1);
   });
   
   // Scroll wheel to change value
-  input.addEventListener('wheel', (e) => {
+  wrapper.addEventListener('wheel', (e) => {
     e.preventDefault();
     updateParallelCount(e.deltaY > 0 ? -1 : 1);
   }, { passive: false });
@@ -1864,6 +1869,85 @@ function setupEventListeners() {
   
   // Setup parallel count handlers
   setupParallelCountHandlers();
+  
+  // Setup context menu
+  setupContextMenu();
+}
+
+// Context menu state
+let contextMenuTarget = null;
+
+function setupContextMenu() {
+  const contextMenu = document.getElementById('context-menu');
+  const downloadItem = document.getElementById('context-download');
+  
+  if (!contextMenu) return;
+  
+  // Hide context menu on click anywhere
+  document.addEventListener('click', (e) => {
+    if (!contextMenu.contains(e.target)) {
+      contextMenu.classList.remove('visible');
+    }
+  });
+  
+  // Hide context menu on scroll
+  document.addEventListener('scroll', () => {
+    contextMenu.classList.remove('visible');
+  }, true);
+  
+  // Handle right-click on image/video cards
+  document.addEventListener('contextmenu', (e) => {
+    const card = e.target.closest('.image-card, .video-card');
+    if (card) {
+      e.preventDefault();
+      showContextMenu(e.clientX, e.clientY, card);
+    }
+  });
+  
+  // Handle download from context menu
+  if (downloadItem) {
+    downloadItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (contextMenuTarget) {
+        const img = contextMenuTarget.querySelector('img');
+        const video = contextMenuTarget.querySelector('video');
+        const genId = contextMenuTarget.id?.replace('gen-card-', '');
+        
+        if (img) {
+          downloadImage(img.src, `pollgen-${genId || Date.now()}.png`);
+        } else if (video) {
+          downloadVideo(video.src, `pollgen-video-${genId || Date.now()}.mp4`);
+        }
+      }
+      contextMenu.classList.remove('visible');
+    });
+  }
+}
+
+function showContextMenu(x, y, card) {
+  const contextMenu = document.getElementById('context-menu');
+  if (!contextMenu) return;
+  
+  contextMenuTarget = card;
+  
+  // Position the menu
+  const menuWidth = 160;
+  const menuHeight = 44;
+  
+  let posX = x;
+  let posY = y;
+  
+  // Keep menu in viewport
+  if (x + menuWidth > window.innerWidth) {
+    posX = window.innerWidth - menuWidth - 10;
+  }
+  if (y + menuHeight > window.innerHeight) {
+    posY = window.innerHeight - menuHeight - 10;
+  }
+  
+  contextMenu.style.left = `${posX}px`;
+  contextMenu.style.top = `${posY}px`;
+  contextMenu.classList.add('visible');
 }
 
 // ============================================================================
