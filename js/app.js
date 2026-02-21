@@ -1090,6 +1090,9 @@ function setStatus(message, type = 'info') {
 let activeFireflyRaf = null;
 let activeFireflyRo = null;
 
+// Map to track multiple firefly animations by layer element
+const fireflyAnimations = new Map();
+
 function startFireflyTicker(layer) {
   if (!layer) return;
 
@@ -1134,10 +1137,11 @@ function startFireflyTicker(layer) {
 
   updateBounds();
 
-  if (activeFireflyRo) activeFireflyRo.disconnect();
+  // Create per-layer ResizeObserver
+  let ro = null;
   if (window.ResizeObserver) {
-    activeFireflyRo = new ResizeObserver(updateBounds);
-    activeFireflyRo.observe(layer);
+    ro = new ResizeObserver(updateBounds);
+    ro.observe(layer);
   }
 
   const last = { t: performance.now() };
@@ -1148,7 +1152,8 @@ function startFireflyTicker(layer) {
 
     if (!bounds.w || !bounds.h) {
       updateBounds();
-      activeFireflyRaf = requestAnimationFrame(tick);
+      const anim = fireflyAnimations.get(layer);
+      if (anim) anim.raf = requestAnimationFrame(tick);
       return;
     }
 
@@ -1200,22 +1205,38 @@ function startFireflyTicker(layer) {
       el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     }
 
-    activeFireflyRaf = requestAnimationFrame(tick);
+    const anim = fireflyAnimations.get(layer);
+    if (anim) anim.raf = requestAnimationFrame(tick);
   };
 
-  if (activeFireflyRaf) cancelAnimationFrame(activeFireflyRaf);
-  activeFireflyRaf = requestAnimationFrame(tick);
+  const raf = requestAnimationFrame(tick);
+  
+  // Store animation state for this layer
+  fireflyAnimations.set(layer, { raf, ro });
+  
+  // Return cleanup function
+  return () => stopFireflyTickerForLayer(layer);
+}
+
+function stopFireflyTickerForLayer(layer) {
+  const anim = fireflyAnimations.get(layer);
+  if (anim) {
+    if (anim.raf) cancelAnimationFrame(anim.raf);
+    if (anim.ro) anim.ro.disconnect();
+    fireflyAnimations.delete(layer);
+  }
+}
+
+function stopAllFireflyTickers() {
+  for (const [layer, anim] of fireflyAnimations) {
+    if (anim.raf) cancelAnimationFrame(anim.raf);
+    if (anim.ro) anim.ro.disconnect();
+  }
+  fireflyAnimations.clear();
 }
 
 function stopFireflyTicker() {
-  if (activeFireflyRaf) {
-    cancelAnimationFrame(activeFireflyRaf);
-    activeFireflyRaf = null;
-  }
-  if (activeFireflyRo) {
-    activeFireflyRo.disconnect();
-    activeFireflyRo = null;
-  }
+  stopAllFireflyTickers();
 }
 
 function toggleLoading(isLoading) {
@@ -1225,7 +1246,7 @@ function toggleLoading(isLoading) {
   const isVideoMode = modeInput && modeInput.value === 'video';
 
   if (!isLoading) {
-    stopFireflyTicker();
+    stopAllFireflyTickers();
   }
 
   if (generateBtn) {
@@ -1375,6 +1396,12 @@ function displayResultInCard(genId, data) {
     const placeholder = card.querySelector('.noise-placeholder');
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
+    
+    // Stop the firefly animation for this card
+    const fireflyLayer = placeholder?.querySelector('.firefly-layer');
+    if (fireflyLayer) {
+      stopFireflyTickerForLayer(fireflyLayer);
+    }
 
     const img = new Image();
     img.src = data.imageData;
@@ -1475,6 +1502,12 @@ function displayVideoResultInCard(genId, data) {
     const placeholder = card.querySelector('.noise-placeholder');
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
+    
+    // Stop the firefly animation for this card
+    const fireflyLayer = placeholder?.querySelector('.firefly-layer');
+    if (fireflyLayer) {
+      stopFireflyTickerForLayer(fireflyLayer);
+    }
 
     const video = document.createElement('video');
     video.src = data.videoData;
