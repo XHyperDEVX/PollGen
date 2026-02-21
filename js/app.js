@@ -1919,11 +1919,16 @@ function setupContextMenu() {
   
   if (!contextMenu) return;
   
-  // Hide context menu on click anywhere
-  document.addEventListener('click', (e) => {
-    if (!contextMenu.contains(e.target)) {
+  // Hide context menu on any click anywhere (like native browser context menu)
+  document.addEventListener('mousedown', (e) => {
+    if (contextMenu.classList.contains('visible')) {
       contextMenu.classList.remove('visible');
     }
+  });
+  
+  // Prevent the context menu from closing when right-clicking inside it
+  contextMenu.addEventListener('contextmenu', (e) => {
+    e.stopPropagation();
   });
   
   // Hide context menu on scroll
