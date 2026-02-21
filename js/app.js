@@ -778,9 +778,9 @@ function checkResolution() {
 
   const width = window.innerWidth;
   const height = window.innerHeight;
-  // Add 70px buffer to prevent false alarms on 1080p monitors
+  // Add buffer to prevent false alarms on 1080p monitors
   // Accounts for browser chrome (tabs, address bar, bookmarks, etc.)
-  const is1080p = width >= 1850 && height >= 1010;
+  const is1080p = width >= 1910 && height >= 900;
 
   if (is1080p) {
     resolutionWarning.classList.remove('visible');
