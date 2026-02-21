@@ -202,6 +202,42 @@
         }
         .resolution-warning.visible { display: block; }
 
+        /* Mobile Warning - large prominent message */
+        .mobile-warning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(220, 38, 38, 0.95);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 2000;
+            display: none;
+        }
+        .mobile-warning.visible { display: flex; }
+        .mobile-warning-content {
+            max-width: 400px;
+            text-align: center;
+        }
+        .mobile-warning-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .mobile-warning-text {
+            font-size: 14px;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
         @media (max-width: 880px) {
             .sidebar { width: 320px; }
         }
@@ -605,6 +641,21 @@
     </main>
 
     <div id="status" class="status-msg"></div>
+    <div id="mobile-warning" class="mobile-warning">
+        <div class="mobile-warning-content">
+            <div class="mobile-warning-title">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                Mobile Device Detected
+            </div>
+            <div class="mobile-warning-text">
+                This app is not optimized for mobile devices. Please use a device with a larger screen.
+            </div>
+        </div>
+    </div>
     <form id="generation-form" style="display: none;">
         <input type="hidden" name="width" id="width" value="1366">
         <input type="hidden" name="height" id="height" value="1025">

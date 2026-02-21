@@ -789,6 +789,23 @@ function checkResolution() {
   }
 }
 
+function checkMobileDevice() {
+  const mobileWarning = document.getElementById('mobile-warning');
+  if (!mobileWarning) return;
+
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  // Consider screen mobile if significantly smaller than typical desktop
+  // Using 768px as common breakpoint for tablets/mobiles
+  const isMobile = width < 768 || height < 600;
+
+  if (isMobile) {
+    mobileWarning.classList.add('visible');
+  } else {
+    mobileWarning.classList.remove('visible');
+  }
+}
+
 function setStatus(message, type = 'info') {
   const statusBox = document.getElementById('status');
   if (!statusBox) return;
@@ -1543,6 +1560,8 @@ function setupEventListeners() {
     generateBtn.addEventListener('click', async () => {
       // Check screen resolution on generate button click
       checkResolution();
+      // Check for mobile devices on generate button click
+      checkMobileDevice();
 
       if (!state.apiKey) {
         validateApiKey();
@@ -1678,6 +1697,10 @@ function init() {
   // Check screen resolution
   checkResolution();
   window.addEventListener('resize', checkResolution);
+
+  // Check for mobile devices
+  checkMobileDevice();
+  window.addEventListener('resize', checkMobileDevice);
 
   loadApiKey();
   if (state.apiKey) {
