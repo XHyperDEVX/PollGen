@@ -82,6 +82,20 @@ const translations = {
     tokensPerMillion: '/million tokens',
     perImage: 'per image',
     perSecond: 'per second',
+
+    // Parallel Mode
+    parallelModeLabel: 'Parallel Generation',
+    generateLabel: 'Generate',
+    imagesLabel: 'Images',
+    videosLabel: 'Videos',
+    seedParallelPlaceholder: 'Always random in parallel mode',
+    generatingProgress: 'Generating %d of %d...',
+    parallelComplete: '%d completed, %d failed',
+    parallelJobError: 'Job failed',
+
+    // Context Menu
+    downloadImage: 'Download Image',
+    downloadVideo: 'Download Video',
   },
   de: {
     // Page
@@ -161,6 +175,20 @@ const translations = {
     tokensPerMillion: '/Million Token',
     perImage: 'pro Bild',
     perSecond: 'pro Sekunde',
+
+    // Parallel Mode
+    parallelModeLabel: 'Parallele Generierung',
+    generateLabel: 'Generiere',
+    imagesLabel: 'Bilder',
+    videosLabel: 'Videos',
+    seedParallelPlaceholder: 'Immer zufällig im Parallelmodus',
+    generatingProgress: 'Generiere %d von %d...',
+    parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
+    parallelJobError: 'Aufgabe fehlgeschlagen',
+
+    // Context Menu
+    downloadImage: 'Bild herunterladen',
+    downloadVideo: 'Video herunterladen',
   }
 };
 
@@ -187,7 +215,13 @@ class I18n {
       return key;
     }
     if (replacement !== null) {
+      if (Array.isArray(replacement)) {
+        replacement.forEach((r, i) => {
+          translation = translation.replace(/%[sd]/, r);
+        });
+      } else {
         translation = translation.replace('%s', replacement);
+      }
     }
     return translation;
   }

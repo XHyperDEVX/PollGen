@@ -18,7 +18,17 @@ const state = {
   videoHistory: [],
   allowedModels: null, // For filtering models based on API key permissions
   keyInfo: null, // Store key info from /account/key endpoint
-  keyInfoApiKey: null // Which API key the keyInfo was validated for
+  keyInfoApiKey: null, // Which API key the keyInfo was validated for
+  // Parallel mode state
+  parallelMode: false,
+  parallelCount: 2, // Number of images to generate in parallel
+  activeJobs: new Map(), // Track active parallel jobs by genId
+  parallelQueue: [], // Queue of pending jobs
+  maxConcurrent: 3, // Maximum concurrent API requests
+  completedCount: 0,
+  failedCount: 0,
+  currentSetId: null, // ID of current parallel set
+  currentSetJobs: 0 // Number of jobs in current set
 };
 
 // ============================================================================
@@ -558,6 +568,11 @@ function updateCostDisplay(model) {
       price = price * duration;
     }
 
+    // In parallel mode, multiply by count
+    if (state.parallelMode && state.parallelCount > 1) {
+      price = price * state.parallelCount;
+    }
+
     // Format the price as decimal (not exponential)
     let priceStr;
     if (price === 0) priceStr = '0';
@@ -573,6 +588,18 @@ function updateCostDisplay(model) {
     costText.textContent = priceStr;
   }
 }
+
+// Update cost display when model changes (exposed to window)
+window.updateCurrentCostDisplay = function() {
+  const select = document.getElementById('model');
+  if (!select) return;
+  const currentModelName = select.value;
+  const models = state.currentMode === 'video' ? state.videoModels : state.models;
+  const model = models.find(m => m.name === currentModelName);
+  if (model) {
+    updateCostDisplay(model);
+  }
+};
 
 // ============================================================================
 // IMAGE GENERATION
@@ -683,6 +710,306 @@ function parseErrorMessage(text, status) {
     }
 }
 
+// ============================================================================
+// PARALLEL MODE
+// ============================================================================
+
+function updateParallelProgress() {
+  const generateBtn = document.getElementById('generate-btn');
+  const btnText = generateBtn?.querySelector('#generate-btn-text');
+  if (!btnText) return;
+
+  // Only show progress during active parallel generation
+  if (state.parallelMode && state.currentSetJobs > 0) {
+    const activeCount = state.activeJobs.size;
+    const queueCount = state.parallelQueue.length;
+    const total = state.currentSetJobs;
+    const completed = state.completedCount;
+    
+    if (total > 1) {
+      btnText.textContent = i18n.t('generatingProgress', [completed + 1, total]);
+    }
+  }
+}
+
+function addParallelStatusBadge(card, status, jobIndex, totalJobs) {
+  // Only show badges during parallel generation
+  if (!state.parallelMode) return;
+  
+  const existingBadge = card.querySelector('.parallel-status-badge');
+  if (existingBadge) existingBadge.remove();
+
+  const badge = document.createElement('div');
+  badge.className = `parallel-status-badge ${status}`;
+  badge.innerHTML = `<span class="badge-index">${jobIndex + 1}/${totalJobs}</span><span class="badge-status"></span>`;
+  
+  const statusSpan = badge.querySelector('.badge-status');
+  switch (status) {
+    case 'pending':
+    case 'active':
+      statusSpan.textContent = '⏳';
+      break;
+    case 'completed':
+      statusSpan.textContent = '✓';
+      break;
+    case 'error':
+      statusSpan.textContent = '✗';
+      break;
+  }
+
+  card.insertBefore(badge, card.firstChild);
+}
+
+function removeParallelStatusBadge(card) {
+  const badge = card.querySelector('.parallel-status-badge');
+  if (badge) badge.remove();
+}
+
+async function processParallelJob(job, totalJobs, setId) {
+  const { genId, payload, isVideoMode, index } = job;
+  const card = document.getElementById(`gen-card-${genId}`);
+  
+  if (card && setId === state.currentSetId) {
+    addParallelStatusBadge(card, 'active', index, totalJobs);
+  }
+
+  state.activeJobs.set(genId, { job, status: 'active', index, setId });
+
+  try {
+    if (isVideoMode) {
+      const response = await generateVideo(payload);
+      displayVideoResultInCard(genId, response);
+      addToVideoHistory(response);
+    } else {
+      const response = await generateImage(payload);
+      displayResultInCard(genId, response);
+      addToImageHistory(response);
+    }
+    
+    state.completedCount++;
+    if (card && setId === state.currentSetId) {
+      addParallelStatusBadge(card, 'completed', index, totalJobs);
+    }
+    state.activeJobs.set(genId, { job, status: 'completed', index, setId });
+    return { success: true, genId };
+  } catch (error) {
+    state.failedCount++;
+    if (card && setId === state.currentSetId) {
+      addParallelStatusBadge(card, 'error', index, totalJobs);
+      const placeholder = card.querySelector('.noise-placeholder');
+      if (placeholder) {
+        placeholder.style.background = 'linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)';
+      }
+    }
+    state.activeJobs.set(genId, { job, status: 'error', index, setId, error });
+    console.error(`Parallel job ${genId} failed:`, error);
+    return { success: false, genId, error };
+  }
+}
+
+let parallelProcessorRunning = false;
+
+async function startParallelProcessor(setId, totalJobs) {
+  if (parallelProcessorRunning) return;
+  parallelProcessorRunning = true;
+
+  const emptyState = document.getElementById('placeholder');
+
+  if (emptyState) emptyState.style.display = 'none';
+
+  toggleLoading(true);
+  updateParallelProgress();
+
+  try {
+    while (state.parallelQueue.length > 0 || state.activeJobs.size > 0) {
+      // Start new jobs up to maxConcurrent
+      while (state.activeJobs.size < state.maxConcurrent && state.parallelQueue.length > 0) {
+        const job = state.parallelQueue.shift();
+        processParallelJob(job, totalJobs, setId).then(() => {
+          updateParallelProgress();
+        });
+      }
+
+      // Wait a bit before checking again
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Clean up completed jobs from activeJobs
+      for (const [genId, jobState] of state.activeJobs) {
+        if (jobState.status === 'completed' || jobState.status === 'error') {
+          state.activeJobs.delete(genId);
+        }
+      }
+    }
+    
+    // Update balance after all jobs complete
+    if (state.apiKey) {
+      await updateBalance(state.apiKey);
+    }
+
+    // Show summary if there were failures
+    if (state.failedCount > 0 && state.completedCount > 0) {
+      setStatus(i18n.t('parallelComplete', [state.completedCount, state.failedCount]), 'info');
+    } else if (state.failedCount > 0 && state.completedCount === 0) {
+      setStatus(i18n.t('statusError'), 'error');
+    } else {
+      setStatus('', '');
+    }
+  } catch (error) {
+    setStatus(error.message || i18n.t('statusError'), 'error');
+    console.error(error);
+  } finally {
+    toggleLoading(false);
+    parallelProcessorRunning = false;
+    // Clear set tracking
+    state.currentSetId = null;
+    state.currentSetJobs = 0;
+  }
+}
+
+function addParallelJobs(payload, isVideoMode, count) {
+  const galleryFeed = document.getElementById('gallery-feed');
+  const emptyState = document.getElementById('placeholder');
+  
+  if (emptyState) emptyState.style.display = 'none';
+  
+  // Create a new set ID for this batch
+  const setId = Date.now();
+  state.currentSetId = setId;
+  state.currentSetJobs = count;
+  state.completedCount = 0;
+  state.failedCount = 0;
+  
+  // Create a container for the parallel set
+  const setContainer = document.createElement('div');
+  setContainer.className = 'parallel-set';
+  setContainer.id = `parallel-set-${setId}`;
+  galleryFeed.appendChild(setContainer);
+
+  // Create placeholder cards for each job and add initial badges
+  for (let i = 0; i < count; i++) {
+    const jobPayload = {
+      ...payload,
+      seed: generateRandomSeed()
+    };
+
+    const genId = Date.now() + i + Math.random();
+    const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
+    setContainer.appendChild(card);
+
+    // Add initial "pending" badge immediately (shows X/Y ⏳)
+    addParallelStatusBadge(card, 'pending', i, count);
+
+    state.parallelQueue.push({
+      genId,
+      payload: jobPayload,
+      isVideoMode,
+      setId,
+      index: i
+    });
+  }
+
+  // Scroll to show new cards
+  setTimeout(() => {
+    const scrollContainer = document.getElementById('canvas-workspace');
+    if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+  }, 50);
+
+  // Start processor
+  startParallelProcessor(setId, count);
+}
+
+function switchParallelMode(enabled) {
+  state.parallelMode = enabled;
+  
+  // Update checkbox state if called programmatically
+  const checkbox = document.getElementById('parallel-checkbox');
+  if (checkbox && checkbox.checked !== enabled) {
+    checkbox.checked = enabled;
+  }
+  
+  // Show/hide the count display
+  const countDisplay = document.getElementById('parallel-count-display');
+  if (countDisplay) {
+    countDisplay.classList.toggle('visible', enabled);
+  }
+  
+  // Disable/enable seed field
+  const seedInput = document.getElementById('seed');
+  if (seedInput) {
+    seedInput.disabled = enabled;
+    if (enabled) {
+      seedInput.placeholder = i18n.t('seedParallelPlaceholder');
+      seedInput.value = '';
+    } else {
+      seedInput.placeholder = i18n.t('seedPlaceholder');
+    }
+  }
+  
+  // Update count unit label (Images/Videos)
+  updateCountUnitLabel();
+  
+  // Update cost display
+  window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
+}
+
+function updateCountUnitLabel() {
+  const countUnit = document.getElementById('count-unit');
+  if (!countUnit) return;
+  
+  const modeInput = document.getElementById('mode');
+  const isVideoMode = modeInput && modeInput.value === 'video';
+  
+  countUnit.textContent = isVideoMode ? i18n.t('videosLabel') : i18n.t('imagesLabel');
+}
+
+// Expose updateCountUnitLabel to window for inline mode switch
+window.updateCountUnitLabel = updateCountUnitLabel;
+
+function updateParallelCount(delta) {
+  const countEl = document.getElementById('parallel-count');
+  if (!countEl) return;
+  
+  let value = parseInt(countEl.textContent, 10) || 2;
+  value = Math.max(2, Math.min(9, value + delta));
+  countEl.textContent = value;
+  state.parallelCount = value;
+  
+  // Update cost display
+  window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
+}
+
+function setupParallelCountHandlers() {
+  const display = document.getElementById('parallel-count-display');
+  if (!display) return;
+  
+  // Left-click to increment
+  display.addEventListener('click', (e) => {
+    e.preventDefault();
+    updateParallelCount(1);
+  });
+  
+  // Right-click to decrement
+  display.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    updateParallelCount(-1);
+  });
+  
+  // Scroll wheel to change value
+  display.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    updateParallelCount(e.deltaY > 0 ? -1 : 1);
+  }, { passive: false });
+  
+  // Initialize state from display
+  const countEl = document.getElementById('parallel-count');
+  if (countEl) {
+    state.parallelCount = parseInt(countEl.textContent, 10) || 2;
+  }
+}
+
+// Expose switchParallelMode to window for inline onchange handlers
+window.switchParallelMode = switchParallelMode;
+
 function generateRandomSeed() {
   return Math.floor(100000 + Math.random() * 900000);
 }
@@ -763,6 +1090,9 @@ function setStatus(message, type = 'info') {
 let activeFireflyRaf = null;
 let activeFireflyRo = null;
 
+// Map to track multiple firefly animations by layer element
+const fireflyAnimations = new Map();
+
 function startFireflyTicker(layer) {
   if (!layer) return;
 
@@ -807,10 +1137,11 @@ function startFireflyTicker(layer) {
 
   updateBounds();
 
-  if (activeFireflyRo) activeFireflyRo.disconnect();
+  // Create per-layer ResizeObserver
+  let ro = null;
   if (window.ResizeObserver) {
-    activeFireflyRo = new ResizeObserver(updateBounds);
-    activeFireflyRo.observe(layer);
+    ro = new ResizeObserver(updateBounds);
+    ro.observe(layer);
   }
 
   const last = { t: performance.now() };
@@ -821,7 +1152,8 @@ function startFireflyTicker(layer) {
 
     if (!bounds.w || !bounds.h) {
       updateBounds();
-      activeFireflyRaf = requestAnimationFrame(tick);
+      const anim = fireflyAnimations.get(layer);
+      if (anim) anim.raf = requestAnimationFrame(tick);
       return;
     }
 
@@ -873,22 +1205,38 @@ function startFireflyTicker(layer) {
       el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     }
 
-    activeFireflyRaf = requestAnimationFrame(tick);
+    const anim = fireflyAnimations.get(layer);
+    if (anim) anim.raf = requestAnimationFrame(tick);
   };
 
-  if (activeFireflyRaf) cancelAnimationFrame(activeFireflyRaf);
-  activeFireflyRaf = requestAnimationFrame(tick);
+  const raf = requestAnimationFrame(tick);
+  
+  // Store animation state for this layer
+  fireflyAnimations.set(layer, { raf, ro });
+  
+  // Return cleanup function
+  return () => stopFireflyTickerForLayer(layer);
+}
+
+function stopFireflyTickerForLayer(layer) {
+  const anim = fireflyAnimations.get(layer);
+  if (anim) {
+    if (anim.raf) cancelAnimationFrame(anim.raf);
+    if (anim.ro) anim.ro.disconnect();
+    fireflyAnimations.delete(layer);
+  }
+}
+
+function stopAllFireflyTickers() {
+  for (const [layer, anim] of fireflyAnimations) {
+    if (anim.raf) cancelAnimationFrame(anim.raf);
+    if (anim.ro) anim.ro.disconnect();
+  }
+  fireflyAnimations.clear();
 }
 
 function stopFireflyTicker() {
-  if (activeFireflyRaf) {
-    cancelAnimationFrame(activeFireflyRaf);
-    activeFireflyRaf = null;
-  }
-  if (activeFireflyRo) {
-    activeFireflyRo.disconnect();
-    activeFireflyRo = null;
-  }
+  stopAllFireflyTickers();
 }
 
 function toggleLoading(isLoading) {
@@ -898,25 +1246,27 @@ function toggleLoading(isLoading) {
   const isVideoMode = modeInput && modeInput.value === 'video';
 
   if (!isLoading) {
-    stopFireflyTicker();
+    stopAllFireflyTickers();
   }
 
   if (generateBtn) {
-    if (isLoading) {
-      generateBtn.disabled = true;
+    // In parallel mode, keep the button enabled but show loading state
+    if (state.parallelMode && (state.parallelQueue.length > 0 || state.activeJobs.size > 0)) {
+      generateBtn.disabled = false; // Allow clicking to add more jobs
     } else {
-      setGenerateButtonEnabled(isApiKeyValidForGeneration());
+      generateBtn.disabled = isLoading || !isApiKeyValidForGeneration();
     }
 
     const btnText = generateBtn.querySelector('#generate-btn-text');
     if (btnText) {
-      if (isLoading) {
+      const hasJobs = state.parallelQueue.length > 0 || state.activeJobs.size > 0;
+      if (isLoading || (state.parallelMode && hasJobs)) {
         btnText.textContent = isVideoMode ? i18n.t('generatingVideoLabel') : i18n.t('generatingLabel');
       } else {
         btnText.textContent = isVideoMode ? i18n.t('generateVideoBtn') : i18n.t('generateBtn');
       }
     }
-    if (isLoading) {
+    if (isLoading || (state.parallelMode && (state.parallelQueue.length > 0 || state.activeJobs.size > 0))) {
       generateBtn.classList.add('loading');
     } else {
       generateBtn.classList.remove('loading');
@@ -1046,6 +1396,12 @@ function displayResultInCard(genId, data) {
     const placeholder = card.querySelector('.noise-placeholder');
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
+    
+    // Stop the firefly animation for this card
+    const fireflyLayer = placeholder?.querySelector('.firefly-layer');
+    if (fireflyLayer) {
+      stopFireflyTickerForLayer(fireflyLayer);
+    }
 
     const img = new Image();
     img.src = data.imageData;
@@ -1146,6 +1502,12 @@ function displayVideoResultInCard(genId, data) {
     const placeholder = card.querySelector('.noise-placeholder');
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
+    
+    // Stop the firefly animation for this card
+    const fireflyLayer = placeholder?.querySelector('.firefly-layer');
+    if (fireflyLayer) {
+      stopFireflyTickerForLayer(fireflyLayer);
+    }
 
     const video = document.createElement('video');
     video.src = data.videoData;
@@ -1504,8 +1866,16 @@ function setupEventListeners() {
         return;
       }
 
-      const genId = Date.now();
       const isVideoMode = payload.mode === 'video';
+
+      // In parallel mode, generate multiple images at once
+      if (state.parallelMode) {
+        addParallelJobs(payload, isVideoMode, state.parallelCount);
+        return;
+      }
+
+      // Single mode generation
+      const genId = Date.now();
       const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
 
       if (emptyState) emptyState.style.display = 'none';
@@ -1548,7 +1918,7 @@ function setupEventListeners() {
         if (e.key === 'Enter' && !e.ctrlKey) {
             e.preventDefault();
             generateBtn.click();
-        } else if ((e.key === 'Enter' || e.key === '.') && e.ctrlKey) {
+        } else if (e.key === 'Enter' && e.ctrlKey) {
             e.preventDefault();
             const start = promptInput.selectionStart;
             const end = promptInput.selectionEnd;
@@ -1564,6 +1934,122 @@ function setupEventListeners() {
       renderModelOptions(modelsToRender);
       updateBalance(state.apiKey);
   });
+  
+  // Setup parallel count handlers
+  setupParallelCountHandlers();
+  
+  // Setup context menu
+  setupContextMenu();
+}
+
+// Context menu state
+let contextMenuTarget = null;
+let contextMenuImageUrl = null;
+
+function setupContextMenu() {
+  const contextMenu = document.getElementById('context-menu');
+  const downloadItem = document.getElementById('context-download');
+  
+  if (!contextMenu) return;
+  
+  // Hide context menu on any click anywhere (like native browser context menu)
+  document.addEventListener('mousedown', (e) => {
+    if (contextMenu.classList.contains('visible')) {
+      contextMenu.classList.remove('visible');
+    }
+  });
+  
+  // Prevent the context menu from closing when right-clicking inside it
+  contextMenu.addEventListener('contextmenu', (e) => {
+    e.stopPropagation();
+  });
+  
+  // Hide context menu on scroll
+  document.addEventListener('scroll', () => {
+    contextMenu.classList.remove('visible');
+  }, true);
+  
+  // Handle right-click on image/video cards
+  document.addEventListener('contextmenu', (e) => {
+    const card = e.target.closest('.image-card, .video-card');
+    const lightboxImg = e.target.closest('#lightbox-image');
+    
+    if (card) {
+      e.preventDefault();
+      contextMenuImageUrl = null;
+      showContextMenu(e.clientX, e.clientY, card);
+    } else if (lightboxImg) {
+      e.preventDefault();
+      contextMenuImageUrl = lightboxImg.src;
+      showContextMenuForLightbox(e.clientX, e.clientY);
+    }
+  });
+  
+  // Handle download from context menu
+  if (downloadItem) {
+    downloadItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      if (contextMenuImageUrl) {
+        // Download from lightbox
+        downloadImage(contextMenuImageUrl, `pollgen-${Date.now()}.png`);
+      } else if (contextMenuTarget) {
+        const img = contextMenuTarget.querySelector('img');
+        const video = contextMenuTarget.querySelector('video');
+        const genId = contextMenuTarget.id?.replace('gen-card-', '');
+        
+        if (img) {
+          downloadImage(img.src, `pollgen-${genId || Date.now()}.png`);
+        } else if (video) {
+          downloadVideo(video.src, `pollgen-video-${genId || Date.now()}.mp4`);
+        }
+      }
+      contextMenu.classList.remove('visible');
+    });
+  }
+}
+
+function showContextMenu(x, y, card) {
+  const contextMenu = document.getElementById('context-menu');
+  if (!contextMenu) return;
+  
+  contextMenuTarget = card;
+  contextMenuImageUrl = null;
+  
+  positionContextMenu(x, y);
+  contextMenu.classList.add('visible');
+}
+
+function showContextMenuForLightbox(x, y) {
+  const contextMenu = document.getElementById('context-menu');
+  if (!contextMenu) return;
+  
+  contextMenuTarget = null;
+  
+  positionContextMenu(x, y);
+  contextMenu.classList.add('visible');
+}
+
+function positionContextMenu(x, y) {
+  const contextMenu = document.getElementById('context-menu');
+  if (!contextMenu) return;
+  
+  const menuWidth = 180;
+  const menuHeight = 50;
+  
+  let posX = x;
+  let posY = y;
+  
+  // Keep menu in viewport
+  if (x + menuWidth > window.innerWidth) {
+    posX = window.innerWidth - menuWidth - 10;
+  }
+  if (y + menuHeight > window.innerHeight) {
+    posY = window.innerHeight - menuHeight - 10;
+  }
+  
+  contextMenu.style.left = `${posX}px`;
+  contextMenu.style.top = `${posY}px`;
 }
 
 // ============================================================================
