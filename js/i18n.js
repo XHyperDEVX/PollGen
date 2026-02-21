@@ -88,6 +88,19 @@ const translations = {
 
     // Resolution Warning
     resolutionWarning: 'For optimal use, a resolution of at least 1080p is recommended.',
+    // Parallel Mode
+    parallelModeLabel: 'Parallel Generation',
+    generateLabel: 'Generate',
+    imagesLabel: 'Images',
+    videosLabel: 'Videos',
+    seedParallelPlaceholder: 'Always random in parallel mode',
+    generatingProgress: 'Generating %d of %d...',
+    parallelComplete: '%d completed, %d failed',
+    parallelJobError: 'Job failed',
+
+    // Context Menu
+    downloadImage: 'Download Image',
+    downloadVideo: 'Download Video',
   },
   de: {
     // Page
@@ -173,6 +186,19 @@ const translations = {
 
     // Resolution Warning
     resolutionWarning: 'Für die optimale Nutzung wird eine Auflösung von mindestens 1080p empfohlen.',
+    // Parallel Mode
+    parallelModeLabel: 'Parallele Generierung',
+    generateLabel: 'Generiere',
+    imagesLabel: 'Bilder',
+    videosLabel: 'Videos',
+    seedParallelPlaceholder: 'Immer zufällig im Parallelmodus',
+    generatingProgress: 'Generiere %d von %d...',
+    parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
+    parallelJobError: 'Aufgabe fehlgeschlagen',
+
+    // Context Menu
+    downloadImage: 'Bild herunterladen',
+    downloadVideo: 'Video herunterladen',
   }
 };
 
@@ -199,7 +225,13 @@ class I18n {
       return key;
     }
     if (replacement !== null) {
+      if (Array.isArray(replacement)) {
+        replacement.forEach((r, i) => {
+          translation = translation.replace(/%[sd]/, r);
+        });
+      } else {
         translation = translation.replace('%s', replacement);
+      }
     }
     return translation;
   }
