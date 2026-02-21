@@ -1,5 +1,5 @@
 
-# [Pollinations Image Generator (PollGen)](https://xhyperdevx.github.io/PollGen)
+# [Pollinations Generator (PollGen)](https://xhyperdevx.github.io/PollGen)
 
 A clean, minimal web application for generating AI images and videos using the Pollinations API. Built with vanilla JavaScript, HTML, and CSS.
 
@@ -20,12 +20,8 @@ A clean, minimal web application for generating AI images and videos using the P
 
 ### ⚙️ Generation Options
 - **Prompt**: Detailed image or video description (required)
-- **Model Selection**: Choose from available image generation models
-- **Dimensions**: Custom width and height (64-2048px)
-- **Aspect Ratio Presets**: Different options for images (10 presets) and videos (5 presets: 16:9, 9:16, 2:3, 3:2, 1:1)
-- **Seed**: Control randomness (0 = random)
-- **Quality**: Low, Medium, High, HD
-- **Guidance Scale**: Control how closely the result follows the prompt (1-20)
+- **Aspect Ratio Presets**: Different options for images and videos
+- **Seed**: Control randomness
 - **Negative Prompt**: Describe what to avoid in the image
 - **Advanced Options**:
   - Enhance: Let AI optimize the prompt
@@ -33,20 +29,14 @@ A clean, minimal web application for generating AI images and videos using the P
   - No Logo: Remove Pollinations watermark
   - No Feed: Prevent sharing in public feed
   - Safe: Enable safety content filters
-  - Transparent: Create transparent background (if supported)
-
-### 🎬 Video Generation
-- **Video Models**: Support for generating videos using dedicated video generation models
-- **Aspect Ratio**: 5 video-specific aspect ratio presets (16:9, 9:16, 2:3, 3:2, 1:1)
-- **Duration**: Configurable video duration settings
 
 ## How to Use
 
 1. **Open PollGen**: https://xhyperdevx.github.io/PollGen
-2. **Enter your API Key**: Get a API key from [pollinations.ai](https://enter.pollinations.ai) and enter it in the API Key field (required for both images and videos)
+2. **Enter your API Key**: Get a API key from [pollinations.ai](https://enter.pollinations.ai) and enter it in the API Key field
 3. **Describe your image or video**: Enter a detailed description of what you want to generate
 4. **Select a model**: Choose from the available image generation models
-5. **Adjust settings** (optional): Customize dimensions, quality, guidance, and other parameters
+5. **Adjust settings** (optional): Customize dimensions, quality and other parameters
 6. **Generate**: Click the "Generate" button
 7. **Download**: Once generated, download your image or video or open the source link
 
