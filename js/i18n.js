@@ -85,7 +85,10 @@ const translations = {
 
     // Parallel Mode
     parallelModeLabel: 'Parallel Generation',
-    countLabel: '×',
+    generateLabel: 'Generate',
+    imagesLabel: 'Images',
+    videosLabel: 'Videos',
+    seedParallelPlaceholder: 'Always random in parallel mode',
     generatingProgress: 'Generating %d of %d...',
     parallelComplete: '%d completed, %d failed',
     parallelJobError: 'Job failed',
@@ -175,7 +178,10 @@ const translations = {
 
     // Parallel Mode
     parallelModeLabel: 'Parallele Generierung',
-    countLabel: '×',
+    generateLabel: 'Generiere',
+    imagesLabel: 'Bilder',
+    videosLabel: 'Videos',
+    seedParallelPlaceholder: 'Immer zufällig im Parallelmodus',
     generatingProgress: 'Generiere %d von %d...',
     parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
     parallelJobError: 'Aufgabe fehlgeschlagen',

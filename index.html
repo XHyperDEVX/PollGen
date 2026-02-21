@@ -208,13 +208,12 @@
         .mode-btn.active { background: var(--accent); color: white; }
         .mode-btn svg { width: 16px; height: 16px; }
 
-        /* Parallel Mode - Compact count badge */
-        .parallel-count-wrapper { display: none; align-items: center; justify-content: center; background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.3); border-radius: 6px; padding: 2px 6px; cursor: pointer; user-select: none; min-width: 28px; }
-        .parallel-count-wrapper.visible { display: flex; }
-        .parallel-count-input { width: 18px; text-align: center; background: transparent; border: none; color: var(--text-primary); font-size: 12px; font-weight: 700; font-family: inherit; outline: none; cursor: pointer; user-select: none; line-height: 1; }
-        .parallel-count-input::-webkit-outer-spin-button,
-        .parallel-count-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .parallel-count-input[type=number] { -moz-appearance: textfield; }
+        /* Parallel Mode - Count display matching cost display style */
+        .parallel-count-display { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 12px; align-self: center; text-align: center; cursor: pointer; user-select: none; }
+        .parallel-count-display.visible { display: flex; }
+        .parallel-count-display .count-label { font-size: 9px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .parallel-count-display .count-value { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+        .parallel-count-display .count-unit { font-size: 9px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
 
         /* Parallel Set Container - images displayed in rows of 3 */
         .parallel-set { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; margin-bottom: 40px; }
@@ -564,8 +563,10 @@
                    <div class="cost-value" id="cost-text">0.002</div>
                    <div class="cost-unit" data-i18n="pollenLabel">Pollen</div>
                </div>
-               <div class="parallel-count-wrapper" id="parallel-count-wrapper" title="Number of images (click +/- scroll)">
-                   <input type="number" class="parallel-count-input" id="parallel-count" value="2" min="2" max="9" readonly>
+               <div class="parallel-count-display" id="parallel-count-display">
+                   <div class="count-label" data-i18n="generateLabel">Generate</div>
+                   <div class="count-value" id="parallel-count">2</div>
+                   <div class="count-unit" id="count-unit" data-i18n="imagesLabel">Images</div>
                </div>
                <button class="generate-btn" id="generate-btn">
                    <svg viewBox="0 0 64 64" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -699,6 +700,11 @@
             // Update cost display for new mode
             if (window.updateCurrentCostDisplay) {
                 window.updateCurrentCostDisplay();
+            }
+            
+            // Update parallel count unit label (Images/Videos)
+            if (window.updateCountUnitLabel) {
+                window.updateCountUnitLabel();
             }
         }
 

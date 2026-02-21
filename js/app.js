@@ -745,6 +745,7 @@ function addParallelStatusBadge(card, status, jobIndex, totalJobs) {
   
   const statusSpan = badge.querySelector('.badge-status');
   switch (status) {
+    case 'pending':
     case 'active':
       statusSpan.textContent = '⏳';
       break;
@@ -764,15 +765,15 @@ function removeParallelStatusBadge(card) {
   if (badge) badge.remove();
 }
 
-async function processParallelJob(job, jobIndex, totalJobs, setId) {
-  const { genId, payload, isVideoMode } = job;
+async function processParallelJob(job, totalJobs, setId) {
+  const { genId, payload, isVideoMode, index } = job;
   const card = document.getElementById(`gen-card-${genId}`);
   
   if (card && setId === state.currentSetId) {
-    addParallelStatusBadge(card, 'active', jobIndex, totalJobs);
+    addParallelStatusBadge(card, 'active', index, totalJobs);
   }
 
-  state.activeJobs.set(genId, { job, status: 'active', jobIndex, setId });
+  state.activeJobs.set(genId, { job, status: 'active', index, setId });
 
   try {
     if (isVideoMode) {
@@ -787,20 +788,20 @@ async function processParallelJob(job, jobIndex, totalJobs, setId) {
     
     state.completedCount++;
     if (card && setId === state.currentSetId) {
-      addParallelStatusBadge(card, 'completed', jobIndex, totalJobs);
+      addParallelStatusBadge(card, 'completed', index, totalJobs);
     }
-    state.activeJobs.set(genId, { job, status: 'completed', jobIndex, setId });
+    state.activeJobs.set(genId, { job, status: 'completed', index, setId });
     return { success: true, genId };
   } catch (error) {
     state.failedCount++;
     if (card && setId === state.currentSetId) {
-      addParallelStatusBadge(card, 'error', jobIndex, totalJobs);
+      addParallelStatusBadge(card, 'error', index, totalJobs);
       const placeholder = card.querySelector('.noise-placeholder');
       if (placeholder) {
         placeholder.style.background = 'linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)';
       }
     }
-    state.activeJobs.set(genId, { job, status: 'error', jobIndex, setId, error });
+    state.activeJobs.set(genId, { job, status: 'error', index, setId, error });
     console.error(`Parallel job ${genId} failed:`, error);
     return { success: false, genId, error };
   }
@@ -824,7 +825,7 @@ async function startParallelProcessor(setId, totalJobs) {
       // Start new jobs up to maxConcurrent
       while (state.activeJobs.size < state.maxConcurrent && state.parallelQueue.length > 0) {
         const job = state.parallelQueue.shift();
-        processParallelJob(job, state.completedCount + state.failedCount + state.activeJobs.size, totalJobs, setId).then(() => {
+        processParallelJob(job, totalJobs, setId).then(() => {
           updateParallelProgress();
         });
       }
@@ -884,7 +885,7 @@ function addParallelJobs(payload, isVideoMode, count) {
   setContainer.id = `parallel-set-${setId}`;
   galleryFeed.appendChild(setContainer);
 
-  // Create placeholder cards for each job
+  // Create placeholder cards for each job and add initial badges
   for (let i = 0; i < count; i++) {
     const jobPayload = {
       ...payload,
@@ -895,11 +896,15 @@ function addParallelJobs(payload, isVideoMode, count) {
     const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
     setContainer.appendChild(card);
 
+    // Add initial "pending" badge immediately (shows X/Y ⏳)
+    addParallelStatusBadge(card, 'pending', i, count);
+
     state.parallelQueue.push({
       genId,
       payload: jobPayload,
       isVideoMode,
-      setId
+      setId,
+      index: i
     });
   }
 
@@ -922,23 +927,51 @@ function switchParallelMode(enabled) {
     checkbox.checked = enabled;
   }
   
-  // Show/hide the count input
-  const countWrapper = document.getElementById('parallel-count-wrapper');
-  if (countWrapper) {
-    countWrapper.classList.toggle('visible', enabled);
+  // Show/hide the count display
+  const countDisplay = document.getElementById('parallel-count-display');
+  if (countDisplay) {
+    countDisplay.classList.toggle('visible', enabled);
   }
+  
+  // Disable/enable seed field
+  const seedInput = document.getElementById('seed');
+  if (seedInput) {
+    seedInput.disabled = enabled;
+    if (enabled) {
+      seedInput.placeholder = i18n.t('seedParallelPlaceholder');
+      seedInput.value = '';
+    } else {
+      seedInput.placeholder = i18n.t('seedPlaceholder');
+    }
+  }
+  
+  // Update count unit label (Images/Videos)
+  updateCountUnitLabel();
   
   // Update cost display
   window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
 }
 
-function updateParallelCount(delta) {
-  const input = document.getElementById('parallel-count');
-  if (!input) return;
+function updateCountUnitLabel() {
+  const countUnit = document.getElementById('count-unit');
+  if (!countUnit) return;
   
-  let value = parseInt(input.value, 10) || 2;
+  const modeInput = document.getElementById('mode');
+  const isVideoMode = modeInput && modeInput.value === 'video';
+  
+  countUnit.textContent = isVideoMode ? i18n.t('videosLabel') : i18n.t('imagesLabel');
+}
+
+// Expose updateCountUnitLabel to window for inline mode switch
+window.updateCountUnitLabel = updateCountUnitLabel;
+
+function updateParallelCount(delta) {
+  const countEl = document.getElementById('parallel-count');
+  if (!countEl) return;
+  
+  let value = parseInt(countEl.textContent, 10) || 2;
   value = Math.max(2, Math.min(9, value + delta));
-  input.value = value;
+  countEl.textContent = value;
   state.parallelCount = value;
   
   // Update cost display
@@ -946,30 +979,32 @@ function updateParallelCount(delta) {
 }
 
 function setupParallelCountHandlers() {
-  const input = document.getElementById('parallel-count');
-  const wrapper = document.getElementById('parallel-count-wrapper');
-  if (!input || !wrapper) return;
+  const display = document.getElementById('parallel-count-display');
+  if (!display) return;
   
   // Left-click to increment
-  wrapper.addEventListener('click', (e) => {
+  display.addEventListener('click', (e) => {
     e.preventDefault();
     updateParallelCount(1);
   });
   
   // Right-click to decrement
-  wrapper.addEventListener('contextmenu', (e) => {
+  display.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     updateParallelCount(-1);
   });
   
   // Scroll wheel to change value
-  wrapper.addEventListener('wheel', (e) => {
+  display.addEventListener('wheel', (e) => {
     e.preventDefault();
     updateParallelCount(e.deltaY > 0 ? -1 : 1);
   }, { passive: false });
   
-  // Initialize state from input
-  state.parallelCount = parseInt(input.value, 10) || 2;
+  // Initialize state from display
+  const countEl = document.getElementById('parallel-count');
+  if (countEl) {
+    state.parallelCount = parseInt(countEl.textContent, 10) || 2;
+  }
 }
 
 // Expose switchParallelMode to window for inline onchange handlers
