@@ -1876,6 +1876,7 @@ function setupEventListeners() {
 
 // Context menu state
 let contextMenuTarget = null;
+let contextMenuImageUrl = null;
 
 function setupContextMenu() {
   const contextMenu = document.getElementById('context-menu');
@@ -1898,9 +1899,16 @@ function setupContextMenu() {
   // Handle right-click on image/video cards
   document.addEventListener('contextmenu', (e) => {
     const card = e.target.closest('.image-card, .video-card');
+    const lightboxImg = e.target.closest('#lightbox-image');
+    
     if (card) {
       e.preventDefault();
+      contextMenuImageUrl = null;
       showContextMenu(e.clientX, e.clientY, card);
+    } else if (lightboxImg) {
+      e.preventDefault();
+      contextMenuImageUrl = lightboxImg.src;
+      showContextMenuForLightbox(e.clientX, e.clientY);
     }
   });
   
@@ -1908,7 +1916,11 @@ function setupContextMenu() {
   if (downloadItem) {
     downloadItem.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (contextMenuTarget) {
+      
+      if (contextMenuImageUrl) {
+        // Download from lightbox
+        downloadImage(contextMenuImageUrl, `pollgen-${Date.now()}.png`);
+      } else if (contextMenuTarget) {
         const img = contextMenuTarget.querySelector('img');
         const video = contextMenuTarget.querySelector('video');
         const genId = contextMenuTarget.id?.replace('gen-card-', '');
@@ -1929,10 +1941,28 @@ function showContextMenu(x, y, card) {
   if (!contextMenu) return;
   
   contextMenuTarget = card;
+  contextMenuImageUrl = null;
   
-  // Position the menu
-  const menuWidth = 160;
-  const menuHeight = 44;
+  positionContextMenu(x, y);
+  contextMenu.classList.add('visible');
+}
+
+function showContextMenuForLightbox(x, y) {
+  const contextMenu = document.getElementById('context-menu');
+  if (!contextMenu) return;
+  
+  contextMenuTarget = null;
+  
+  positionContextMenu(x, y);
+  contextMenu.classList.add('visible');
+}
+
+function positionContextMenu(x, y) {
+  const contextMenu = document.getElementById('context-menu');
+  if (!contextMenu) return;
+  
+  const menuWidth = 180;
+  const menuHeight = 50;
   
   let posX = x;
   let posY = y;
@@ -1947,7 +1977,6 @@ function showContextMenu(x, y, card) {
   
   contextMenu.style.left = `${posX}px`;
   contextMenu.style.top = `${posY}px`;
-  contextMenu.classList.add('visible');
 }
 
 // ============================================================================
