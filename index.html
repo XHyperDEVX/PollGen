@@ -176,6 +176,20 @@
         .api-key-hint a { color: var(--accent); text-decoration: none; }
         .api-key-hint a:hover { text-decoration: underline; }
 
+        /* Resolution Warning - in API key container */
+        .resolution-warning {
+            font-size: 10px;
+            color: #FFD700;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            text-align: center;
+            display: none;
+        }
+        .resolution-warning.visible { display: block; }
+
         @media (max-width: 880px) {
             .sidebar { width: 320px; }
         }
@@ -411,27 +425,6 @@
         .status-msg.success { background: #059669; color: white; display: block; }
         .status-msg.error { background: #DC2626; color: white; display: block; }
 
-        /* Resolution Warning */
-        .resolution-warning {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 215, 0, 0.15);
-            border: 1px solid rgba(255, 215, 0, 0.4);
-            color: #FFD700;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 500;
-            z-index: 1000;
-            display: none;
-            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
-            text-align: center;
-            max-width: 400px;
-        }
-        .resolution-warning.visible { display: block; }
-
     </style>
 </head>
 <body>
@@ -457,10 +450,10 @@
                         <span data-i18n="videoModeLabel">Video</span>
                     </button>
                 </div>
-                <div class="checkbox-item" style="margin-bottom: 12px;">
+                <label class="checkbox-item" style="margin-bottom: 12px;">
                     <input type="checkbox" id="hide-premium-models" name="hide-premium-models">
                     <span data-i18n="hidePremiumModelsLabel">Hide premium models</span>
-                </div>
+                </label>
                 <div class="form-group">
                     <label class="form-label" data-i18n="modelLabel">Model</label>
                     <div class="custom-select" id="model-select-btn">
@@ -527,6 +520,7 @@
     <div class="api-key-container">
         <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
         <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
+        <div id="resolution-warning" class="resolution-warning" data-i18n="resolutionWarning">For optimal use, a resolution of at least 1080p is recommended.</div>
     </div>
 
     <main class="canvas">
@@ -599,7 +593,6 @@
     </main>
 
     <div id="status" class="status-msg"></div>
-    <div id="resolution-warning" class="resolution-warning" data-i18n="resolutionWarning">For optimal use, a resolution of at least 1080p is recommended.</div>
     <form id="generation-form" style="display: none;">
         <input type="hidden" name="width" id="width" value="1366">
         <input type="hidden" name="height" id="height" value="1025">
