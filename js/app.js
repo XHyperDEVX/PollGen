@@ -776,8 +776,8 @@ function checkResolution() {
   const resolutionWarning = document.getElementById('resolution-warning');
   if (!resolutionWarning) return;
 
-  const width = window.screen.width;
-  const height = window.screen.height;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
   const is1080p = width >= 1920 && height >= 1080;
 
   if (is1080p) {
