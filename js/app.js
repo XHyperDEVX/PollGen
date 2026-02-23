@@ -20,6 +20,7 @@ const state = {
   keyInfo: null, // Store key info from /account/key endpoint
   keyInfoApiKey: null, // Which API key the keyInfo was validated for
   hidePremiumModels: false, // Whether to hide premium (paid_only) models
+  uploadConsent: false, // Whether user has consented to external upload
   // Parallel mode state
   parallelMode: false,
   parallelCount: 2, // Number of images to generate in parallel
@@ -146,7 +147,7 @@ function validateImageFile(file) {
   return { valid: true };
 }
 
-async function uploadImageToZeroXZeroSt(file) {
+async function uploadImageToTransferAdminforge(file) {
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
@@ -157,17 +158,17 @@ async function uploadImageToZeroXZeroSt(file) {
   showUploadProgress(true);
   
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('expires', '1');
-    formData.append('secret', '1');
-    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    const response = await fetch('https://0x0.st', {
-      method: 'POST',
-      body: formData,
+    // Use transfer.adminforge.de with PUT request
+    const response = await fetch(`https://transfer.adminforge.de/${encodeURIComponent(file.name)}`, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Max-Days': '1',
+        'Content-Type': file.type || 'application/octet-stream'
+      },
       signal: controller.signal
     });
     
@@ -175,13 +176,14 @@ async function uploadImageToZeroXZeroSt(file) {
     
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('0x0.st upload failed:', response.status, errorText);
+      console.error('transfer.adminforge.de upload failed:', response.status, errorText);
       setStatus(i18n.t('uploadErrorServer'), 'error');
       return null;
     }
     
-    const url = await response.text();
-    const trimmedUrl = url.trim();
+    // The service returns the URL in the response body or Location header
+    const url = response.headers.get('Location') || await response.text();
+    const trimmedUrl = (url || '').trim();
     
     if (!trimmedUrl || !trimmedUrl.startsWith('http')) {
       setStatus(i18n.t('uploadErrorServer'), 'error');
@@ -222,8 +224,8 @@ async function handleImageUpload(file) {
   state.uploadedImageFile = file;
   updateUploadUI();
   
-  // Upload to 0x0.st
-  const url = await uploadImageToZeroXZeroSt(file);
+  // Upload to transfer.adminforge.de
+  const url = await uploadImageToTransferAdminforge(file);
   
   if (url) {
     state.uploadedImageUrl = url;
@@ -243,7 +245,14 @@ function setupImageUploadHandlers() {
   if (uploadIconContainer) {
     uploadIconContainer.addEventListener('click', () => {
       if (isImageUploadSupported() && !state.isUploading) {
-        fileInput?.click();
+        // Check if user has consented to external upload
+        if (!state.uploadConsent) {
+          showUploadConsentPopup(() => {
+            fileInput?.click();
+          });
+        } else {
+          fileInput?.click();
+        }
       }
     });
   }
@@ -263,6 +272,44 @@ function setupImageUploadHandlers() {
       clearUploadedImage();
     });
   }
+}
+
+function showUploadConsentPopup(onConfirm) {
+  // Check if popup already exists
+  let popup = document.getElementById('upload-consent-popup');
+  if (popup) {
+    popup.classList.add('visible');
+    return;
+  }
+  
+  // Create popup
+  popup = document.createElement('div');
+  popup.id = 'upload-consent-popup';
+  popup.className = 'upload-consent-popup';
+  popup.innerHTML = `
+    <div class="upload-consent-content">
+      <h3>${i18n.t('uploadConsentTitle')}</h3>
+      <p>${i18n.t('uploadConsentText')}</p>
+      <div class="upload-consent-buttons">
+        <button class="upload-consent-confirm">${i18n.t('uploadConsentConfirm')}</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(popup);
+  
+  // Show popup
+  requestAnimationFrame(() => {
+    popup.classList.add('visible');
+  });
+  
+  // Handle confirm
+  const confirmBtn = popup.querySelector('.upload-consent-confirm');
+  confirmBtn.addEventListener('click', () => {
+    saveUploadConsent(true);
+    popup.classList.remove('visible');
+    if (onConfirm) onConfirm();
+  });
 }
 
 // Expose upload functions to window for inline script access
@@ -470,6 +517,21 @@ function loadHidePremiumModels() {
 function saveHidePremiumModels(hide) {
   state.hidePremiumModels = hide;
   localStorage.setItem('pollgen_hide_premium_models', hide.toString());
+}
+
+function loadUploadConsent() {
+  const saved = localStorage.getItem('pollgen_upload_consent');
+  if (saved !== null) {
+    state.uploadConsent = saved === 'true';
+  } else {
+    state.uploadConsent = false;
+  }
+  return state.uploadConsent;
+}
+
+function saveUploadConsent(consent) {
+  state.uploadConsent = consent;
+  localStorage.setItem('pollgen_upload_consent', consent.toString());
 }
 
 function loadApiKey() {
@@ -2430,6 +2492,9 @@ function init() {
 
   // Load premium models filter setting
   loadHidePremiumModels();
+  
+  // Load upload consent
+  loadUploadConsent();
 
   // Check screen resolution
   checkResolution();

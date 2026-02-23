@@ -21,8 +21,6 @@ const translations = {
     promptPlaceholder: 'Describe the image you want to generate',
     videoPromptPlaceholder: 'Describe the video you want to generate',
     startScreenIntro: 'Describe your vision and bring it to life',
-    uploadTooltip: 'Upload an image for image-to-image generation. Images are uploaded to 0x0.st and stored for 1 hour.',
-    uploadTooltipDisabled: 'Image upload is not available for the selected model.',
     modelLabel: 'Model',
     aspectRatioLabel: 'Aspect Ratio',
     imageModeLabel: 'Image',
@@ -106,6 +104,9 @@ const translations = {
 
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
+    uploadConsentTitle: 'External Upload',
+    uploadConsentText: 'The image will be uploaded to an external provider (transfer.adminforge.de) and stored there for a maximum of 7 days. Data protection cannot be guaranteed. Only upload images for which you have the rights.',
+    uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
     uploadErrorFileSize: 'File too large. Please choose a smaller image.',
@@ -129,8 +130,6 @@ const translations = {
     promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten',
     videoPromptPlaceholder: 'Beschreiben Sie das Video, das Sie generieren möchten',
     startScreenIntro: 'Beschreiben Sie Ihre Vision und bringen Sie sie zum Leben',
-    uploadTooltip: 'Laden Sie ein Bild für die Bild-zu-Bild-Generierung hoch. Bilder werden auf 0x0.st hochgeladen und für 1 Stunde gespeichert.',
-    uploadTooltipDisabled: 'Bild-Upload ist für das ausgewählte Modell nicht verfügbar.',
     modelLabel: 'Modell',
     aspectRatioLabel: 'Seitenverhältnis',
     imageModeLabel: 'Bild',
@@ -214,6 +213,9 @@ const translations = {
 
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
+    uploadConsentTitle: 'Externer Upload',
+    uploadConsentText: 'Das Bild wird zu einem externen Anbieter (transfer.adminforge.de) hochgeladen und dort maximal 7 Tage gespeichert. Datenschutz kann nicht garantiert werden. Laden Sie nur Bilder hoch, an denen Sie die Rechte haben.',
+    uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',
     uploadErrorFileSize: 'Datei zu groß. Bitte wählen Sie ein kleineres Bild.',

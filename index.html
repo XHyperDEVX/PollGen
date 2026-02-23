@@ -619,6 +619,70 @@
         .status-msg.success { background: #059669; color: white; display: block; }
         .status-msg.error { background: #DC2626; color: white; display: block; }
 
+    
+        /* Upload Consent Popup */
+        .upload-consent-popup {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .upload-consent-popup.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .upload-consent-content {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 480px;
+            width: 90%;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .upload-consent-content h3 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            color: var(--text-primary);
+        }
+        
+        .upload-consent-content p {
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+        
+        .upload-consent-buttons {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .upload-consent-confirm {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .upload-consent-confirm:hover {
+            background: var(--accent-hover);
+        }
+
     </style>
 </head>
 <body>
