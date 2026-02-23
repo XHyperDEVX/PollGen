@@ -49,7 +49,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp
 function generateRandomFilename() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 8; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
@@ -156,20 +156,17 @@ async function uploadImageToTransferAdminforge(file) {
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
     
     // Generate a random filename with original extension
     const ext = file.name.split('.').pop() || 'jpg';
     const randomFilename = `${generateRandomFilename()}.${ext}`;
     
-    // POST to a specific URL path with our filename
-    // This way we know the resulting URL without needing to read the CORS-blocked response
-    const uploadUrl = `https://transfer.adminforge.de/${encodeURIComponent(randomFilename)}`;
-    
+    // POST to the service root - FormData avoids CORS preflight
     const formData = new FormData();
     formData.append('file', file, randomFilename);
     
-    const response = await fetch(uploadUrl, {
+    const response = await fetch('https://transfer.adminforge.de/', {
       method: 'POST',
       body: formData,
       signal: controller.signal
@@ -177,19 +174,49 @@ async function uploadImageToTransferAdminforge(file) {
     
     clearTimeout(timeoutId);
     
-    // Check if upload succeeded (we can't read the response body due to CORS, but status tells us)
-    if (response.ok) {
-      // Construct the URL ourselves - add "get/" for the image parameter
-      const imageUrl = uploadUrl.replace(
-        /^(https?:\/\/[^\/]+\/)(.+)$/,
-        '$1get/$2'
-      );
-      return imageUrl;
-    } else {
+    if (!response.ok) {
       console.error('Upload failed:', response.status);
       setStatus(i18n.t('uploadErrorServer'), 'error');
       return null;
     }
+    
+    // Try to get the URL from x-url-delete header
+    // Format: https://transfer.adminforge.de/abc123/filename.jpg/deleteToken
+    const deleteUrl = response.headers.get('x-url-delete');
+    
+    if (deleteUrl) {
+      // Extract the file URL by removing the delete token (last path segment)
+      const urlParts = deleteUrl.split('/');
+      urlParts.pop(); // Remove delete token
+      const fileUrl = urlParts.join('/');
+      
+      // Add "get/" for the image parameter
+      const imageUrl = fileUrl.replace(
+        /^(https?:\/\/[^\/]+\/)(.+)$/,
+        '$1get/$2'
+      );
+      
+      return imageUrl;
+    }
+    
+    // Fallback: try to read response body (may be blocked by CORS)
+    try {
+      const text = await response.text();
+      const trimmedUrl = (text || '').trim();
+      if (trimmedUrl && trimmedUrl.startsWith('http')) {
+        const imageUrl = trimmedUrl.replace(
+          /^(https?:\/\/[^\/]+\/)(.+)$/,
+          '$1get/$2'
+        );
+        return imageUrl;
+      }
+    } catch (e) {
+      console.warn('Could not read upload response:', e);
+    }
+    
+    console.error('Upload succeeded but could not determine file URL');
+    setStatus(i18n.t('uploadErrorServer'), 'error');
+    return null;
   } catch (error) {
     console.error('Upload error:', error);
     
