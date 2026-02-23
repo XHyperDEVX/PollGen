@@ -679,12 +679,15 @@ function renderModelOptions(models, forceReset = false) {
   
   // Helper function to get premium indicator HTML
   const getPremiumIndicator = () => `<span class="model-premium" title="${i18n.t('paidOnlyError')}">⭐ ${i18n.t('paidOnlyLabel')}</span>`;
+  // Helper function to get img2img indicator HTML
+  const getImg2ImgIndicator = () => `<span class="model-img2img" title="${i18n.t('img2imgSupported')}">🖼️ Img2Img</span>`;
   
   sortedModels.forEach(model => {
     const name = model.name || 'Unknown';
     const description = model.description || '';
     const priceInfo = formatModelPrice(model);
     const isPremium = model.paid_only === true;
+    const isImg2Img = model.input_modalities && model.input_modalities.includes('image');
     
     const option = document.createElement('option');
     option.value = model.name;
@@ -700,7 +703,7 @@ function renderModelOptions(models, forceReset = false) {
     displayHTML += '<div class="model-info">';
     
     if (description && description !== name) {
-      displayHTML += `<div class="model-name-desc">${name}${isPremium ? getPremiumIndicator() : ''}</div>`;
+      displayHTML += `<div class="model-name-desc">${name}${isImg2Img ? getImg2ImgIndicator() : ''}${isPremium ? getPremiumIndicator() : ''}</div>`;
       displayHTML += `<div class="model-description">${description}</div>`;
       
       // Measure width for both lines
@@ -709,7 +712,7 @@ function renderModelOptions(models, forceReset = false) {
       const textWidth = Math.max(nameWidth, descWidth) + 120; // Add padding for badge, premium indicator, and margins
       maxWidth = Math.max(maxWidth, textWidth);
     } else {
-      displayHTML += `<div class="model-name-single">${name}${isPremium ? getPremiumIndicator() : ''}</div>`;
+      displayHTML += `<div class="model-name-single">${name}${isImg2Img ? getImg2ImgIndicator() : ''}${isPremium ? getPremiumIndicator() : ''}</div>`;
       const textWidth = ctx.measureText(name).width + 120;
       maxWidth = Math.max(maxWidth, textWidth);
     }
@@ -750,6 +753,7 @@ function renderModelOptions(models, forceReset = false) {
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
+      const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
       const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
       currentModelName.innerHTML = name + btnPremiumIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
@@ -760,7 +764,6 @@ function renderModelOptions(models, forceReset = false) {
       modelPopover.classList.remove('visible');
       updateUploadUI();
     };
-    
     modelPopover.appendChild(item);
   });
   
@@ -772,8 +775,9 @@ function renderModelOptions(models, forceReset = false) {
     const model = sortedModels.find(m => m.name === previousValue);
     if (model) {
       const isPremium = model.paid_only === true;
-      const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
-      currentModelName.innerHTML = model.name + btnPremiumIndicator;
+      const isImg2Img = model.input_modalities && model.input_modalities.includes('image');
+      const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
+      currentModelName.innerHTML = model.name + btnImg2ImgIndicator + btnPremiumIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
       updateCostDisplay(model);
@@ -781,8 +785,10 @@ function renderModelOptions(models, forceReset = false) {
   } else if (sortedModels.length > 0) {
     select.value = sortedModels[0].name;
     const isPremium = sortedModels[0].paid_only === true;
-    const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
-    currentModelName.innerHTML = sortedModels[0].name + btnPremiumIndicator;
+    const isImg2Img = sortedModels[0].input_modalities && sortedModels[0].input_modalities.includes('image');
+    const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
+      const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
+    currentModelName.innerHTML = sortedModels[0].name + btnImg2ImgIndicator + btnPremiumIndicator;
     const btnBadge = document.querySelector('#model-select-btn .model-badge');
     if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
     updateCostDisplay(sortedModels[0]);
