@@ -162,13 +162,14 @@ async function uploadImageToTransferAdminforge(file) {
     const ext = file.name.split('.').pop() || 'jpg';
     const randomFilename = `${generateRandomFilename()}.${ext}`;
     
-    // Use FormData to avoid CORS preflight (simple request)
-    // Custom headers trigger preflight OPTIONS requests which this server doesn't support
+    // POST to a specific URL path with our filename
+    // This way we know the resulting URL without needing to read the CORS-blocked response
+    const uploadUrl = `https://transfer.adminforge.de/${encodeURIComponent(randomFilename)}`;
+    
     const formData = new FormData();
     formData.append('file', file, randomFilename);
     
-    // Use POST request for upload
-    const response = await fetch('https://transfer.adminforge.de/', {
+    const response = await fetch(uploadUrl, {
       method: 'POST',
       body: formData,
       signal: controller.signal
@@ -176,31 +177,19 @@ async function uploadImageToTransferAdminforge(file) {
     
     clearTimeout(timeoutId);
     
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('Upload failed:', response.status, errorText);
+    // Check if upload succeeded (we can't read the response body due to CORS, but status tells us)
+    if (response.ok) {
+      // Construct the URL ourselves - add "get/" for the image parameter
+      const imageUrl = uploadUrl.replace(
+        /^(https?:\/\/[^\/]+\/)(.+)$/,
+        '$1get/$2'
+      );
+      return imageUrl;
+    } else {
+      console.error('Upload failed:', response.status);
       setStatus(i18n.t('uploadErrorServer'), 'error');
       return null;
     }
-    
-    // The service returns the URL in the response body
-    const url = await response.text();
-    const trimmedUrl = (url || '').trim();
-    
-    if (!trimmedUrl || !trimmedUrl.startsWith('http')) {
-      setStatus(i18n.t('uploadErrorServer'), 'error');
-      return null;
-    }
-    
-    // Transform URL: add "get/" after the base URL
-    // e.g., https://transfer.adminforge.de/snK3Tj1ehu/image.jpg
-    // becomes https://transfer.adminforge.de/get/snK3Tj1ehu/image.jpg
-    const urlWithGet = trimmedUrl.replace(
-      /^(https?:\/\/[^\/]+\/)(.+)$/,
-      '$1get/$2'
-    );
-    
-    return urlWithGet;
   } catch (error) {
     console.error('Upload error:', error);
     
