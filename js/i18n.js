@@ -105,7 +105,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'The image will be uploaded to an external service and stored there for a maximum of 1 day. Data protection cannot be guaranteed. Only upload images for which you have the rights.',
+    uploadConsentText: 'Your image will be uploaded to an external file hosting service. The file will be stored there for up to 24 hours. Please note that data protection cannot be guaranteed. Only upload images that you own or have the rights to use.',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
@@ -214,7 +214,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Das Bild wird zu einem externen Dienst hochgeladen und dort maximal 1 Tag gespeichert. Datenschutz kann nicht garantiert werden. Laden Sie nur Bilder hoch, an denen Sie die Rechte haben.',
+    uploadConsentText: 'Ihr Bild wird zu einem externen Datei-Hosting-Dienst hochgeladen und dort bis zu 24 Stunden gespeichert. Bitte beachten Sie, dass kein Datenschutz gewährleistet werden kann. Laden Sie nur Bilder hoch, deren Rechte Sie besitzen oder für deren Nutzung Sie berechtigt sind.',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',

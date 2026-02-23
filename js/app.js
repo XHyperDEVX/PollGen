@@ -162,14 +162,15 @@ async function uploadImageToTransferAdminforge(file) {
     const ext = file.name.split('.').pop() || 'jpg';
     const randomFilename = `${generateRandomFilename()}.${ext}`;
     
+    // Use FormData to avoid CORS preflight (simple request)
+    // Custom headers trigger preflight OPTIONS requests which this server doesn't support
+    const formData = new FormData();
+    formData.append('file', file, randomFilename);
+    
     // Use POST request for upload
-    const response = await fetch(`https://transfer.adminforge.de/${encodeURIComponent(randomFilename)}`, {
+    const response = await fetch('https://transfer.adminforge.de/', {
       method: 'POST',
-      body: file,
-      headers: {
-        'Max-Days': '1',
-        'Content-Type': file.type || 'application/octet-stream'
-      },
+      body: formData,
       signal: controller.signal
     });
     
@@ -182,8 +183,8 @@ async function uploadImageToTransferAdminforge(file) {
       return null;
     }
     
-    // The service returns the URL in the response body or Location header
-    const url = response.headers.get('Location') || await response.text();
+    // The service returns the URL in the response body
+    const url = await response.text();
     const trimmedUrl = (url || '').trim();
     
     if (!trimmedUrl || !trimmedUrl.startsWith('http')) {
@@ -214,7 +215,6 @@ async function uploadImageToTransferAdminforge(file) {
     state.isUploading = false;
     showUploadProgress(false);
   }
-
 }
 
 async function handleImageUpload(file) {
