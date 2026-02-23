@@ -32,7 +32,7 @@ const state = {
   currentSetId: null, // ID of current parallel set
   currentSetJobs: 0, // Number of jobs in current set
   // Image upload state
-  uploadedImageUrl: null, // URL of uploaded image on 0x0.st
+  uploadedImageUrl: null, // URL of uploaded image
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false // Upload in progress flag
 };
@@ -72,7 +72,6 @@ function isImageUploadSupported() {
 function updateUploadUI() {
   const uploadIcon = document.getElementById('upload-icon');
   const uploadIconContainer = document.getElementById('upload-icon-container');
-  const uploadTooltip = document.getElementById('upload-tooltip');
   const thumbnailWrapper = document.getElementById('upload-thumbnail-wrapper');
   
   if (!uploadIcon || !uploadIconContainer) return;
@@ -91,11 +90,9 @@ function updateUploadUI() {
     if (supported) {
       uploadIcon.classList.remove('disabled');
       uploadIcon.style.cursor = 'pointer';
-      if (uploadTooltip) uploadTooltip.textContent = i18n.t('uploadTooltip');
     } else {
       uploadIcon.classList.add('disabled');
       uploadIcon.style.cursor = 'not-allowed';
-      if (uploadTooltip) uploadTooltip.textContent = i18n.t('uploadTooltipDisabled');
     }
   }
 }
@@ -161,9 +158,13 @@ async function uploadImageToTransferAdminforge(file) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    // Use transfer.adminforge.de with PUT request
-    const response = await fetch(`https://transfer.adminforge.de/${encodeURIComponent(file.name)}`, {
-      method: 'PUT',
+    // Generate a random filename with original extension
+    const ext = file.name.split('.').pop() || 'jpg';
+    const randomFilename = `${generateRandomFilename()}.${ext}`;
+    
+    // Use POST request for upload
+    const response = await fetch(`https://transfer.adminforge.de/${encodeURIComponent(randomFilename)}`, {
+      method: 'POST',
       body: file,
       headers: {
         'Max-Days': '1',
@@ -176,7 +177,7 @@ async function uploadImageToTransferAdminforge(file) {
     
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('transfer.adminforge.de upload failed:', response.status, errorText);
+      console.error('Upload failed:', response.status, errorText);
       setStatus(i18n.t('uploadErrorServer'), 'error');
       return null;
     }
@@ -190,7 +191,15 @@ async function uploadImageToTransferAdminforge(file) {
       return null;
     }
     
-    return trimmedUrl;
+    // Transform URL: add "get/" after the base URL
+    // e.g., https://transfer.adminforge.de/snK3Tj1ehu/image.jpg
+    // becomes https://transfer.adminforge.de/get/snK3Tj1ehu/image.jpg
+    const urlWithGet = trimmedUrl.replace(
+      /^(https?:\/\/[^\/]+\/)(.+)$/,
+      '$1get/$2'
+    );
+    
+    return urlWithGet;
   } catch (error) {
     console.error('Upload error:', error);
     
@@ -205,11 +214,12 @@ async function uploadImageToTransferAdminforge(file) {
     state.isUploading = false;
     showUploadProgress(false);
   }
+
 }
 
 async function handleImageUpload(file) {
   if (!isImageUploadSupported()) {
-    setStatus(i18n.t('uploadTooltipDisabled'), 'error');
+    setStatus(i18n.t('uploadErrorGeneric'), 'error');
     return;
   }
   
@@ -224,7 +234,7 @@ async function handleImageUpload(file) {
   state.uploadedImageFile = file;
   updateUploadUI();
   
-  // Upload to transfer.adminforge.de
+  // Upload the image
   const url = await uploadImageToTransferAdminforge(file);
   
   if (url) {

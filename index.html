@@ -410,42 +410,6 @@
             opacity: 0;
         }
 
-        .upload-icon-container .tooltip {
-            visibility: hidden;
-            width: 200px;
-            background-color: rgba(0, 0, 0, 0.9);
-            color: white;
-            text-align: center;
-            border-radius: 6px;
-            padding: 8px 10px;
-            position: absolute;
-            z-index: 10000;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -100px;
-            opacity: 0;
-            transition: opacity 0.3s, visibility 0.3s;
-            font-size: 11px;
-            font-weight: 500;
-            line-height: 1.4;
-        }
-
-        .upload-icon-container .tooltip::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
-        }
-
-        .upload-icon-container:hover .tooltip {
-            visibility: visible;
-            opacity: 1;
-        }
-
         /* Upload thumbnail styles */
         .upload-thumbnail-wrapper {
             position: relative;
@@ -816,7 +780,6 @@
                         <polyline points="17,8 12,3 7,8"></polyline>
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
-                    <span class="tooltip" id="upload-tooltip" data-i18n="uploadTooltip">Upload an image for image-to-image generation. Images are uploaded to 0x0.st and stored for 1 hour.</span>
                 </div>
                 <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
                 <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="1"></textarea>

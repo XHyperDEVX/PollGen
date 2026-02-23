@@ -105,7 +105,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'The image will be uploaded to an external provider (transfer.adminforge.de) and stored there for a maximum of 7 days. Data protection cannot be guaranteed. Only upload images for which you have the rights.',
+    uploadConsentText: 'The image will be uploaded to an external service and stored there for a maximum of 1 day. Data protection cannot be guaranteed. Only upload images for which you have the rights.',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
@@ -214,7 +214,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Das Bild wird zu einem externen Anbieter (transfer.adminforge.de) hochgeladen und dort maximal 7 Tage gespeichert. Datenschutz kann nicht garantiert werden. Laden Sie nur Bilder hoch, an denen Sie die Rechte haben.',
+    uploadConsentText: 'Das Bild wird zu einem externen Dienst hochgeladen und dort maximal 1 Tag gespeichert. Datenschutz kann nicht garantiert werden. Laden Sie nur Bilder hoch, an denen Sie die Rechte haben.',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',
