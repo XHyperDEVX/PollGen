@@ -158,10 +158,10 @@ async function uploadImageToZeroXZeroSt(file) {
   
   try {
     const formData = new FormData();
-    formData.append('file', file, generateRandomFilename());
+    formData.append('file', file);
+    formData.append('expires', '1');
+    formData.append('secret', '1');
     
-    // 0x0.st stores files for 1 hour by default when using the /?expires=1 parameter
-    // or we can use the header X-Expires: 1h
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
@@ -170,7 +170,7 @@ async function uploadImageToZeroXZeroSt(file) {
       body: formData,
       signal: controller.signal,
       headers: {
-        'X-Expires': '1h'
+        'User-Agent': 'PollGen/1.0'
       }
     });
     
@@ -703,7 +703,7 @@ function renderModelOptions(models, forceReset = false) {
     displayHTML += '<div class="model-info">';
     
     if (description && description !== name) {
-      displayHTML += `<div class="model-name-desc">${name}${isImg2Img ? getImg2ImgIndicator() : ''}${isPremium ? getPremiumIndicator() : ''}</div>`;
+      displayHTML += `<div class="model-name-desc">${name}${isPremium ? getPremiumIndicator() : ''}${isImg2Img ? getImg2ImgIndicator() : ''}</div>`;
       displayHTML += `<div class="model-description">${description}</div>`;
       
       // Measure width for both lines
@@ -712,7 +712,7 @@ function renderModelOptions(models, forceReset = false) {
       const textWidth = Math.max(nameWidth, descWidth) + 120; // Add padding for badge, premium indicator, and margins
       maxWidth = Math.max(maxWidth, textWidth);
     } else {
-      displayHTML += `<div class="model-name-single">${name}${isImg2Img ? getImg2ImgIndicator() : ''}${isPremium ? getPremiumIndicator() : ''}</div>`;
+      displayHTML += `<div class="model-name-single">${name}${isPremium ? getPremiumIndicator() : ''}${isImg2Img ? getImg2ImgIndicator() : ''}</div>`;
       const textWidth = ctx.measureText(name).width + 120;
       maxWidth = Math.max(maxWidth, textWidth);
     }
@@ -777,7 +777,7 @@ function renderModelOptions(models, forceReset = false) {
       const isPremium = model.paid_only === true;
       const isImg2Img = model.input_modalities && model.input_modalities.includes('image');
       const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
-      currentModelName.innerHTML = model.name + btnImg2ImgIndicator + btnPremiumIndicator;
+      currentModelName.innerHTML = model.name + btnPremiumIndicator + btnImg2ImgIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
       updateCostDisplay(model);
@@ -788,7 +788,7 @@ function renderModelOptions(models, forceReset = false) {
     const isImg2Img = sortedModels[0].input_modalities && sortedModels[0].input_modalities.includes('image');
     const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
       const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
-    currentModelName.innerHTML = sortedModels[0].name + btnImg2ImgIndicator + btnPremiumIndicator;
+    currentModelName.innerHTML = sortedModels[0].name + btnPremiumIndicator + btnImg2ImgIndicator;
     const btnBadge = document.querySelector('#model-select-btn .model-badge');
     if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
     updateCostDisplay(sortedModels[0]);
