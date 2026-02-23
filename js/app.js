@@ -168,10 +168,7 @@ async function uploadImageToZeroXZeroSt(file) {
     const response = await fetch('https://0x0.st', {
       method: 'POST',
       body: formData,
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'PollGen/1.0'
-      }
+      signal: controller.signal
     });
     
     clearTimeout(timeoutId);
@@ -571,6 +568,7 @@ async function loadModels() {
     state.models = imageModels;
     state.videoModels = videoModels;
     renderModelOptions(state.currentMode === 'video' ? videoModels : imageModels);
+    updateUploadUI();
     setStatus('', '');
   } catch (error) {
     const cached = getCachedModels();
@@ -578,6 +576,7 @@ async function loadModels() {
       state.models = cached.imageModels;
       state.videoModels = cached.videoModels || [];
       renderModelOptions(state.currentMode === 'video' ? state.videoModels : state.models);
+      updateUploadUI();
       setStatus('', '');
     } else {
       setStatus(i18n.t('modelLoadError'), 'error');
