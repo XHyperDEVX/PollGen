@@ -32,7 +32,7 @@ const state = {
   currentSetId: null, // ID of current parallel set
   currentSetJobs: 0, // Number of jobs in current set
   // Image upload state
-  uploadedImageUrl: null, // URL of uploaded image on 0x0.st
+  uploadedImageUrl: null, // URL of uploaded image
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false // Upload in progress flag
 };
@@ -49,7 +49,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp
 function generateRandomFilename() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 8; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
@@ -72,7 +72,6 @@ function isImageUploadSupported() {
 function updateUploadUI() {
   const uploadIcon = document.getElementById('upload-icon');
   const uploadIconContainer = document.getElementById('upload-icon-container');
-  const uploadTooltip = document.getElementById('upload-tooltip');
   const thumbnailWrapper = document.getElementById('upload-thumbnail-wrapper');
   
   if (!uploadIcon || !uploadIconContainer) return;
@@ -91,11 +90,9 @@ function updateUploadUI() {
     if (supported) {
       uploadIcon.classList.remove('disabled');
       uploadIcon.style.cursor = 'pointer';
-      if (uploadTooltip) uploadTooltip.textContent = i18n.t('uploadTooltip');
     } else {
       uploadIcon.classList.add('disabled');
       uploadIcon.style.cursor = 'not-allowed';
-      if (uploadTooltip) uploadTooltip.textContent = i18n.t('uploadTooltipDisabled');
     }
   }
 }
@@ -159,38 +156,67 @@ async function uploadImageToTransferAdminforge(file) {
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
     
-    // Use transfer.adminforge.de with PUT request
-    const response = await fetch(`https://transfer.adminforge.de/${encodeURIComponent(file.name)}`, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Max-Days': '1',
-        'Content-Type': file.type || 'application/octet-stream'
-      },
+    // Generate a random filename with original extension
+    const ext = file.name.split('.').pop() || 'jpg';
+    const randomFilename = `${generateRandomFilename()}.${ext}`;
+    
+    // POST to the service root - FormData avoids CORS preflight
+    const formData = new FormData();
+    formData.append('file', file, randomFilename);
+    
+    const response = await fetch('https://transfer.adminforge.de/', {
+      method: 'POST',
+      body: formData,
       signal: controller.signal
     });
     
     clearTimeout(timeoutId);
     
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('transfer.adminforge.de upload failed:', response.status, errorText);
+      console.error('Upload failed:', response.status);
       setStatus(i18n.t('uploadErrorServer'), 'error');
       return null;
     }
     
-    // The service returns the URL in the response body or Location header
-    const url = response.headers.get('Location') || await response.text();
-    const trimmedUrl = (url || '').trim();
+    // Try to get the URL from x-url-delete header
+    // Format: https://transfer.adminforge.de/abc123/filename.jpg/deleteToken
+    const deleteUrl = response.headers.get('x-url-delete');
     
-    if (!trimmedUrl || !trimmedUrl.startsWith('http')) {
-      setStatus(i18n.t('uploadErrorServer'), 'error');
-      return null;
+    if (deleteUrl) {
+      // Extract the file URL by removing the delete token (last path segment)
+      const urlParts = deleteUrl.split('/');
+      urlParts.pop(); // Remove delete token
+      const fileUrl = urlParts.join('/');
+      
+      // Add "get/" for the image parameter
+      const imageUrl = fileUrl.replace(
+        /^(https?:\/\/[^\/]+\/)(.+)$/,
+        '$1get/$2'
+      );
+      
+      return imageUrl;
     }
     
-    return trimmedUrl;
+    // Fallback: try to read response body (may be blocked by CORS)
+    try {
+      const text = await response.text();
+      const trimmedUrl = (text || '').trim();
+      if (trimmedUrl && trimmedUrl.startsWith('http')) {
+        const imageUrl = trimmedUrl.replace(
+          /^(https?:\/\/[^\/]+\/)(.+)$/,
+          '$1get/$2'
+        );
+        return imageUrl;
+      }
+    } catch (e) {
+      console.warn('Could not read upload response:', e);
+    }
+    
+    console.error('Upload succeeded but could not determine file URL');
+    setStatus(i18n.t('uploadErrorServer'), 'error');
+    return null;
   } catch (error) {
     console.error('Upload error:', error);
     
@@ -209,7 +235,7 @@ async function uploadImageToTransferAdminforge(file) {
 
 async function handleImageUpload(file) {
   if (!isImageUploadSupported()) {
-    setStatus(i18n.t('uploadTooltipDisabled'), 'error');
+    setStatus(i18n.t('uploadErrorGeneric'), 'error');
     return;
   }
   
@@ -224,7 +250,7 @@ async function handleImageUpload(file) {
   state.uploadedImageFile = file;
   updateUploadUI();
   
-  // Upload to transfer.adminforge.de
+  // Upload the image
   const url = await uploadImageToTransferAdminforge(file);
   
   if (url) {
