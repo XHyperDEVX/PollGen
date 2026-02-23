@@ -388,37 +388,42 @@
             height: 16px;
             color: var(--text-muted);
             opacity: 0.6;
-            cursor: not-allowed;
+            cursor: pointer;
             transition: opacity 0.2s ease;
         }
 
+        .upload-icon:hover {
+            opacity: 1;
+            color: var(--text-primary);
+        }
+
         .upload-icon.disabled {
-            opacity: 0.4;
+            opacity: 0.3;
             cursor: not-allowed;
         }
 
         .upload-icon-container:hover .upload-icon.disabled {
-            opacity: 0.6;
+            opacity: 0.4;
         }
 
         .upload-icon-container .tooltip {
             visibility: hidden;
-            width: 120px;
+            width: 200px;
             background-color: rgba(0, 0, 0, 0.9);
             color: white;
             text-align: center;
             border-radius: 6px;
-            padding: 6px 8px;
+            padding: 8px 10px;
             position: absolute;
             z-index: 1000;
             bottom: 125%;
             left: 50%;
-            margin-left: -60px;
+            margin-left: -100px;
             opacity: 0;
             transition: opacity 0.3s, visibility 0.3s;
             font-size: 11px;
             font-weight: 500;
-            white-space: nowrap;
+            line-height: 1.4;
         }
 
         .upload-icon-container .tooltip::after {
@@ -435,6 +440,93 @@
         .upload-icon-container:hover .tooltip {
             visibility: visible;
             opacity: 1;
+        }
+
+        /* Upload thumbnail styles */
+        .upload-thumbnail-wrapper {
+            position: relative;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+        }
+
+        .upload-thumbnail-wrapper.visible {
+            display: flex;
+        }
+
+        .upload-thumbnail {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.2s ease;
+        }
+
+        .upload-thumbnail:hover {
+            border-color: var(--accent);
+        }
+
+        .upload-thumbnail-delete {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
+            background-color: var(--error);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .upload-thumbnail-wrapper:hover .upload-thumbnail-delete {
+            opacity: 1;
+        }
+
+        .upload-thumbnail-delete svg {
+            width: 10px;
+            height: 10px;
+            color: white;
+        }
+
+        .upload-thumbnail-delete:hover {
+            background-color: #ef4444;
+            transform: scale(1.1);
+        }
+
+        /* Upload progress indicator */
+        .upload-progress {
+            position: absolute;
+            inset: 0;
+            background: rgba(37, 99, 235, 0.9);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .upload-progress svg {
+            width: 16px;
+            height: 16px;
+            color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .cost-display { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 12px; align-self: center; text-align: center; min-width: 70px; }
@@ -614,14 +706,29 @@
 
         <div class="prompt-bar">
             <div class="prompt-input-wrapper">
-                <div class="upload-icon-container" title="">
-                    <svg class="upload-icon disabled" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
+                    <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
+                    <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="upload-progress" id="upload-progress" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="upload-icon-container" id="upload-icon-container" title="">
+                    <svg class="upload-icon" id="upload-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="17,8 12,3 7,8"></polyline>
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
-                    <span class="tooltip" data-i18n="uploadTooltip">Coming Soon!</span>
+                    <span class="tooltip" id="upload-tooltip" data-i18n="uploadTooltip">Upload an image for image-to-image generation. Images are uploaded to 0x0.st and stored for 1 hour.</span>
                 </div>
+                <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
                 <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="1"></textarea>
             </div>
             <div class="prompt-actions">
@@ -720,6 +827,8 @@
             const prompt = document.getElementById('prompt');
 
             if (mode === 'video') {
+                // Clear uploaded image when switching to video mode
+                if (typeof clearUploadedImage === 'function') clearUploadedImage();
                 // Show aspect ratio for video mode with filtered options
                 aspectGroup.classList.remove('hidden');
                 durationGroup.classList.remove('hidden');
@@ -784,6 +893,11 @@
             
             // Update parallel count unit label (Images/Videos)
             if (window.updateCountUnitLabel) {
+                window.updateCountUnitLabel();
+            }
+            // Update upload UI visibility based on mode
+            if (typeof updateUploadUI === 'function') {
+                updateUploadUI();
                 window.updateCountUnitLabel();
             }
         }

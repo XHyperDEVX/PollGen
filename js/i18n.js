@@ -21,7 +21,8 @@ const translations = {
     promptPlaceholder: 'Describe the image you want to generate',
     videoPromptPlaceholder: 'Describe the video you want to generate',
     startScreenIntro: 'Describe your vision and bring it to life',
-    uploadTooltip: 'Coming Soon!',
+    uploadTooltip: 'Upload an image for image-to-image generation. Images are uploaded to 0x0.st and stored for 1 hour.',
+    uploadTooltipDisabled: 'Image upload is not available for the selected model.',
     modelLabel: 'Model',
     aspectRatioLabel: 'Aspect Ratio',
     imageModeLabel: 'Image',
@@ -101,6 +102,14 @@ const translations = {
     // Context Menu
     downloadImage: 'Download Image',
     downloadVideo: 'Download Video',
+
+    // Upload Messages
+    uploadSuccess: 'Image uploaded successfully',
+    uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
+    uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
+    uploadErrorFileSize: 'File too large. Please choose a smaller image.',
+    uploadErrorFileType: 'Invalid file type. Please upload an image file.',
+    uploadErrorGeneric: 'Upload failed. Please try again.',
   },
   de: {
     // Page
@@ -119,7 +128,8 @@ const translations = {
     promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten',
     videoPromptPlaceholder: 'Beschreiben Sie das Video, das Sie generieren möchten',
     startScreenIntro: 'Beschreiben Sie Ihre Vision und bringen Sie sie zum Leben',
-    uploadTooltip: 'Bald verfügbar!',
+    uploadTooltip: 'Laden Sie ein Bild für die Bild-zu-Bild-Generierung hoch. Bilder werden auf 0x0.st hochgeladen und für 1 Stunde gespeichert.',
+    uploadTooltipDisabled: 'Bild-Upload ist für das ausgewählte Modell nicht verfügbar.',
     modelLabel: 'Modell',
     aspectRatioLabel: 'Seitenverhältnis',
     imageModeLabel: 'Bild',
@@ -199,6 +209,14 @@ const translations = {
     // Context Menu
     downloadImage: 'Bild herunterladen',
     downloadVideo: 'Video herunterladen',
+
+    // Upload Messages
+    uploadSuccess: 'Bild erfolgreich hochgeladen',
+    uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
+    uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',
+    uploadErrorFileSize: 'Datei zu groß. Bitte wählen Sie ein kleineres Bild.',
+    uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
+    uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
   }
 };
 

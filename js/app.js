@@ -29,10 +29,249 @@ const state = {
   completedCount: 0,
   failedCount: 0,
   currentSetId: null, // ID of current parallel set
-  currentSetJobs: 0 // Number of jobs in current set
+  currentSetJobs: 0, // Number of jobs in current set
+  // Image upload state
+  uploadedImageUrl: null, // URL of uploaded image on 0x0.st
+  uploadedImageFile: null, // Original file for thumbnail display
+  isUploading: false // Upload in progress flag
 };
 
 // ============================================================================
+
+// ============================================================================
+// IMAGE UPLOAD
+// ============================================================================
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
+
+function generateRandomFilename() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 24; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function isImageUploadSupported() {
+  const select = document.getElementById('model');
+  if (!select) return false;
+  
+  const currentModelName = select.value;
+  const models = state.currentMode === 'video' ? state.videoModels : state.models;
+  const model = models.find(m => m.name === currentModelName);
+  
+  if (!model) return false;
+  
+  const inputModalities = model.input_modalities || [];
+  return inputModalities.includes('image');
+}
+
+function updateUploadUI() {
+  const uploadIcon = document.getElementById('upload-icon');
+  const uploadIconContainer = document.getElementById('upload-icon-container');
+  const uploadTooltip = document.getElementById('upload-tooltip');
+  const thumbnailWrapper = document.getElementById('upload-thumbnail-wrapper');
+  
+  if (!uploadIcon || !uploadIconContainer) return;
+  
+  const supported = isImageUploadSupported();
+  
+  if (state.uploadedImageUrl) {
+    // Show thumbnail, hide icon
+    if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
+    uploadIconContainer.style.display = 'none';
+  } else {
+    // Show icon, hide thumbnail
+    if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
+    uploadIconContainer.style.display = 'flex';
+    
+    if (supported) {
+      uploadIcon.classList.remove('disabled');
+      uploadIcon.style.cursor = 'pointer';
+      if (uploadTooltip) uploadTooltip.textContent = i18n.t('uploadTooltip');
+    } else {
+      uploadIcon.classList.add('disabled');
+      uploadIcon.style.cursor = 'not-allowed';
+      if (uploadTooltip) uploadTooltip.textContent = i18n.t('uploadTooltipDisabled');
+    }
+  }
+}
+
+function showUploadProgress(show) {
+  const progressEl = document.getElementById('upload-progress');
+  if (progressEl) {
+    progressEl.style.display = show ? 'flex' : 'none';
+  }
+}
+
+function setUploadThumbnail(file) {
+  const thumbnail = document.getElementById('upload-thumbnail');
+  if (!thumbnail || !file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    thumbnail.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearUploadedImage() {
+  state.uploadedImageUrl = null;
+  state.uploadedImageFile = null;
+  
+  const thumbnail = document.getElementById('upload-thumbnail');
+  if (thumbnail) thumbnail.src = '';
+  
+  const fileInput = document.getElementById('image-upload-input');
+  if (fileInput) fileInput.value = '';
+  
+  updateUploadUI();
+}
+
+function validateImageFile(file) {
+  if (!file) {
+    return { valid: false, error: i18n.t('uploadErrorGeneric') };
+  }
+  
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { valid: false, error: i18n.t('uploadErrorFileType') };
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: i18n.t('uploadErrorFileSize') };
+  }
+  
+  return { valid: true };
+}
+
+async function uploadImageToZeroXZeroSt(file) {
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
+    setStatus(validation.error, 'error');
+    return null;
+  }
+  
+  state.isUploading = true;
+  showUploadProgress(true);
+  
+  try {
+    const formData = new FormData();
+    formData.append('file', file, generateRandomFilename());
+    
+    // 0x0.st stores files for 1 hour by default when using the /?expires=1 parameter
+    // or we can use the header X-Expires: 1h
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    const response = await fetch('https://0x0.st', {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+      headers: {
+        'X-Expires': '1h'
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('0x0.st upload failed:', response.status, errorText);
+      setStatus(i18n.t('uploadErrorServer'), 'error');
+      return null;
+    }
+    
+    const url = await response.text();
+    const trimmedUrl = url.trim();
+    
+    if (!trimmedUrl || !trimmedUrl.startsWith('http')) {
+      setStatus(i18n.t('uploadErrorServer'), 'error');
+      return null;
+    }
+    
+    return trimmedUrl;
+  } catch (error) {
+    console.error('Upload error:', error);
+    
+    if (error.name === 'AbortError' || error.name === 'TypeError') {
+      setStatus(i18n.t('uploadErrorNetwork'), 'error');
+    } else {
+      setStatus(i18n.t('uploadErrorGeneric'), 'error');
+    }
+    
+    return null;
+  } finally {
+    state.isUploading = false;
+    showUploadProgress(false);
+  }
+}
+
+async function handleImageUpload(file) {
+  if (!isImageUploadSupported()) {
+    setStatus(i18n.t('uploadTooltipDisabled'), 'error');
+    return;
+  }
+  
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
+    setStatus(validation.error, 'error');
+    return;
+  }
+  
+  // Set thumbnail immediately for preview
+  setUploadThumbnail(file);
+  state.uploadedImageFile = file;
+  updateUploadUI();
+  
+  // Upload to 0x0.st
+  const url = await uploadImageToZeroXZeroSt(file);
+  
+  if (url) {
+    state.uploadedImageUrl = url;
+    setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
+  } else {
+    // Clear thumbnail on failure
+    clearUploadedImage();
+  }
+}
+
+function setupImageUploadHandlers() {
+  const uploadIcon = document.getElementById('upload-icon');
+  const uploadIconContainer = document.getElementById('upload-icon-container');
+  const fileInput = document.getElementById('image-upload-input');
+  const deleteBtn = document.getElementById('upload-thumbnail-delete');
+  
+  if (uploadIconContainer) {
+    uploadIconContainer.addEventListener('click', () => {
+      if (isImageUploadSupported() && !state.isUploading) {
+        fileInput?.click();
+      }
+    });
+  }
+  
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleImageUpload(file);
+      }
+    });
+  }
+  
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearUploadedImage();
+    });
+  }
+}
+
+// Expose upload functions to window for inline script access
+window.clearUploadedImage = clearUploadedImage;
+window.updateUploadUI = updateUploadUI;
+
 // BALANCE DISPLAY
 // ============================================================================
 
@@ -519,6 +758,7 @@ function renderModelOptions(models, forceReset = false) {
       item.classList.add('selected');
       updateCostDisplay(model);
       modelPopover.classList.remove('visible');
+      updateUploadUI();
     };
     
     modelPopover.appendChild(item);
@@ -647,6 +887,7 @@ async function generateImage(payload) {
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
+  if (payload.image) params.append('image', payload.image);
   
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
@@ -687,6 +928,7 @@ async function generateVideo(payload) {
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
+  if (payload.image) params.append('image', payload.image);
 
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
@@ -1084,6 +1326,10 @@ function collectPayload() {
 
   if (negativePromptInput && negativePromptInput.value.trim()) {
       payload.negative_prompt = negativePromptInput.value.trim();
+  }
+  // Include uploaded image URL for image-to-image generation
+  if (state.uploadedImageUrl && mode === 'image') {
+    payload.image = state.uploadedImageUrl;
   }
 
   // Boolean flags
@@ -2197,7 +2443,9 @@ function init() {
     updateBalance(null);
   }
   setupEventListeners();
+  setupImageUploadHandlers();
   loadModels();
+  updateUploadUI();
   adjustPromptHeight();
 
   window.addEventListener('resize', scheduleImageCardResize);
