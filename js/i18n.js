@@ -16,6 +16,21 @@ const translations = {
     apiKeyStored: 'API key saved',
     apiKeyMissing: 'Please enter your API key',
 
+    // Login
+    loginWithPollinations: 'Login with Pollinations',
+    loggedIn: 'Logged in',
+    loginPopupBlocked: 'Popup blocked. Please allow popups for this site.',
+
+    // Profile
+    welcomeMessage: 'Welcome %s!',
+    profileSubtitle: 'What would you like to generate today?',
+    funFactAccountAge: 'Fun fact: You created your Pollinations account %s ago',
+    timeAgoMinutes: '%s minutes',
+    timeAgoHours: '%s hours',
+    timeAgoDays: '%s days',
+    timeAgoWeeks: '%s weeks',
+    timeAgoMonths: '%s months',
+
     // Form Fields
     promptLabel: 'Prompt',
     promptPlaceholder: 'Describe the image you want to generate',
@@ -113,6 +128,21 @@ const translations = {
     apiKeyHint: 'Holen dir einen API-Schlüssel von <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
     apiKeyStored: 'API-Schlüssel gespeichert',
     apiKeyMissing: 'Bitte geben Sie Ihren API-Schlüssel ein',
+
+    // Login
+    loginWithPollinations: 'Mit Pollinations anmelden',
+    loggedIn: 'Angemeldet',
+    loginPopupBlocked: 'Popup blockiert. Bitte erlauben Sie Popups für diese Seite.',
+
+    // Profile
+    welcomeMessage: 'Willkommen %s!',
+    profileSubtitle: 'Was möchten Sie heute generieren?',
+    funFactAccountAge: 'Wussten Sie: Sie haben Ihr Pollinations-Konto vor %s erstellt',
+    timeAgoMinutes: '%s Minuten',
+    timeAgoHours: '%s Stunden',
+    timeAgoDays: '%s Tagen',
+    timeAgoWeeks: '%s Wochen',
+    timeAgoMonths: '%s Monaten',
 
     // Form Fields
     promptLabel: 'Prompt',

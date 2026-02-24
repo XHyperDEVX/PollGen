@@ -20,6 +20,7 @@ const state = {
   keyInfo: null, // Store key info from /account/key endpoint
   keyInfoApiKey: null, // Which API key the keyInfo was validated for
   hidePremiumModels: false, // Whether to hide premium (paid_only) models
+  profile: null, // User profile data from /account/profile
   // Parallel mode state
   parallelMode: false,
   parallelCount: 2, // Number of images to generate in parallel
@@ -143,7 +144,10 @@ async function updateBalance(apiKey) {
     state.keyInfo = null;
     state.keyInfoApiKey = null;
     state.allowedModels = null;
+    state.profile = null;
     setGenerateButtonEnabled(false);
+    updateLoginButtonState(false);
+    displayProfile(null);
     const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
     renderModelOptions(modelsToRender);
     return;
@@ -161,7 +165,10 @@ async function updateBalance(apiKey) {
       state.keyInfo = null;
       state.keyInfoApiKey = null;
       state.allowedModels = null;
+      state.profile = null;
       setGenerateButtonEnabled(false);
+      updateLoginButtonState(false);
+      displayProfile(null);
       const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
       renderModelOptions(modelsToRender);
       return;
@@ -172,6 +179,7 @@ async function updateBalance(apiKey) {
   }
 
   setGenerateButtonEnabled(true);
+  updateLoginButtonState(true);
 
   if (keyInfo.permissions && keyInfo.permissions.models) {
     state.allowedModels = keyInfo.permissions.models;
@@ -182,6 +190,23 @@ async function updateBalance(apiKey) {
   // Render models based on current mode
   const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
   renderModelOptions(modelsToRender);
+
+  // Check for profile permission and fetch profile
+  const hasProfilePermission =
+    keyInfo.permissions &&
+    keyInfo.permissions.account &&
+    keyInfo.permissions.account.includes('profile');
+
+  if (hasProfilePermission) {
+    const profile = await fetchProfile(trimmedKey);
+    if (state.apiKey === trimmedKey && profile) {
+      state.profile = profile;
+      displayProfile(profile);
+    }
+  } else {
+    state.profile = null;
+    displayProfile(null);
+  }
 
   const hasBalancePermission =
     keyInfo.permissions &&
@@ -1878,6 +1903,16 @@ function adjustPromptHeight() {
 // ============================================================================
 
 function setupEventListeners() {
+  // Login button handler
+  const loginBtn = document.getElementById('login-btn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+      if (!loginBtn.disabled) {
+        initiateOAuthLogin();
+      }
+    });
+  }
+
   // Premium models filter checkbox
   const hidePremiumCheckbox = document.getElementById('hide-premium-models');
   if (hidePremiumCheckbox) {
@@ -2177,6 +2212,9 @@ function init() {
   // Default disabled until validated
   setGenerateButtonEnabled(false);
 
+  // Update login button state
+  updateLoginButtonState(false);
+
   // Load premium models filter setting
   loadHidePremiumModels();
 
@@ -2188,13 +2226,19 @@ function init() {
   checkMobileDevice();
   window.addEventListener('resize', checkMobileDevice);
 
-  loadApiKey();
-  if (state.apiKey) {
-    const apiKeyInput = document.getElementById('api-key');
-    if (apiKeyInput) apiKeyInput.value = state.apiKey;
-    updateBalance(state.apiKey);
+  // Handle OAuth callback first (from login popup redirect)
+  if (handleOAuthCallback()) {
+    // OAuth callback was handled, API key is now set
   } else {
-    updateBalance(null);
+    // No OAuth callback, try to load saved API key
+    loadApiKey();
+    if (state.apiKey) {
+      const apiKeyInput = document.getElementById('api-key');
+      if (apiKeyInput) apiKeyInput.value = state.apiKey;
+      updateBalance(state.apiKey);
+    } else {
+      updateBalance(null);
+    }
   }
   setupEventListeners();
   loadModels();
@@ -2208,4 +2252,185 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
   init();
+}
+
+// ============================================================================
+// OAUTH LOGIN
+// ============================================================================
+
+function initiateOAuthLogin() {
+  const redirectUrl = window.location.origin + window.location.pathname;
+  const authUrl = `https://login.pollinations.ai?redirect_url=${encodeURIComponent(redirectUrl)}`;
+  
+  const popup = window.open(authUrl, 'pollinations-login', 'width=500,height=600,scrollbars=yes');
+  
+  if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+    setStatus(i18n.t('loginPopupBlocked'), 'error');
+    return;
+  }
+}
+
+function handleOAuthCallback() {
+  const hash = window.location.hash;
+  if (!hash) return false;
+  
+  const params = new URLSearchParams(hash.substring(1));
+  const apiKey = params.get('api_key');
+  
+  if (apiKey) {
+    // Clear the hash from URL
+    history.replaceState(null, '', window.location.pathname);
+    
+    // Save the API key
+    saveApiKey(apiKey);
+    
+    // Update the input field
+    const apiKeyInput = document.getElementById('api-key');
+    if (apiKeyInput) apiKeyInput.value = apiKey;
+    
+    // Validate and fetch balance/profile
+    updateBalance(apiKey);
+    
+    setStatus(i18n.t('apiKeyStored'), 'success');
+    return true;
+  }
+  
+  return false;
+}
+
+// ============================================================================
+// PROFILE DISPLAY
+// ============================================================================
+
+async function fetchProfile(apiKey) {
+  try {
+    const response = await fetch('https://gen.pollinations.ai/account/profile', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey.trim()}`
+      }
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log('Profile API call failed:', error.message);
+    return null;
+  }
+}
+
+function calculateTimeSince(createdAt) {
+  if (!createdAt) return null;
+  
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now - created;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
+  
+  if (diffHours < 1) {
+    return { value: diffMins, unit: 'minutes' };
+  } else if (diffDays < 1) {
+    return { value: diffHours, unit: 'hours' };
+  } else if (diffWeeks < 1) {
+    return { value: diffDays, unit: 'days' };
+  } else if (diffMonths < 1) {
+    return { value: diffWeeks, unit: 'weeks' };
+  } else {
+    return { value: diffMonths, unit: 'months' };
+  }
+}
+
+function formatTimeAgo(timeObj) {
+  if (!timeObj) return '';
+  
+  const { value, unit } = timeObj;
+  let translationKey;
+  
+  switch (unit) {
+    case 'minutes':
+      translationKey = 'timeAgoMinutes';
+      break;
+    case 'hours':
+      translationKey = 'timeAgoHours';
+      break;
+    case 'days':
+      translationKey = 'timeAgoDays';
+      break;
+    case 'weeks':
+      translationKey = 'timeAgoWeeks';
+      break;
+    case 'months':
+      translationKey = 'timeAgoMonths';
+      break;
+    default:
+      return '';
+  }
+  
+  return i18n.t(translationKey, value);
+}
+
+function displayProfile(profile) {
+  const profileDisplay = document.getElementById('profile-display');
+  const profileAvatar = document.getElementById('profile-avatar');
+  const profileWelcome = document.getElementById('profile-welcome');
+  const profileFunfact = document.getElementById('profile-funfact');
+  const emptyIcon = document.getElementById('empty-icon');
+  
+  if (!profileDisplay || !profile) {
+    if (profileDisplay) profileDisplay.classList.add('hidden');
+    if (emptyIcon) emptyIcon.classList.remove('hidden');
+    return;
+  }
+  
+  // Set avatar
+  if (profile.avatar && profileAvatar) {
+    profileAvatar.src = profile.avatar;
+    profileAvatar.onerror = () => {
+      profileAvatar.src = 'js/icon.png';
+    };
+  } else if (profileAvatar) {
+    profileAvatar.src = 'js/icon.png';
+  }
+  
+  // Set welcome message
+  if (profileWelcome) {
+    const name = profile.name || profile.username || 'User';
+    profileWelcome.textContent = i18n.t('welcomeMessage', name);
+  }
+  
+  // Set fun fact about account age
+  if (profileFunfact && profile.created_at) {
+    const timeObj = calculateTimeSince(profile.created_at);
+    const timeStr = formatTimeAgo(timeObj);
+    if (timeStr) {
+      profileFunfact.textContent = i18n.t('funFactAccountAge', timeStr);
+    }
+  }
+  
+  // Show profile display, hide default icon
+  profileDisplay.classList.remove('hidden');
+  if (emptyIcon) emptyIcon.classList.add('hidden');
+}
+
+function updateLoginButtonState(isLoggedIn) {
+  const loginBtn = document.getElementById('login-btn');
+  const loginBtnText = document.getElementById('login-btn-text');
+  
+  if (loginBtn && loginBtnText) {
+    if (isLoggedIn) {
+      loginBtnText.textContent = i18n.t('loggedIn');
+      loginBtn.disabled = true;
+    } else {
+      loginBtnText.textContent = i18n.t('loginWithPollinations');
+      loginBtn.disabled = false;
+    }
+  }
 }
