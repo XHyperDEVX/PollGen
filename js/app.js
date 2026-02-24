@@ -2350,21 +2350,22 @@ function formatTimeAgo(timeObj) {
   const { value, unit } = timeObj;
   let translationKey;
   
+  // Use singular form for value === 1, plural otherwise
   switch (unit) {
     case 'minutes':
-      translationKey = 'timeAgoMinutes';
+      translationKey = value === 1 ? 'timeAgoMinute' : 'timeAgoMinutes';
       break;
     case 'hours':
-      translationKey = 'timeAgoHours';
+      translationKey = value === 1 ? 'timeAgoHour' : 'timeAgoHours';
       break;
     case 'days':
-      translationKey = 'timeAgoDays';
+      translationKey = value === 1 ? 'timeAgoDay' : 'timeAgoDays';
       break;
     case 'weeks':
-      translationKey = 'timeAgoWeeks';
+      translationKey = value === 1 ? 'timeAgoWeek' : 'timeAgoWeeks';
       break;
     case 'months':
-      translationKey = 'timeAgoMonths';
+      translationKey = value === 1 ? 'timeAgoMonth' : 'timeAgoMonths';
       break;
     default:
       return '';
