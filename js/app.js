@@ -2258,26 +2258,12 @@ if (document.readyState === 'loading') {
 // OAUTH LOGIN
 // ============================================================================
 
-let oauthPopup = null;
-
 function initiateOAuthLogin() {
   const redirectUrl = window.location.href.split('#')[0]; // Remove any existing hash
   const authUrl = `https://enter.pollinations.ai/authorize?redirect_url=${encodeURIComponent(redirectUrl)}&permissions=profile,balance&expiry=3&budget=1`;
   
-  oauthPopup = window.open(authUrl, 'pollinations-login', 'width=500,height=600,scrollbars=yes');
-  
-  if (!oauthPopup || oauthPopup.closed || typeof oauthPopup.closed === 'undefined') {
-    setStatus(i18n.t('loginPopupBlocked'), 'error');
-    return;
-  }
-  
-  // Poll to check if popup is closed
-  const pollTimer = setInterval(() => {
-    if (oauthPopup && oauthPopup.closed) {
-      clearInterval(pollTimer);
-      oauthPopup = null;
-    }
-  }, 500);
+  // Redirect in the same tab instead of popup
+  window.location.href = authUrl;
 }
 
 function handleOAuthCallback() {
@@ -2288,15 +2274,8 @@ function handleOAuthCallback() {
   const apiKey = params.get('api_key');
   
   if (apiKey) {
-    // Clear the hash from URL
+    // Clear the hash from URL immediately
     history.replaceState(null, '', window.location.pathname + window.location.search);
-    
-    // If we're in a popup, close it and notify opener
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage({ type: 'oauth-callback', apiKey }, window.location.origin);
-      window.close();
-      return true;
-    }
     
     // Save the API key
     saveApiKey(apiKey);
@@ -2314,21 +2293,6 @@ function handleOAuthCallback() {
   
   return false;
 }
-
-// Listen for OAuth callback messages from popup
-window.addEventListener('message', (event) => {
-  if (event.origin !== window.location.origin) return;
-  if (event.data && event.data.type === 'oauth-callback') {
-    const apiKey = event.data.apiKey;
-    if (apiKey) {
-      saveApiKey(apiKey);
-      const apiKeyInput = document.getElementById('api-key');
-      if (apiKeyInput) apiKeyInput.value = apiKey;
-      updateBalance(apiKey);
-      setStatus(i18n.t('apiKeyStored'), 'success');
-    }
-  }
-});
 
 // ============================================================================
 // PROFILE DISPLAY
@@ -2413,6 +2377,7 @@ function displayProfile(profile) {
   const profileDisplay = document.getElementById('profile-display');
   const profileAvatar = document.getElementById('profile-avatar');
   const profileWelcome = document.getElementById('profile-welcome');
+  const profileSubtitle = document.getElementById('profile-subtitle');
   const profileFunfact = document.getElementById('profile-funfact');
   const emptyIcon = document.getElementById('empty-icon');
   const emptyTitle = document.getElementById('empty-title');
@@ -2439,6 +2404,11 @@ function displayProfile(profile) {
   if (profileWelcome) {
     const name = profile.name || profile.username || 'User';
     profileWelcome.textContent = i18n.t('welcomeMessage', name);
+  }
+  
+  // Set subtitle
+  if (profileSubtitle) {
+    profileSubtitle.textContent = i18n.t('profileSubtitle');
   }
   
   // Set fun fact about account age
