@@ -16,6 +16,27 @@ const translations = {
     apiKeyStored: 'API key saved',
     apiKeyMissing: 'Please enter your API key',
 
+    // Login
+    loginWithPollinations: 'Login with Pollinations',
+    loggedIn: 'Logged in',
+    loginPopupBlocked: 'Popup blocked. Please allow popups for this site.',
+    orLabel: 'or',
+
+    // Profile
+    welcomeMessage: 'Hello %s!',
+    profileSubtitle: 'What would you like to generate today?',
+    funFactAccountAge: 'Fun fact: You created your Pollinations account %s ago',
+    timeAgoMinute: '1 minute',
+    timeAgoMinutes: '%s minutes',
+    timeAgoHour: '1 hour',
+    timeAgoHours: '%s hours',
+    timeAgoDay: '1 day',
+    timeAgoDays: '%s days',
+    timeAgoWeek: '1 week',
+    timeAgoWeeks: '%s weeks',
+    timeAgoMonth: '1 month',
+    timeAgoMonths: '%s months',
+
     // Form Fields
     promptLabel: 'Prompt',
     promptPlaceholder: 'Describe the image you want to generate',
@@ -105,20 +126,41 @@ const translations = {
   de: {
     // Page
     pageTitle: 'PollGen',
-    pageDescription: 'Erstellen Sie hochwertige Bilder mit KI',
+    pageDescription: 'Erstelle hochwertige Bilder mit KI',
 
     // API Key
     apiKeyLabel: 'API-Schlüssel',
-    apiKeyPlaceholder: 'Geben Sie Ihren Pollinations-API-Schlüssel ein',
-    apiKeyHint: 'Holen dir einen API-Schlüssel von <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
+    apiKeyPlaceholder: 'Gib deinen Pollinations-API-Schlüssel ein',
+    apiKeyHint: 'Hol dir einen API-Schlüssel von <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
     apiKeyStored: 'API-Schlüssel gespeichert',
-    apiKeyMissing: 'Bitte geben Sie Ihren API-Schlüssel ein',
+    apiKeyMissing: 'Bitte gib deinen API-Schlüssel ein',
+
+    // Login
+    loginWithPollinations: 'Mit Pollinations anmelden',
+    loggedIn: 'Angemeldet',
+    loginPopupBlocked: 'Popup blockiert. Bitte erlaube Popups für diese Seite.',
+    orLabel: 'oder',
+
+    // Profile
+    welcomeMessage: 'Hallo %s!',
+    profileSubtitle: 'Was möchtest du heute generieren?',
+    funFactAccountAge: 'Fun Fact: Du hast deinen Pollinations-Account vor %s erstellt',
+    timeAgoMinute: '1 Minute',
+    timeAgoMinutes: '%s Minuten',
+    timeAgoHour: '1 Stunde',
+    timeAgoHours: '%s Stunden',
+    timeAgoDay: '1 Tag',
+    timeAgoDays: '%s Tagen',
+    timeAgoWeek: '1 Woche',
+    timeAgoWeeks: '%s Wochen',
+    timeAgoMonth: '1 Monat',
+    timeAgoMonths: '%s Monaten',
 
     // Form Fields
     promptLabel: 'Prompt',
-    promptPlaceholder: 'Beschreiben Sie das Bild, das Sie generieren möchten',
-    videoPromptPlaceholder: 'Beschreiben Sie das Video, das Sie generieren möchten',
-    startScreenIntro: 'Beschreiben Sie Ihre Vision und bringen Sie sie zum Leben',
+    promptPlaceholder: 'Beschreibe das Bild, das du generieren möchtest',
+    videoPromptPlaceholder: 'Beschreibe das Video, das du generieren möchtest',
+    startScreenIntro: 'Beschreibe deine Vision und bring sie zum Leben',
     uploadTooltip: 'Bald verfügbar!',
     modelLabel: 'Modell',
     aspectRatioLabel: 'Seitenverhältnis',
@@ -150,8 +192,8 @@ const translations = {
     pollenLabel: 'Pollen',
 
     // Status Messages
-    statusPromptMissing: 'Bitte geben Sie einen Prompt ein',
-    statusModelMissing: 'Bitte wählen Sie ein Modell',
+    statusPromptMissing: 'Bitte gib einen Prompt ein',
+    statusModelMissing: 'Bitte wähle ein Modell',
     statusGenerating: 'Bild wird generiert...',
     statusGeneratingVideo: 'Video wird generiert...',
     statusSuccess: 'Bild erfolgreich generiert',
@@ -163,14 +205,14 @@ const translations = {
     // Model Loading
     modelLoading: 'Modelle werden geladen...',
     modelLoadError: 'Fehler beim Laden der Modelle.',
-    modelPlaceholder: 'Wählen Sie ein Modell...',
+    modelPlaceholder: 'Wähle ein Modell...',
 
     // Balance
     balanceRemaining: 'Pollen verbleibend',
     costsLabel: 'Kostet: %s Pollen',
     deleteConfirm: 'Bild löschen?',
     balancePermissionError: 'Bitte aktiviere die Balance-Berechtigung für den API-Key',
-    invalidApiKey: 'Bitte geben Sie einen gültigen API-Schlüssel ein.',
+    invalidApiKey: 'Bitte gib einen gültigen API-Schlüssel ein.',
     keyValidFor: 'Key gültig für ',
     hoursShort: 'h ',
     minutesShort: 'm',

@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PollGen - AI Image Generator</title>
+    <link rel="icon" href="js/icon.png">
     <style>
         :root {
             --sidebar-bg: #1f1f21;
@@ -187,6 +188,90 @@
         .api-key-hint { font-size: 11px; margin-top: 8px; color: var(--text-muted); text-align: center; }
         .api-key-hint a { color: var(--accent); text-decoration: none; }
         .api-key-hint a:hover { text-decoration: underline; }
+
+        /* Login Button */
+        .login-btn {
+            width: auto;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #1a1a1c;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 11px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(255, 215, 0, 0.2);
+        }
+        .login-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(255, 215, 0, 0.3);
+            filter: brightness(1.05);
+        }
+        .login-btn:disabled {
+            background: #3a3a3c;
+            color: #6a6a6c;
+            box-shadow: none;
+            cursor: default;
+        }
+        .login-btn .login-icon {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-btn .login-icon img {
+            width: 14px;
+            height: 14px;
+        }
+        .login-or {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+        .login-btn-wrapper {
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        /* Profile Display in Empty State */
+        .profile-display {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            object-fit: cover;
+            border: 3px solid #FFD700;
+            box-shadow: 0 4px 16px rgba(255, 215, 0, 0.3);
+        }
+        .profile-welcome {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .profile-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+        .profile-funfact {
+            font-size: 11px;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
 
         /* Resolution Warning - in API key container */
         .resolution-warning {
@@ -595,6 +680,15 @@
     </aside>
 
     <div class="api-key-container">
+        <div class="login-btn-wrapper">
+            <button class="login-btn" id="login-btn" type="button">
+                <span class="login-icon">
+                    <img src="https://raw.githubusercontent.com/pollinations/pollinations/refs/heads/main/assets/logo.svg" alt="">
+                </span>
+                <span id="login-btn-text" data-i18n="loginWithPollinations">Login with Pollinations</span>
+            </button>
+            <span class="login-or" data-i18n="orLabel">or</span>
+        </div>
         <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
         <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
         <div id="resolution-warning" class="resolution-warning" data-i18n="resolutionWarning">For optimal use, a resolution of at least 1080p is recommended.</div>
@@ -603,9 +697,15 @@
     <main class="canvas">
         <div class="canvas-workspace" id="canvas-workspace">
             <div class="empty-state" id="placeholder">
-                <div class="empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1h1v1h-1zM21 12h1v1h-1zM2 11h1v1H2zM12 21h1v1h-1zM19.07 4.93l.7.7.7-.7-.7-.7zM4.93 19.07l.7.7.7-.7-.7-.7zM19.07 19.07l.7.7.7-.7-.7-.7zM4.93 4.93l.7.7.7-.7-.7-.7z"/><path d="M12 7l1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7z"/></svg></div>
-                <h2 data-i18n="pageTitle">Generate Images Now</h2>
-                <p data-i18n="startScreenIntro">Describe your vision and bring it to life</p>
+                <div id="profile-display" class="profile-display hidden">
+                    <img id="profile-avatar" class="profile-avatar" src="" alt="Profile">
+                    <div id="profile-welcome" class="profile-welcome"></div>
+                    <div id="profile-subtitle" class="profile-subtitle"></div>
+                    <div id="profile-funfact" class="profile-funfact"></div>
+                </div>
+                <div class="empty-icon" id="empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1h1v1h-1zM21 12h1v1h-1zM2 11h1v1H2zM12 21h1v1h-1zM19.07 4.93l.7.7.7-.7-.7-.7zM4.93 19.07l.7.7.7-.7-.7-.7zM19.07 19.07l.7.7.7-.7-.7-.7zM4.93 4.93l.7.7.7-.7-.7-.7z"/><path d="M12 7l1.5 3.5L17 12l-3.5 1.5L12 17l-1.5-3.5L7 12l3.5-1.5L12 7z"/></svg></div>
+                <h2 id="empty-title" data-i18n="pageTitle">Generate Images Now</h2>
+                <p id="empty-subtitle" data-i18n="startScreenIntro">Describe your vision and bring it to life</p>
             </div>
             <div class="gallery-feed" id="gallery-feed"></div>
         </div>
