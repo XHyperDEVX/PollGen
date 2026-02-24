@@ -20,6 +20,7 @@ const translations = {
     loginWithPollinations: 'Login with Pollinations',
     loggedIn: 'Logged in',
     loginPopupBlocked: 'Popup blocked. Please allow popups for this site.',
+    orLabel: 'or',
 
     // Profile
     welcomeMessage: 'Welcome %s!',
@@ -133,6 +134,7 @@ const translations = {
     loginWithPollinations: 'Mit Pollinations anmelden',
     loggedIn: 'Angemeldet',
     loginPopupBlocked: 'Popup blockiert. Bitte erlauben Sie Popups für diese Seite.',
+    orLabel: 'oder',
 
     // Profile
     welcomeMessage: 'Willkommen %s!',

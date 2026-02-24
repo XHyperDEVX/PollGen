@@ -2258,16 +2258,26 @@ if (document.readyState === 'loading') {
 // OAUTH LOGIN
 // ============================================================================
 
+let oauthPopup = null;
+
 function initiateOAuthLogin() {
-  const redirectUrl = window.location.origin + window.location.pathname;
-  const authUrl = `https://login.pollinations.ai?redirect_url=${encodeURIComponent(redirectUrl)}`;
+  const redirectUrl = window.location.href.split('#')[0]; // Remove any existing hash
+  const authUrl = `https://enter.pollinations.ai/authorize?redirect_url=${encodeURIComponent(redirectUrl)}&permissions=profile,balance&expiry=3&budget=1`;
   
-  const popup = window.open(authUrl, 'pollinations-login', 'width=500,height=600,scrollbars=yes');
+  oauthPopup = window.open(authUrl, 'pollinations-login', 'width=500,height=600,scrollbars=yes');
   
-  if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+  if (!oauthPopup || oauthPopup.closed || typeof oauthPopup.closed === 'undefined') {
     setStatus(i18n.t('loginPopupBlocked'), 'error');
     return;
   }
+  
+  // Poll to check if popup is closed
+  const pollTimer = setInterval(() => {
+    if (oauthPopup && oauthPopup.closed) {
+      clearInterval(pollTimer);
+      oauthPopup = null;
+    }
+  }, 500);
 }
 
 function handleOAuthCallback() {
@@ -2279,7 +2289,14 @@ function handleOAuthCallback() {
   
   if (apiKey) {
     // Clear the hash from URL
-    history.replaceState(null, '', window.location.pathname);
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    
+    // If we're in a popup, close it and notify opener
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'oauth-callback', apiKey }, window.location.origin);
+      window.close();
+      return true;
+    }
     
     // Save the API key
     saveApiKey(apiKey);
@@ -2297,6 +2314,21 @@ function handleOAuthCallback() {
   
   return false;
 }
+
+// Listen for OAuth callback messages from popup
+window.addEventListener('message', (event) => {
+  if (event.origin !== window.location.origin) return;
+  if (event.data && event.data.type === 'oauth-callback') {
+    const apiKey = event.data.apiKey;
+    if (apiKey) {
+      saveApiKey(apiKey);
+      const apiKeyInput = document.getElementById('api-key');
+      if (apiKeyInput) apiKeyInput.value = apiKey;
+      updateBalance(apiKey);
+      setStatus(i18n.t('apiKeyStored'), 'success');
+    }
+  }
+});
 
 // ============================================================================
 // PROFILE DISPLAY
@@ -2383,21 +2415,24 @@ function displayProfile(profile) {
   const profileWelcome = document.getElementById('profile-welcome');
   const profileFunfact = document.getElementById('profile-funfact');
   const emptyIcon = document.getElementById('empty-icon');
+  const emptyTitle = document.getElementById('empty-title');
+  const emptySubtitle = document.getElementById('empty-subtitle');
   
   if (!profileDisplay || !profile) {
     if (profileDisplay) profileDisplay.classList.add('hidden');
     if (emptyIcon) emptyIcon.classList.remove('hidden');
+    if (emptyTitle) emptyTitle.classList.remove('hidden');
+    if (emptySubtitle) emptySubtitle.classList.remove('hidden');
     return;
   }
   
-  // Set avatar
-  if (profile.avatar && profileAvatar) {
-    profileAvatar.src = profile.avatar;
-    profileAvatar.onerror = () => {
+  // Set avatar - use profile avatar if available
+  if (profileAvatar) {
+    if (profile.avatar) {
+      profileAvatar.src = profile.avatar;
+    } else {
       profileAvatar.src = 'js/icon.png';
-    };
-  } else if (profileAvatar) {
-    profileAvatar.src = 'js/icon.png';
+    }
   }
   
   // Set welcome message
@@ -2415,9 +2450,11 @@ function displayProfile(profile) {
     }
   }
   
-  // Show profile display, hide default icon
+  // Show profile display, hide default empty state elements
   profileDisplay.classList.remove('hidden');
   if (emptyIcon) emptyIcon.classList.add('hidden');
+  if (emptyTitle) emptyTitle.classList.add('hidden');
+  if (emptySubtitle) emptySubtitle.classList.add('hidden');
 }
 
 function updateLoginButtonState(isLoggedIn) {
