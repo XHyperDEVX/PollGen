@@ -2391,10 +2391,10 @@ function displayProfile(profile) {
     return;
   }
   
-  // Set avatar - use profile avatar if available
+  // Set avatar - use profile image if available
   if (profileAvatar) {
-    if (profile.avatar) {
-      profileAvatar.src = profile.avatar;
+    if (profile.image) {
+      profileAvatar.src = profile.image;
     } else {
       profileAvatar.src = 'js/icon.png';
     }
@@ -2412,8 +2412,8 @@ function displayProfile(profile) {
   }
   
   // Set fun fact about account age
-  if (profileFunfact && profile.created_at) {
-    const timeObj = calculateTimeSince(profile.created_at);
+  if (profileFunfact && profile.createdAt) {
+    const timeObj = calculateTimeSince(profile.createdAt);
     const timeStr = formatTimeAgo(timeObj);
     if (timeStr) {
       profileFunfact.textContent = i18n.t('funFactAccountAge', timeStr);

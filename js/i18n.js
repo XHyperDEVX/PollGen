@@ -23,7 +23,7 @@ const translations = {
     orLabel: 'or',
 
     // Profile
-    welcomeMessage: 'Welcome %s!',
+    welcomeMessage: 'Hello %s!',
     profileSubtitle: 'What would you like to generate today?',
     funFactAccountAge: 'Fun fact: You created your Pollinations account %s ago',
     timeAgoMinutes: '%s minutes',
@@ -137,9 +137,9 @@ const translations = {
     orLabel: 'oder',
 
     // Profile
-    welcomeMessage: 'Willkommen %s!',
+    welcomeMessage: 'Hallo %s!',
     profileSubtitle: 'Was möchten Sie heute generieren?',
-    funFactAccountAge: 'Wussten Sie: Sie haben Ihr Pollinations-Konto vor %s erstellt',
+    funFactAccountAge: 'Fun Fact: Sie haben Ihr Pollinations-Konto vor %s erstellt',
     timeAgoMinutes: '%s Minuten',
     timeAgoHours: '%s Stunden',
     timeAgoDays: '%s Tagen',

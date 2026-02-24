@@ -213,30 +213,32 @@
             filter: brightness(1.05);
         }
         .login-btn:disabled {
-            opacity: 0.7;
+            background: #3a3a3c;
+            color: #6a6a6c;
+            box-shadow: none;
             cursor: default;
         }
         .login-btn .login-icon {
             width: 14px;
             height: 14px;
-            border-radius: 3px;
-            background: #1a1a1c;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .login-btn .login-icon svg {
-            width: 10px;
-            height: 10px;
+        .login-btn .login-icon img {
+            width: 14px;
+            height: 14px;
         }
         .login-or {
             font-size: 11px;
             color: var(--text-muted);
-            text-align: center;
-            margin: 8px 0;
+            margin-left: 8px;
         }
         .login-btn-wrapper {
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Profile Display in Empty State */
@@ -680,22 +682,12 @@
         <div class="login-btn-wrapper">
             <button class="login-btn" id="login-btn" type="button">
                 <span class="login-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="4"></circle>
-                        <path d="M12 2v2"></path>
-                        <path d="M12 20v2"></path>
-                        <path d="M4.93 4.93l1.41 1.41"></path>
-                        <path d="M17.66 17.66l1.41 1.41"></path>
-                        <path d="M2 12h2"></path>
-                        <path d="M20 12h2"></path>
-                        <path d="M6.34 17.66l-1.41 1.41"></path>
-                        <path d="M19.07 4.93l-1.41 1.41"></path>
-                    </svg>
+                    <img src="https://raw.githubusercontent.com/pollinations/pollinations/refs/heads/main/assets/logo.svg" alt="">
                 </span>
                 <span id="login-btn-text" data-i18n="loginWithPollinations">Login with Pollinations</span>
             </button>
+            <span class="login-or" data-i18n="orLabel">or</span>
         </div>
-        <div class="login-or" data-i18n="orLabel">or</div>
         <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
         <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
         <div id="resolution-warning" class="resolution-warning" data-i18n="resolutionWarning">For optimal use, a resolution of at least 1080p is recommended.</div>
