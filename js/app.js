@@ -75,14 +75,14 @@ function updateUploadUI() {
   const uploadIconContainer = document.getElementById('upload-icon-container');
   const thumbnailWrapper = document.getElementById('upload-thumbnail-wrapper');
   const progressEl = document.getElementById('upload-progress');
+  const preview = document.getElementById('upload-thumbnail-preview');
   
   if (!uploadIcon || !uploadIconContainer) return;
   
-  const supported = isImageUploadSupported();
-  
-  // Hide uploaded image if img2img is not supported
-  if (!supported && state.uploadedImageUrl) {
-    clearUploadedImage();
+  // Update preview visibility based on hover
+  if (thumbnailWrapper && preview) {
+    thumbnailWrapper.onmouseenter = () => preview.classList.add('visible');
+    thumbnailWrapper.onmouseleave = () => preview.classList.remove('visible');
   }
   
   if (state.isUploading) {
@@ -1465,8 +1465,8 @@ function collectPayload() {
   if (negativePromptInput && negativePromptInput.value.trim()) {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
-  // Include uploaded image URL for image-to-image generation
-  if (state.uploadedImageUrl && mode === 'image') {
+  // Include uploaded image URL for image-to-image generation (only if model supports it)
+  if (state.uploadedImageUrl && mode === 'image' && isImageUploadSupported()) {
     payload.image = state.uploadedImageUrl;
   }
 
