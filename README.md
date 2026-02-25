@@ -1,5 +1,11 @@
 
-# [Pollinations Generator (PollGen)](https://xhyperdevx.github.io/PollGen)
+<p align="center">
+  <img src="js/icon.png" alt="PollGen Logo" width="128" height="128">
+  
+  <h1 align="center">
+    <a href="https://xhyperdevx.github.io/PollGen">Pollinations Generator (PollGen)</a>
+  </h1>
+</p>
 
 A clean, minimal web application for generating AI images and videos using the Pollinations API. Built with vanilla JavaScript, HTML, and CSS.
 
