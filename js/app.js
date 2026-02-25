@@ -165,9 +165,11 @@ async function uploadImageToTransferAdminforge(file) {
     
     // POST to litterbox.catbox.moe API - CORS-enabled temporary file hosting
     const formData = new FormData();
+    formData.append('reqtype', 'fileupload');
+    formData.append('time', '12h');
     formData.append('fileToUpload', file, randomFilename);
     
-    const response = await fetch('https://litterbox.catbox.moe/resources/internals/api.php?req=upload', {
+    const response = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
       method: 'POST',
       body: formData,
       signal: controller.signal
