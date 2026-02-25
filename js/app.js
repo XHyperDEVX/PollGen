@@ -80,6 +80,11 @@ function updateUploadUI() {
   
   const supported = isImageUploadSupported();
   
+  // Hide uploaded image if img2img is not supported
+  if (!supported && state.uploadedImageUrl) {
+    clearUploadedImage();
+  }
+  
   if (state.isUploading) {
     // Show loading state - progress spinner, hide icon
     if (thumbnailWrapper) {
@@ -175,6 +180,7 @@ async function uploadImageToTransferAdminforge(file) {
   
   state.isUploading = true;
   showUploadProgress(true);
+  updateUploadUI();
   
   try {
     const controller = new AbortController();

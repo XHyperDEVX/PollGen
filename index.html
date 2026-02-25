@@ -228,6 +228,7 @@
         .login-btn .login-icon img {
             width: 14px;
             height: 14px;
+            filter: invert(1);
         }
         .login-or {
             font-size: 11px;
@@ -532,43 +533,6 @@
         }
 
         /* Delete button with black circle background */
-        .upload-thumbnail-delete {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 20px;
-            height: 20px;
-            background-color: black;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-            border: 2px solid var(--error);
-        }
-
-        .upload-thumbnail-wrapper:hover .upload-thumbnail-delete {
-            opacity: 1;
-        }
-
-        .upload-thumbnail-delete svg {
-            width: 8px;
-            height: 8px;
-            color: var(--error);
-        }
-
-        .upload-thumbnail-delete:hover {
-            background-color: var(--error);
-            transform: scale(1.15);
-        }
-
-        .upload-thumbnail-delete:hover svg {
-            color: white;
-        }
-
         /* Upload progress indicator */
         .upload-progress {
             position: absolute;
@@ -611,16 +575,16 @@
             bottom: calc(100% + 10px);
             left: 50%;
             transform: translateX(-50%);
-            width: 200px;
+            width: 300px;
             height: auto;
-            max-height: 200px;
+            max-height: 300px;
             border-radius: 8px;
             border: 1px solid var(--border-subtle);
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
-            z-index: 1000;
+            z-index: 100000;
             object-fit: contain;
             background: var(--panel-bg);
         }
@@ -639,6 +603,47 @@
             transform: translateX(-50%);
             border: 6px solid transparent;
             border-top-color: var(--border-subtle);
+        }
+
+        /* Delete button centered on preview */
+        .upload-thumbnail-delete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 32px;
+            height: 32px;
+            background-color: black;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            border: 2px solid var(--error);
+            z-index: 100001;
+        }
+
+        .upload-thumbnail-wrapper:hover .upload-thumbnail-delete {
+            opacity: 0.85;
+        }
+
+        .upload-thumbnail-delete svg {
+            width: 14px;
+            height: 14px;
+            color: var(--error);
+        }
+
+        .upload-thumbnail-delete:hover {
+            opacity: 1 !important;
+            background-color: var(--error);
+            transform: translate(-50%, -50%) scale(1.15);
+        }
+
+        .upload-thumbnail-delete:hover svg {
+            color: white;
         }
 
         .cost-display { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 12px; align-self: center; text-align: center; min-width: 70px; }
