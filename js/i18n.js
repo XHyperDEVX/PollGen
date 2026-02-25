@@ -126,7 +126,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'Your image will be uploaded to litterbox.catbox.moe and stored for up to 12 hours. Maximum file size is 15 MB. Only upload legal images that you own the rights to.',
+    uploadConsentText: 'Your image will be uploaded to an <strong>external provider</strong> (litterbox.catbox.moe).<br><br><strong>Important information:</strong><br>• Maximum file size: 15 MB<br>• Image is stored for 12 hours<br>• No pornography or violence<br>• Only legally permitted images<br>• Only upload images you own the rights to<br>• Your IP address is stored during upload',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
@@ -257,7 +257,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Ihr Bild wird zu litterbox.catbox.moe hochgeladen und bis zu 12 Stunden gespeichert. Die maximale Dateigröße beträgt 15 MB. Laden Sie nur legale Bilder hoch, deren Rechte Sie besitzen.',
+    uploadConsentText: 'Ihr Bild wird zu einem <strong>externen Anbieter</strong> (litterbox.catbox.moe) hochgeladen.<br><br><strong>Wichtige Informationen:</strong><br>• Maximale Dateigröße: 15 MB<br>• Bild wird 12 Stunden gespeichert<br>• Keine Pornografie oder Gewalt<br>• Nur legal erlaubte Bilder<br>• Laden Sie nur Bilder hoch, deren Rechte Sie besitzen<br>• Ihre IP-Adresse wird während des Uploads gespeichert',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',

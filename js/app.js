@@ -74,18 +74,31 @@ function updateUploadUI() {
   const uploadIcon = document.getElementById('upload-icon');
   const uploadIconContainer = document.getElementById('upload-icon-container');
   const thumbnailWrapper = document.getElementById('upload-thumbnail-wrapper');
+  const progressEl = document.getElementById('upload-progress');
   
   if (!uploadIcon || !uploadIconContainer) return;
   
   const supported = isImageUploadSupported();
   
-  if (state.uploadedImageUrl) {
-    // Show thumbnail, hide icon
+  if (state.isUploading) {
+    // Show loading state - progress spinner, hide icon
+    if (thumbnailWrapper) {
+      thumbnailWrapper.classList.add('visible');
+      // Clear thumbnail during upload
+      const thumbnail = document.getElementById('upload-thumbnail');
+      if (thumbnail) thumbnail.src = '';
+    }
+    if (progressEl) progressEl.style.display = 'flex';
+    uploadIconContainer.style.display = 'none';
+  } else if (state.uploadedImageUrl) {
+    // Show thumbnail, hide icon and progress
     if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
+    if (progressEl) progressEl.style.display = 'none';
     uploadIconContainer.style.display = 'none';
   } else {
-    // Show icon, hide thumbnail
+    // Show icon, hide thumbnail and progress
     if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
+    if (progressEl) progressEl.style.display = 'none';
     uploadIconContainer.style.display = 'flex';
     
     if (supported) {
@@ -114,6 +127,14 @@ function setUploadThumbnail(file) {
     thumbnail.src = e.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+function setThumbnailFromUrl(url) {
+  const thumbnail = document.getElementById('upload-thumbnail');
+  const preview = document.getElementById('upload-thumbnail-preview');
+  if (!thumbnail || !url) return;
+  thumbnail.src = url;
+  if (preview) preview.src = url;
 }
 
 function clearUploadedImage() {
@@ -224,8 +245,7 @@ async function handleImageUpload(file) {
     return;
   }
   
-  // Set thumbnail immediately for preview
-  setUploadThumbnail(file);
+  // Show loading state - hide upload icon, show progress
   state.uploadedImageFile = file;
   updateUploadUI();
   
@@ -234,6 +254,9 @@ async function handleImageUpload(file) {
   
   if (url) {
     state.uploadedImageUrl = url;
+    // Set thumbnail from uploaded URL
+    setThumbnailFromUrl(url);
+    updateUploadUI();
     setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
   } else {
     // Clear thumbnail on failure
@@ -308,12 +331,25 @@ function showUploadConsentPopup(onConfirm) {
     popup.classList.add('visible');
   });
   
-  // Handle confirm
+  // Handle confirm - remove popup after delay
   const confirmBtn = popup.querySelector('.upload-consent-confirm');
   confirmBtn.addEventListener('click', () => {
     saveUploadConsent(true);
     popup.classList.remove('visible');
+    setTimeout(() => {
+      popup.remove();
+    }, 300);
     if (onConfirm) onConfirm();
+  });
+  
+  // Close on backdrop click
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) {
+      popup.classList.remove('visible');
+      setTimeout(() => {
+        popup.remove();
+      }, 300);
+    }
   });
 }
 

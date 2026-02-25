@@ -522,13 +522,23 @@
             border-color: var(--accent);
         }
 
+        /* Thumbnail hover tooltip - enlarged preview */
+        .upload-thumbnail-wrapper {
+            position: relative;
+        }
+
+        .upload-thumbnail-wrapper:hover .upload-thumbnail {
+            border-color: var(--accent);
+        }
+
+        /* Delete button with black circle background */
         .upload-thumbnail-delete {
             position: absolute;
-            top: -6px;
-            right: -6px;
-            width: 16px;
-            height: 16px;
-            background-color: var(--error);
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background-color: black;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -536,7 +546,8 @@
             cursor: pointer;
             opacity: 0;
             transition: opacity 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            border: 2px solid var(--error);
         }
 
         .upload-thumbnail-wrapper:hover .upload-thumbnail-delete {
@@ -544,42 +555,90 @@
         }
 
         .upload-thumbnail-delete svg {
-            width: 10px;
-            height: 10px;
-            color: white;
+            width: 8px;
+            height: 8px;
+            color: var(--error);
         }
 
         .upload-thumbnail-delete:hover {
-            background-color: #ef4444;
-            transform: scale(1.1);
+            background-color: var(--error);
+            transform: scale(1.15);
+        }
+
+        .upload-thumbnail-delete:hover svg {
+            color: white;
         }
 
         /* Upload progress indicator */
         .upload-progress {
             position: absolute;
             inset: 0;
-            background: rgba(37, 99, 235, 0.9);
+            background: rgba(30, 30, 30, 0.95);
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.8; }
-            50% { opacity: 1; }
+            width: 36px;
+            height: 36px;
         }
 
         .upload-progress svg {
-            width: 16px;
-            height: 16px;
-            color: white;
+            width: 18px;
+            height: 18px;
+            color: var(--accent);
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        /* Consent popup styles */
+        .upload-consent-content p strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .upload-consent-content p br {
+            display: block;
+            content: "";
+            margin: 4px 0;
+        }
+
+        /* Thumbnail hover preview tooltip */
+        .upload-thumbnail-preview {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: auto;
+            max-height: 200px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 1000;
+            object-fit: contain;
+            background: var(--panel-bg);
+        }
+
+        .upload-thumbnail-wrapper:hover .upload-thumbnail-preview {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Arrow for tooltip */
+        .upload-thumbnail-preview::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--border-subtle);
         }
 
         .cost-display { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 12px; align-self: center; text-align: center; min-width: 70px; }
@@ -862,6 +921,7 @@
             <div class="prompt-input-wrapper">
                 <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
                     <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
+                    <img class="upload-thumbnail-preview" id="upload-thumbnail-preview" src="" alt="Preview">
                     <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
