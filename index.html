@@ -554,6 +554,30 @@
             transform: scale(1.1);
         }
 
+        /* Upload thumbnail hover preview */
+        .upload-thumbnail-preview {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid var(--border-subtle);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .upload-thumbnail-wrapper:hover .upload-thumbnail-preview {
+            opacity: 1;
+            visibility: visible;
+        }
+
         /* Upload progress indicator */
         .upload-progress {
             position: absolute;
@@ -861,6 +885,7 @@
         <div class="prompt-bar">
             <div class="prompt-input-wrapper">
                 <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
+                    <img class="upload-thumbnail-preview" id="upload-thumbnail-preview" src="" alt="Preview">
                     <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
                     <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">

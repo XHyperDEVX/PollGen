@@ -126,13 +126,14 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'Your image will be uploaded to an external file hosting service. The file will be stored there for up to 24 hours. Please note that data protection cannot be guaranteed. Only upload images that you own or have the rights to use.',
+    uploadConsentText: 'Maximum upload size is 10 MB. Images are stored for 12 hours. No pornography or violent content. Only legally permitted images (according to German, Swedish, and French law).\n\nOnly upload images you own the rights to.\n\n**Your image will be uploaded to the Pollinations Media Server.**',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
     uploadErrorFileSize: 'File too large. Please choose a smaller image.',
     uploadErrorFileType: 'Invalid file type. Please upload an image file.',
     uploadErrorGeneric: 'Upload failed. Please try again.',
+    uploadErrorAuth: 'Upload requires a valid API key.',
   },
   de: {
     // Page
@@ -257,13 +258,14 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Ihr Bild wird zu einem externen Datei-Hosting-Dienst hochgeladen und dort bis zu 24 Stunden gespeichert. Bitte beachten Sie, dass kein Datenschutz gewährleistet werden kann. Laden Sie nur Bilder hoch, deren Rechte Sie besitzen oder für deren Nutzung Sie berechtigt sind.',
+    uploadConsentText: 'Maximale Uploadgröße: 10 MB. Bilder werden 12 Stunden gespeichert. Keine pornografischen oder gewalttätigen Inhalte. Nur gesetzlich zulässige Bilder (nach deutschem, schwedischem und französischem Recht).\n\nLaden Sie nur Bilder hoch, deren Rechte Sie besitzen.\n\n**Ihr Bild wird auf den Pollinations Media Server hochgeladen.**',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',
     uploadErrorFileSize: 'Datei zu groß. Bitte wählen Sie ein kleineres Bild.',
     uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
     uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
   }
 };
 

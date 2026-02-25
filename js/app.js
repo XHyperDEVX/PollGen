@@ -78,6 +78,7 @@ function updateUploadUI() {
   if (!uploadIcon || !uploadIconContainer) return;
   
   const supported = isImageUploadSupported();
+  const hasApiKey = Boolean(state.apiKey);
   
   if (state.uploadedImageUrl) {
     // Show thumbnail, hide icon
@@ -88,7 +89,7 @@ function updateUploadUI() {
     if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
     uploadIconContainer.style.display = 'flex';
     
-    if (supported) {
+    if (supported && hasApiKey) {
       uploadIcon.classList.remove('disabled');
       uploadIcon.style.cursor = 'pointer';
     } else {
@@ -123,6 +124,9 @@ function clearUploadedImage() {
   const thumbnail = document.getElementById('upload-thumbnail');
   if (thumbnail) thumbnail.src = '';
   
+  const preview = document.getElementById('upload-thumbnail-preview');
+  if (preview) preview.src = '';
+  
   const fileInput = document.getElementById('image-upload-input');
   if (fileInput) fileInput.value = '';
   
@@ -145,10 +149,16 @@ function validateImageFile(file) {
   return { valid: true };
 }
 
-async function uploadImageToTransferAdminforge(file) {
+async function uploadImageToPollinationsMedia(file) {
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
+    return null;
+  }
+  
+  // Require API key
+  if (!state.apiKey) {
+    setStatus(i18n.t('apiKeyMissing'), 'error');
     return null;
   }
   
@@ -157,18 +167,16 @@ async function uploadImageToTransferAdminforge(file) {
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     
-    // Generate a random filename with original extension
-    const ext = file.name.split('.').pop() || 'jpg';
-    const randomFilename = `${generateRandomFilename()}.${ext}`;
-    
-    // POST to the service root - FormData avoids CORS preflight
     const formData = new FormData();
-    formData.append('file', file, randomFilename);
+    formData.append('files[]', file);
     
-    const response = await fetch('https://transfer.adminforge.de/', {
+    const response = await fetch('https://media.pollinations.ai/upload', {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.apiKey}`
+      },
       body: formData,
       signal: controller.signal
     });
@@ -177,45 +185,21 @@ async function uploadImageToTransferAdminforge(file) {
     
     if (!response.ok) {
       console.error('Upload failed:', response.status);
-      setStatus(i18n.t('uploadErrorServer'), 'error');
+      if (response.status === 401 || response.status === 403) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+      } else {
+        setStatus(i18n.t('uploadErrorServer'), 'error');
+      }
       return null;
     }
     
-    // Try to get the URL from x-url-delete header
-    // Format: https://transfer.adminforge.de/abc123/filename.jpg/deleteToken
-    const deleteUrl = response.headers.get('x-url-delete');
+    const data = await response.json();
     
-    if (deleteUrl) {
-      // Extract the file URL by removing the delete token (last path segment)
-      const urlParts = deleteUrl.split('/');
-      urlParts.pop(); // Remove delete token
-      const fileUrl = urlParts.join('/');
-      
-      // Add "get/" for the image parameter
-      const imageUrl = fileUrl.replace(
-        /^(https?:\/\/[^\/]+\/)(.+)$/,
-        '$1get/$2'
-      );
-      
-      return imageUrl;
+    if (data.url) {
+      return data.url;
     }
     
-    // Fallback: try to read response body (may be blocked by CORS)
-    try {
-      const text = await response.text();
-      const trimmedUrl = (text || '').trim();
-      if (trimmedUrl && trimmedUrl.startsWith('http')) {
-        const imageUrl = trimmedUrl.replace(
-          /^(https?:\/\/[^\/]+\/)(.+)$/,
-          '$1get/$2'
-        );
-        return imageUrl;
-      }
-    } catch (e) {
-      console.warn('Could not read upload response:', e);
-    }
-    
-    console.error('Upload succeeded but could not determine file URL');
+    console.error('Upload succeeded but no URL in response:', data);
     setStatus(i18n.t('uploadErrorServer'), 'error');
     return null;
   } catch (error) {
@@ -234,34 +218,57 @@ async function uploadImageToTransferAdminforge(file) {
   }
 }
 
+
 async function handleImageUpload(file) {
   if (!isImageUploadSupported()) {
     setStatus(i18n.t('uploadErrorGeneric'), 'error');
     return;
   }
-  
+
+  // Require API key
+  if (!state.apiKey) {
+    setStatus(i18n.t('apiKeyMissing'), 'error');
+    return;
+  }
+
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
     return;
   }
+
+  // Show loading state immediately
+  const thumbnailWrapper = document.getElementById('upload-thumbnail-wrapper');
+  if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
+  showUploadProgress(true);
   
-  // Set thumbnail immediately for preview
-  setUploadThumbnail(file);
-  state.uploadedImageFile = file;
-  updateUploadUI();
-  
+  // Hide upload icon during upload
+  const uploadIconContainer = document.getElementById('upload-icon-container');
+  if (uploadIconContainer) uploadIconContainer.style.display = 'none';
+
   // Upload the image
-  const url = await uploadImageToTransferAdminforge(file);
-  
+  const url = await uploadImageToPollinationsMedia(file);
+
   if (url) {
     state.uploadedImageUrl = url;
+    state.uploadedImageFile = null;
+    
+    // Set thumbnail from server URL
+    const thumbnail = document.getElementById('upload-thumbnail');
+    if (thumbnail) thumbnail.src = url;
+    
+    // Also set preview image
+    const preview = document.getElementById('upload-thumbnail-preview');
+    if (preview) preview.src = url;
+    
     setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
+    updateUploadUI();
   } else {
-    // Clear thumbnail on failure
+    // Clear on failure
     clearUploadedImage();
   }
 }
+
 
 function setupImageUploadHandlers() {
   const uploadIcon = document.getElementById('upload-icon');
@@ -271,6 +278,11 @@ function setupImageUploadHandlers() {
   
   if (uploadIconContainer) {
     uploadIconContainer.addEventListener('click', () => {
+      // Check for API key first
+      if (!state.apiKey) {
+        setStatus(i18n.t('apiKeyMissing'), 'error');
+        return;
+      }
       if (isImageUploadSupported() && !state.isUploading) {
         // Check if user has consented to external upload
         if (!state.uploadConsent) {
@@ -601,6 +613,7 @@ function saveApiKey(key) {
   const trimmedKey = key.trim();
   sessionStorage.setItem('pollinations_api_key', trimmedKey);
   state.apiKey = trimmedKey;
+  updateUploadUI();
   return true;
 }
 
