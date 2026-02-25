@@ -126,7 +126,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'Your image will be uploaded to an external file hosting service. The file will be stored there for up to 24 hours. Please note that data protection cannot be guaranteed. Only upload images that you own or have the rights to use.',
+    uploadConsentText: 'Your image will be uploaded to uguu.se and stored for 3 hours. Maximum file size is 15 MB. Only upload legal images (according to laws of Germany, Sweden, and France) that you own the rights to. Your IP address will be stored and deleted after 3 hours along with the image.',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
@@ -257,7 +257,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Ihr Bild wird zu einem externen Datei-Hosting-Dienst hochgeladen und dort bis zu 24 Stunden gespeichert. Bitte beachten Sie, dass kein Datenschutz gewährleistet werden kann. Laden Sie nur Bilder hoch, deren Rechte Sie besitzen oder für deren Nutzung Sie berechtigt sind.',
+    uploadConsentText: 'Ihr Bild wird zu uguu.se hochgeladen und für 3 Stunden gespeichert. Die maximale Dateigröße beträgt 15 MB. Laden Sie nur legale Bilder (gemäß den Gesetzen Deutschlands, Schwedens und Frankreichs) hoch, deren Rechte Sie besitzen. Ihre IP-Adresse wird gespeichert und nach 3 Stunden zusammen mit dem Bild gelöscht.',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',

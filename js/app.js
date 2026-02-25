@@ -44,7 +44,7 @@ const state = {
 // IMAGE UPLOAD
 // ============================================================================
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
 
 function generateRandomFilename() {
@@ -163,11 +163,11 @@ async function uploadImageToTransferAdminforge(file) {
     const ext = file.name.split('.').pop() || 'jpg';
     const randomFilename = `${generateRandomFilename()}.${ext}`;
     
-    // POST to the service root - FormData avoids CORS preflight
+    // POST to uguu.se API - FormData with 'files[]' field name as required by the API
     const formData = new FormData();
-    formData.append('file', file, randomFilename);
+    formData.append('files[]', file, randomFilename);
     
-    const response = await fetch('https://transfer.adminforge.de/', {
+    const response = await fetch('https://uguu.se/upload', {
       method: 'POST',
       body: formData,
       signal: controller.signal
@@ -181,41 +181,16 @@ async function uploadImageToTransferAdminforge(file) {
       return null;
     }
     
-    // Try to get the URL from x-url-delete header
-    // Format: https://transfer.adminforge.de/abc123/filename.jpg/deleteToken
-    const deleteUrl = response.headers.get('x-url-delete');
+    // Parse JSON response
+    const json = await response.json();
     
-    if (deleteUrl) {
-      // Extract the file URL by removing the delete token (last path segment)
-      const urlParts = deleteUrl.split('/');
-      urlParts.pop(); // Remove delete token
-      const fileUrl = urlParts.join('/');
-      
-      // Add "get/" for the image parameter
-      const imageUrl = fileUrl.replace(
-        /^(https?:\/\/[^\/]+\/)(.+)$/,
-        '$1get/$2'
-      );
-      
-      return imageUrl;
+    // Check for success
+    if (json.success === true && json.files && json.files[0] && json.files[0].url) {
+      return json.files[0].url;
     }
     
-    // Fallback: try to read response body (may be blocked by CORS)
-    try {
-      const text = await response.text();
-      const trimmedUrl = (text || '').trim();
-      if (trimmedUrl && trimmedUrl.startsWith('http')) {
-        const imageUrl = trimmedUrl.replace(
-          /^(https?:\/\/[^\/]+\/)(.+)$/,
-          '$1get/$2'
-        );
-        return imageUrl;
-      }
-    } catch (e) {
-      console.warn('Could not read upload response:', e);
-    }
-    
-    console.error('Upload succeeded but could not determine file URL');
+    // Handle API error
+    console.error('Upload response indicates failure:', json);
     setStatus(i18n.t('uploadErrorServer'), 'error');
     return null;
   } catch (error) {
@@ -233,6 +208,7 @@ async function uploadImageToTransferAdminforge(file) {
     showUploadProgress(false);
   }
 }
+
 
 async function handleImageUpload(file) {
   if (!isImageUploadSupported()) {
