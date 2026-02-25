@@ -163,11 +163,11 @@ async function uploadImageToTransferAdminforge(file) {
     const ext = file.name.split('.').pop() || 'jpg';
     const randomFilename = `${generateRandomFilename()}.${ext}`;
     
-    // POST to uguu.se API - FormData with 'files[]' field name as required by the API
+    // POST to litterbox.catbox.moe API - CORS-enabled temporary file hosting
     const formData = new FormData();
-    formData.append('files[]', file, randomFilename);
+    formData.append('fileToUpload', file, randomFilename);
     
-    const response = await fetch('https://uguu.se/upload', {
+    const response = await fetch('https://litterbox.catbox.moe/resources/internals/api.php?req=upload', {
       method: 'POST',
       body: formData,
       signal: controller.signal
@@ -181,16 +181,16 @@ async function uploadImageToTransferAdminforge(file) {
       return null;
     }
     
-    // Parse JSON response
-    const json = await response.json();
+    // Parse response - litterbox returns the URL directly as text
+    const text = await response.text();
+    const trimmedUrl = (text || '').trim();
     
-    // Check for success
-    if (json.success === true && json.files && json.files[0] && json.files[0].url) {
-      return json.files[0].url;
+    if (trimmedUrl && trimmedUrl.startsWith('http')) {
+      return trimmedUrl;
     }
     
-    // Handle API error
-    console.error('Upload response indicates failure:', json);
+    // Handle error
+    console.error('Upload response indicates failure:', text);
     setStatus(i18n.t('uploadErrorServer'), 'error');
     return null;
   } catch (error) {

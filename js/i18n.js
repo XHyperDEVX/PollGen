@@ -126,7 +126,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'Your image will be uploaded to uguu.se and stored for 3 hours. Maximum file size is 15 MB. Only upload legal images (according to laws of Germany, Sweden, and France) that you own the rights to. Your IP address will be stored and deleted after 3 hours along with the image.',
+    uploadConsentText: 'Your image will be uploaded to litterbox.catbox.moe and stored for up to 7 days. Maximum file size is 15 MB. Only upload legal images that you own the rights to.',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
@@ -257,7 +257,7 @@ const translations = {
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Ihr Bild wird zu uguu.se hochgeladen und für 3 Stunden gespeichert. Die maximale Dateigröße beträgt 15 MB. Laden Sie nur legale Bilder (gemäß den Gesetzen Deutschlands, Schwedens und Frankreichs) hoch, deren Rechte Sie besitzen. Ihre IP-Adresse wird gespeichert und nach 3 Stunden zusammen mit dem Bild gelöscht.',
+    uploadConsentText: 'Ihr Bild wird zu litterbox.catbox.moe hochgeladen und bis zu 7 Tage gespeichert. Die maximale Dateigröße beträgt 15 MB. Laden Sie nur legale Bilder hoch, deren Rechte Sie besitzen.',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',
