@@ -69,7 +69,13 @@ function updateUploadUI() {
   if (!uploadIcon || !uploadIconContainer) return;
   
   const supported = isImageUploadSupported();
-  const hasApiKey = Boolean(state.apiKey);
+  const hasValidKey = isApiKeyValidForGeneration();
+
+  if (!supported) {
+    if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
+    uploadIconContainer.style.display = 'none';
+    return;
+  }
   
   if (state.isUploading || state.uploadedImageUrl) {
     if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
@@ -78,7 +84,7 @@ function updateUploadUI() {
     if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
     uploadIconContainer.style.display = 'flex';
     
-    if (supported && hasApiKey) {
+    if (hasValidKey) {
       uploadIcon.classList.remove('disabled');
       uploadIcon.style.cursor = 'pointer';
     } else {
@@ -1466,7 +1472,7 @@ function collectPayload() {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
   // Include uploaded image URL for image-to-image generation
-  if (state.uploadedImageUrl && mode === 'image') {
+  if (state.uploadedImageUrl && mode === 'image' && isImageUploadSupported()) {
     payload.image = state.uploadedImageUrl;
   }
 
