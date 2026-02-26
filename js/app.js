@@ -47,15 +47,6 @@ const state = {
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
 
-function generateRandomFilename() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
 function isImageUploadSupported() {
   const select = document.getElementById('model');
   if (!select) return false;
@@ -78,17 +69,16 @@ function updateUploadUI() {
   if (!uploadIcon || !uploadIconContainer) return;
   
   const supported = isImageUploadSupported();
+  const hasApiKey = Boolean(state.apiKey);
   
-  if (state.uploadedImageUrl) {
-    // Show thumbnail, hide icon
+  if (state.isUploading || state.uploadedImageUrl) {
     if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
     uploadIconContainer.style.display = 'none';
   } else {
-    // Show icon, hide thumbnail
     if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
     uploadIconContainer.style.display = 'flex';
     
-    if (supported) {
+    if (supported && hasApiKey) {
       uploadIcon.classList.remove('disabled');
       uploadIcon.style.cursor = 'pointer';
     } else {
@@ -105,15 +95,11 @@ function showUploadProgress(show) {
   }
 }
 
-function setUploadThumbnail(file) {
+function setUploadThumbnailFromUrl(url) {
   const thumbnail = document.getElementById('upload-thumbnail');
-  if (!thumbnail || !file) return;
-  
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    thumbnail.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+  const preview = document.getElementById('upload-thumbnail-preview');
+  if (thumbnail) thumbnail.src = url || '';
+  if (preview) preview.src = url || '';
 }
 
 function clearUploadedImage() {
@@ -122,6 +108,9 @@ function clearUploadedImage() {
   
   const thumbnail = document.getElementById('upload-thumbnail');
   if (thumbnail) thumbnail.src = '';
+  
+  const preview = document.getElementById('upload-thumbnail-preview');
+  if (preview) preview.src = '';
   
   const fileInput = document.getElementById('image-upload-input');
   if (fileInput) fileInput.value = '';
@@ -145,30 +134,50 @@ function validateImageFile(file) {
   return { valid: true };
 }
 
-async function uploadImageToTransferAdminforge(file) {
+function getUploadUrlFromResponse(data) {
+  if (!data) return null;
+  if (typeof data === 'string') return data;
+  if (data.url) return data.url;
+  if (data.file && data.file.url) return data.file.url;
+  if (Array.isArray(data.files) && data.files.length > 0) {
+    return data.files[0].url || data.files[0].file?.url || data.files[0].src || null;
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0];
+    if (typeof first === 'string') return first;
+    return first.url || first.file?.url || null;
+  }
+  return null;
+}
+
+async function uploadImageToPollinationsMedia(file) {
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
     return null;
   }
   
+  if (!state.apiKey) {
+    setStatus(i18n.t('apiKeyMissing'), 'error');
+    return null;
+  }
+  
   state.isUploading = true;
   showUploadProgress(true);
+  updateUploadUI();
   
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
     
-    // Generate a random filename with original extension
-    const ext = file.name.split('.').pop() || 'jpg';
-    const randomFilename = `${generateRandomFilename()}.${ext}`;
-    
-    // POST to the service root - FormData avoids CORS preflight
     const formData = new FormData();
-    formData.append('file', file, randomFilename);
+    formData.append('file', file);
     
-    const response = await fetch('https://transfer.adminforge.de/', {
+    const response = await fetch('https://media.pollinations.ai/upload', {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.apiKey}`
+      },
       body: formData,
       signal: controller.signal
     });
@@ -177,42 +186,24 @@ async function uploadImageToTransferAdminforge(file) {
     
     if (!response.ok) {
       console.error('Upload failed:', response.status);
-      setStatus(i18n.t('uploadErrorServer'), 'error');
+      if (response.status === 401 || response.status === 403) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+      } else {
+        setStatus(i18n.t('uploadErrorServer'), 'error');
+      }
       return null;
     }
     
-    // Try to get the URL from x-url-delete header
-    // Format: https://transfer.adminforge.de/abc123/filename.jpg/deleteToken
-    const deleteUrl = response.headers.get('x-url-delete');
-    
-    if (deleteUrl) {
-      // Extract the file URL by removing the delete token (last path segment)
-      const urlParts = deleteUrl.split('/');
-      urlParts.pop(); // Remove delete token
-      const fileUrl = urlParts.join('/');
-      
-      // Add "get/" for the image parameter
-      const imageUrl = fileUrl.replace(
-        /^(https?:\/\/[^\/]+\/)(.+)$/,
-        '$1get/$2'
-      );
-      
-      return imageUrl;
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.warn('Upload response did not include JSON:', error);
     }
     
-    // Fallback: try to read response body (may be blocked by CORS)
-    try {
-      const text = await response.text();
-      const trimmedUrl = (text || '').trim();
-      if (trimmedUrl && trimmedUrl.startsWith('http')) {
-        const imageUrl = trimmedUrl.replace(
-          /^(https?:\/\/[^\/]+\/)(.+)$/,
-          '$1get/$2'
-        );
-        return imageUrl;
-      }
-    } catch (e) {
-      console.warn('Could not read upload response:', e);
+    const uploadUrl = getUploadUrlFromResponse(data);
+    if (uploadUrl) {
+      return uploadUrl;
     }
     
     console.error('Upload succeeded but could not determine file URL');
@@ -231,6 +222,7 @@ async function uploadImageToTransferAdminforge(file) {
   } finally {
     state.isUploading = false;
     showUploadProgress(false);
+    updateUploadUI();
   }
 }
 
@@ -240,25 +232,26 @@ async function handleImageUpload(file) {
     return;
   }
   
+  if (!state.apiKey) {
+    setStatus(i18n.t('apiKeyMissing'), 'error');
+    return;
+  }
+  
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
     return;
   }
   
-  // Set thumbnail immediately for preview
-  setUploadThumbnail(file);
-  state.uploadedImageFile = file;
-  updateUploadUI();
-  
-  // Upload the image
-  const url = await uploadImageToTransferAdminforge(file);
+  const url = await uploadImageToPollinationsMedia(file);
   
   if (url) {
     state.uploadedImageUrl = url;
+    state.uploadedImageFile = null;
+    setUploadThumbnailFromUrl(url);
     setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
+    updateUploadUI();
   } else {
-    // Clear thumbnail on failure
     clearUploadedImage();
   }
 }
@@ -271,6 +264,10 @@ function setupImageUploadHandlers() {
   
   if (uploadIconContainer) {
     uploadIconContainer.addEventListener('click', () => {
+      if (!state.apiKey) {
+        setStatus(i18n.t('apiKeyMissing'), 'error');
+        return;
+      }
       if (isImageUploadSupported() && !state.isUploading) {
         // Check if user has consented to external upload
         if (!state.uploadConsent) {
@@ -313,10 +310,14 @@ function showUploadConsentPopup(onConfirm) {
   popup = document.createElement('div');
   popup.id = 'upload-consent-popup';
   popup.className = 'upload-consent-popup';
+  const consentText = i18n.t('uploadConsentText')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+
   popup.innerHTML = `
     <div class="upload-consent-content">
       <h3>${i18n.t('uploadConsentTitle')}</h3>
-      <p>${i18n.t('uploadConsentText')}</p>
+      <p>${consentText}</p>
       <div class="upload-consent-buttons">
         <button class="upload-consent-confirm">${i18n.t('uploadConsentConfirm')}</button>
       </div>
@@ -459,6 +460,7 @@ async function updateBalance(apiKey) {
     displayProfile(null);
     const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
     renderModelOptions(modelsToRender);
+    updateUploadUI();
     return;
   }
 
@@ -480,6 +482,7 @@ async function updateBalance(apiKey) {
       displayProfile(null);
       const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
       renderModelOptions(modelsToRender);
+      updateUploadUI();
       return;
     }
 
@@ -524,6 +527,7 @@ async function updateBalance(apiKey) {
 
   if (!hasBalancePermission) {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
+    updateUploadUI();
     return;
   }
 
@@ -543,6 +547,7 @@ async function updateBalance(apiKey) {
   } else {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
   }
+  updateUploadUI();
 }
 
 // ============================================================================
