@@ -98,19 +98,26 @@ function showUploadProgress(show) {
 function setUploadThumbnailFromUrl(url) {
   const thumbnail = document.getElementById('upload-thumbnail');
   const preview = document.getElementById('upload-thumbnail-preview');
-  if (thumbnail) thumbnail.src = url || '';
-  if (preview) preview.src = url || '';
+  const src = url || '';
+  const hasSrc = Boolean(url);
+
+  if (thumbnail) {
+    thumbnail.src = src;
+    thumbnail.style.visibility = hasSrc ? 'visible' : 'hidden';
+  }
+  if (preview) {
+    preview.src = src;
+    preview.style.display = hasSrc ? 'block' : 'none';
+  }
 }
 
 function clearUploadedImage() {
   state.uploadedImageUrl = null;
   state.uploadedImageFile = null;
-  
-  const thumbnail = document.getElementById('upload-thumbnail');
-  if (thumbnail) thumbnail.src = '';
-  
-  const preview = document.getElementById('upload-thumbnail-preview');
-  if (preview) preview.src = '';
+  state.isUploading = false;
+
+  setUploadThumbnailFromUrl('');
+  showUploadProgress(false);
   
   const fileInput = document.getElementById('image-upload-input');
   if (fileInput) fileInput.value = '';
@@ -158,7 +165,7 @@ async function uploadImageToPollinationsMedia(file) {
   }
   
   if (!state.apiKey) {
-    setStatus(i18n.t('apiKeyMissing'), 'error');
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
     return null;
   }
   
@@ -171,7 +178,7 @@ async function uploadImageToPollinationsMedia(file) {
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
     
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file, file.name || `${generateRandomFilename()}.jpg`);
     
     const response = await fetch('https://media.pollinations.ai/upload', {
       method: 'POST',
@@ -188,6 +195,8 @@ async function uploadImageToPollinationsMedia(file) {
       console.error('Upload failed:', response.status);
       if (response.status === 401 || response.status === 403) {
         setStatus(i18n.t('uploadErrorAuth'), 'error');
+      } else if (response.status === 413) {
+        setStatus(i18n.t('uploadErrorFileSize'), 'error');
       } else {
         setStatus(i18n.t('uploadErrorServer'), 'error');
       }
@@ -233,7 +242,7 @@ async function handleImageUpload(file) {
   }
   
   if (!state.apiKey) {
-    setStatus(i18n.t('apiKeyMissing'), 'error');
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
     return;
   }
   
@@ -242,6 +251,11 @@ async function handleImageUpload(file) {
     setStatus(validation.error, 'error');
     return;
   }
+
+  state.uploadedImageUrl = null;
+  state.uploadedImageFile = null;
+  setUploadThumbnailFromUrl('');
+  updateUploadUI();
   
   const url = await uploadImageToPollinationsMedia(file);
   
@@ -265,7 +279,7 @@ function setupImageUploadHandlers() {
   if (uploadIconContainer) {
     uploadIconContainer.addEventListener('click', () => {
       if (!state.apiKey) {
-        setStatus(i18n.t('apiKeyMissing'), 'error');
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
         return;
       }
       if (isImageUploadSupported() && !state.isUploading) {
@@ -872,7 +886,7 @@ function renderModelOptions(models, forceReset = false) {
       select.value = model.name;
       const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
       const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
-      currentModelName.innerHTML = name + btnPremiumIndicator;
+      currentModelName.innerHTML = name + btnPremiumIndicator + btnImg2ImgIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
@@ -894,6 +908,7 @@ function renderModelOptions(models, forceReset = false) {
       const isPremium = model.paid_only === true;
       const isImg2Img = model.input_modalities && model.input_modalities.includes('image');
       const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
+      const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
       currentModelName.innerHTML = model.name + btnPremiumIndicator + btnImg2ImgIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
@@ -2287,6 +2302,8 @@ function setupEventListeners() {
         const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
         renderModelOptions(modelsToRender);
       }
+
+      updateUploadUI();
 
       // Disable generate until validation on blur succeeds
       setGenerateButtonEnabled(false);
