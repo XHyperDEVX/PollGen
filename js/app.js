@@ -476,6 +476,7 @@ async function updateBalance(apiKey) {
     state.keyInfoApiKey = null;
     state.allowedModels = null;
     state.profile = null;
+    clearPersistedApiKey();
     setGenerateButtonEnabled(false);
     updateLoginButtonState(false);
     displayProfile(null);
@@ -498,6 +499,7 @@ async function updateBalance(apiKey) {
       state.keyInfoApiKey = null;
       state.allowedModels = null;
       state.profile = null;
+      clearPersistedApiKey();
       setGenerateButtonEnabled(false);
       updateLoginButtonState(false);
       displayProfile(null);
@@ -511,6 +513,7 @@ async function updateBalance(apiKey) {
     state.keyInfoApiKey = trimmedKey;
   }
 
+  persistApiKey(trimmedKey);
   setGenerateButtonEnabled(true);
   updateLoginButtonState(true);
 
@@ -641,12 +644,24 @@ function loadApiKey() {
   return false;
 }
 
-function saveApiKey(key) {
+function persistApiKey(key) {
   if (!key || !key.trim()) {
     return false;
   }
   const trimmedKey = key.trim();
   sessionStorage.setItem('pollinations_api_key', trimmedKey);
+  return true;
+}
+
+function clearPersistedApiKey() {
+  sessionStorage.removeItem('pollinations_api_key');
+}
+
+function saveApiKey(key) {
+  if (!key || !key.trim()) {
+    return false;
+  }
+  const trimmedKey = key.trim();
   state.apiKey = trimmedKey;
   return true;
 }
@@ -658,7 +673,6 @@ function validateApiKey() {
   const key = input.value.trim();
   if (key) {
     saveApiKey(key);
-    setStatus(i18n.t('apiKeyStored'), 'success');
     return true;
   }
   return false;
