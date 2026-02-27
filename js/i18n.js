@@ -111,6 +111,7 @@ const translations = {
     resolutionWarning: 'For optimal use, a resolution of at least 1080p is recommended.',
     // Parallel Mode
     parallelModeLabel: 'Parallel Generation',
+    performanceModeLabel: 'Performance Mode',
     generateLabel: 'Generate',
     imagesLabel: 'Images',
     videosLabel: 'Videos',
@@ -243,6 +244,7 @@ const translations = {
     resolutionWarning: 'Für die optimale Nutzung wird eine Auflösung von mindestens 1080p empfohlen.',
     // Parallel Mode
     parallelModeLabel: 'Parallele Generierung',
+    performanceModeLabel: 'Performance-Modus',
     generateLabel: 'Generiere',
     imagesLabel: 'Bilder',
     videosLabel: 'Videos',

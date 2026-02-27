@@ -35,7 +35,8 @@ const state = {
   // Image upload state
   uploadedImageUrl: null, // URL of uploaded image
   uploadedImageFile: null, // Original file for thumbnail display
-  isUploading: false // Upload in progress flag
+  isUploading: false, // Upload in progress flag
+  performanceMode: false // Performance mode flag
 };
 
 // ============================================================================
@@ -608,6 +609,27 @@ function loadUploadConsent() {
 function saveUploadConsent(consent) {
   state.uploadConsent = consent;
   localStorage.setItem('pollgen_upload_consent', consent.toString());
+}
+
+function loadPerformanceMode() {
+  const saved = localStorage.getItem('pollgen_performance_mode');
+  if (saved !== null) {
+    state.performanceMode = saved === 'true';
+  } else {
+    state.performanceMode = false;
+  }
+
+  const checkbox = document.getElementById('performance-mode');
+  if (checkbox) {
+    checkbox.checked = state.performanceMode;
+  }
+
+  return state.performanceMode;
+}
+
+function savePerformanceMode(enabled) {
+  state.performanceMode = Boolean(enabled);
+  localStorage.setItem('pollgen_performance_mode', state.performanceMode.toString());
 }
 
 function loadApiKey() {
@@ -1766,6 +1788,15 @@ function scheduleImageCardResize() {
   });
 }
 
+function createPerformanceLoader() {
+    const loader = document.createElement('div');
+    loader.className = 'performance-loader';
+    const spinner = document.createElement('div');
+    spinner.className = 'performance-spinner';
+    loader.appendChild(spinner);
+    return loader;
+}
+
 function createPlaceholderCard(genId) {
     const card = document.createElement('div');
     card.className = 'image-card';
@@ -1783,48 +1814,52 @@ function createPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Create firefly animation (bounded to image area)
-    const fireflyLayer = document.createElement('div');
-    fireflyLayer.className = 'firefly-layer';
-    placeholder.appendChild(fireflyLayer);
-
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
-    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+    if (state.performanceMode || prefersReducedMotion) {
+        placeholder.appendChild(createPerformanceLoader());
+    } else {
+        // Create firefly animation (bounded to image area)
+        const fireflyLayer = document.createElement('div');
+        fireflyLayer.className = 'firefly-layer';
+        placeholder.appendChild(fireflyLayer);
 
-    for (let i = 0; i < fireflyCount; i++) {
-        const firefly = document.createElement('div');
-        firefly.className = 'firefly';
+        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+        const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+        const fireflyCount = baseCount;
 
-        const size = Math.random() * 4.5 + 2;
-        firefly.style.width = size + 'px';
-        firefly.style.height = size + 'px';
-        firefly.dataset.size = size.toString();
+        for (let i = 0; i < fireflyCount; i++) {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
 
-        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * 4.5 + 2;
+            firefly.style.width = size + 'px';
+            firefly.style.height = size + 'px';
+            firefly.dataset.size = size.toString();
 
-        const brightness = Math.random() * 0.55 + 0.45;
-        firefly.style.filter = `brightness(${brightness})`;
+            firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
 
-        firefly.dataset.rx = Math.random().toString();
-        firefly.dataset.ry = Math.random().toString();
+            const brightness = Math.random() * 0.55 + 0.45;
+            firefly.style.filter = `brightness(${brightness})`;
 
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 45 + 18; // px/s
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-        firefly.dataset.vx = vx.toString();
-        firefly.dataset.vy = vy.toString();
+            firefly.dataset.rx = Math.random().toString();
+            firefly.dataset.ry = Math.random().toString();
 
-        firefly.style.animationDelay = Math.random() * 4 + 's';
-        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
-        fireflyLayer.appendChild(firefly);
-    }
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 45 + 18; // px/s
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            firefly.dataset.vx = vx.toString();
+            firefly.dataset.vy = vy.toString();
 
-    if (!prefersReducedMotion && fireflyCount > 0) {
-        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+            fireflyLayer.appendChild(firefly);
+        }
+
+        if (fireflyCount > 0) {
+            requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+        }
     }
 
     card.appendChild(placeholder);
@@ -1889,48 +1924,52 @@ function createVideoPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Create firefly animation (bounded to video area)
-    const fireflyLayer = document.createElement('div');
-    fireflyLayer.className = 'firefly-layer';
-    placeholder.appendChild(fireflyLayer);
-
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
-    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+    if (state.performanceMode || prefersReducedMotion) {
+        placeholder.appendChild(createPerformanceLoader());
+    } else {
+        // Create firefly animation (bounded to video area)
+        const fireflyLayer = document.createElement('div');
+        fireflyLayer.className = 'firefly-layer';
+        placeholder.appendChild(fireflyLayer);
 
-    for (let i = 0; i < fireflyCount; i++) {
-        const firefly = document.createElement('div');
-        firefly.className = 'firefly';
+        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+        const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+        const fireflyCount = baseCount;
 
-        const size = Math.random() * 4.5 + 2;
-        firefly.style.width = size + 'px';
-        firefly.style.height = size + 'px';
-        firefly.dataset.size = size.toString();
+        for (let i = 0; i < fireflyCount; i++) {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
 
-        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * 4.5 + 2;
+            firefly.style.width = size + 'px';
+            firefly.style.height = size + 'px';
+            firefly.dataset.size = size.toString();
 
-        const brightness = Math.random() * 0.55 + 0.45;
-        firefly.style.filter = `brightness(${brightness})`;
+            firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
 
-        firefly.dataset.rx = Math.random().toString();
-        firefly.dataset.ry = Math.random().toString();
+            const brightness = Math.random() * 0.55 + 0.45;
+            firefly.style.filter = `brightness(${brightness})`;
 
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 45 + 18;
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-        firefly.dataset.vx = vx.toString();
-        firefly.dataset.vy = vy.toString();
+            firefly.dataset.rx = Math.random().toString();
+            firefly.dataset.ry = Math.random().toString();
 
-        firefly.style.animationDelay = Math.random() * 4 + 's';
-        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
-        fireflyLayer.appendChild(firefly);
-    }
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 45 + 18;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            firefly.dataset.vx = vx.toString();
+            firefly.dataset.vy = vy.toString();
 
-    if (!prefersReducedMotion && fireflyCount > 0) {
-        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+            fireflyLayer.appendChild(firefly);
+        }
+
+        if (fireflyCount > 0) {
+            requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+        }
     }
 
     card.appendChild(placeholder);
@@ -2288,6 +2327,13 @@ function setupEventListeners() {
     });
   }
 
+  const performanceCheckbox = document.getElementById('performance-mode');
+  if (performanceCheckbox) {
+    performanceCheckbox.addEventListener('change', () => {
+      savePerformanceMode(performanceCheckbox.checked);
+    });
+  }
+
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
     apiKeyInput.addEventListener('blur', async () => {
@@ -2588,6 +2634,9 @@ function init() {
   // Load upload consent
   loadUploadConsent();
 
+  // Load performance mode
+  loadPerformanceMode();
+
   // Check screen resolution
   checkResolution();
   window.addEventListener('resize', checkResolution);
@@ -2808,9 +2857,11 @@ function updateLoginButtonState(isLoggedIn) {
     if (isLoggedIn) {
       loginBtnText.textContent = i18n.t('loggedIn');
       loginBtn.disabled = true;
+      loginBtn.classList.add('active');
     } else {
       loginBtnText.textContent = i18n.t('loginWithPollinations');
       loginBtn.disabled = false;
+      loginBtn.classList.remove('active');
     }
   }
 }
