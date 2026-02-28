@@ -35,6 +35,7 @@ const state = {
   // Image upload state
   uploadedImageUrl: null, // URL of uploaded image
   uploadedImageFile: null, // Original file for thumbnail display
+  uploadedImageId: null, // ID returned from upload API for deletion
   isUploading: false, // Upload in progress flag
   performanceMode: false // Performance mode flag
 };
@@ -121,6 +122,7 @@ function setUploadThumbnailFromUrl(url) {
 function clearUploadedImage() {
   state.uploadedImageUrl = null;
   state.uploadedImageFile = null;
+  state.uploadedImageId = null;
   state.isUploading = false;
 
   setUploadThumbnailFromUrl('');
@@ -130,6 +132,43 @@ function clearUploadedImage() {
   if (fileInput) fileInput.value = '';
   
   updateUploadUI();
+}
+
+async function deleteUploadedImage() {
+  const imageId = state.uploadedImageId;
+  
+  // If no image ID, just clear local state
+  if (!imageId) {
+    clearUploadedImage();
+    return;
+  }
+  
+  if (!state.apiKey) {
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
+    clearUploadedImage();
+    return;
+  }
+  
+  try {
+    const response = await fetch(`https://media.pollinations.ai/${imageId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${state.apiKey}`
+      }
+    });
+    
+    if (response.ok) {
+      setStatus(i18n.t('uploadDeleteSuccess') || 'Image deleted successfully', 'success');
+    } else if (response.status === 401 || response.status === 403) {
+      setStatus(i18n.t('uploadErrorAuth'), 'error');
+    } else {
+      console.error('Delete failed:', response.status);
+    }
+  } catch (error) {
+    console.error('Delete error:', error);
+  } finally {
+    clearUploadedImage();
+  }
 }
 
 function validateImageFile(file) {
@@ -218,8 +257,9 @@ async function uploadImageToPollinationsMedia(file) {
     }
     
     const uploadUrl = getUploadUrlFromResponse(data);
+    const uploadId = data && data.id ? data.id : null;
     if (uploadUrl) {
-      return uploadUrl;
+      return { url: uploadUrl, id: uploadId };
     }
     
     console.error('Upload succeeded but could not determine file URL');
@@ -264,16 +304,19 @@ async function handleImageUpload(file) {
   setUploadThumbnailFromUrl('');
   updateUploadUI();
   
-  const url = await uploadImageToPollinationsMedia(file);
+  const result = await uploadImageToPollinationsMedia(file);
+  const url = result && result.url ? result.url : null;
+  const uploadId = result && result.id ? result.id : null;
   
   if (url) {
     state.uploadedImageUrl = url;
+    state.uploadedImageId = uploadId;
     state.uploadedImageFile = null;
     setUploadThumbnailFromUrl(url);
     setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
     updateUploadUI();
   } else {
-    clearUploadedImage();
+    deleteUploadedImage();
   }
 }
 
@@ -314,7 +357,7 @@ function setupImageUploadHandlers() {
   if (deleteBtn) {
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      clearUploadedImage();
+      deleteUploadedImage();
     });
   }
 }
