@@ -35,7 +35,8 @@ const state = {
   // Image upload state
   uploadedImageUrl: null, // URL of uploaded image
   uploadedImageFile: null, // Original file for thumbnail display
-  isUploading: false // Upload in progress flag
+  isUploading: false, // Upload in progress flag
+  performanceMode: false // Performance mode flag
 };
 
 // ============================================================================
@@ -46,15 +47,6 @@ const state = {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
-
-function generateRandomFilename() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
 
 function isImageUploadSupported() {
   const select = document.getElementById('model');
@@ -78,17 +70,22 @@ function updateUploadUI() {
   if (!uploadIcon || !uploadIconContainer) return;
   
   const supported = isImageUploadSupported();
+  const hasValidKey = isApiKeyValidForGeneration();
+
+  if (!supported) {
+    if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
+    uploadIconContainer.style.display = 'none';
+    return;
+  }
   
-  if (state.uploadedImageUrl) {
-    // Show thumbnail, hide icon
+  if (state.isUploading || state.uploadedImageUrl) {
     if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
     uploadIconContainer.style.display = 'none';
   } else {
-    // Show icon, hide thumbnail
     if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
     uploadIconContainer.style.display = 'flex';
     
-    if (supported) {
+    if (hasValidKey) {
       uploadIcon.classList.remove('disabled');
       uploadIcon.style.cursor = 'pointer';
     } else {
@@ -105,23 +102,29 @@ function showUploadProgress(show) {
   }
 }
 
-function setUploadThumbnail(file) {
+function setUploadThumbnailFromUrl(url) {
   const thumbnail = document.getElementById('upload-thumbnail');
-  if (!thumbnail || !file) return;
-  
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    thumbnail.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+  const preview = document.getElementById('upload-thumbnail-preview');
+  const src = url || '';
+  const hasSrc = Boolean(url);
+
+  if (thumbnail) {
+    thumbnail.src = src;
+    thumbnail.style.visibility = hasSrc ? 'visible' : 'hidden';
+  }
+  if (preview) {
+    preview.src = src;
+    preview.style.display = hasSrc ? 'block' : 'none';
+  }
 }
 
 function clearUploadedImage() {
   state.uploadedImageUrl = null;
   state.uploadedImageFile = null;
-  
-  const thumbnail = document.getElementById('upload-thumbnail');
-  if (thumbnail) thumbnail.src = '';
+  state.isUploading = false;
+
+  setUploadThumbnailFromUrl('');
+  showUploadProgress(false);
   
   const fileInput = document.getElementById('image-upload-input');
   if (fileInput) fileInput.value = '';
@@ -145,30 +148,50 @@ function validateImageFile(file) {
   return { valid: true };
 }
 
-async function uploadImageToTransferAdminforge(file) {
+function getUploadUrlFromResponse(data) {
+  if (!data) return null;
+  if (typeof data === 'string') return data;
+  if (data.url) return data.url;
+  if (data.file && data.file.url) return data.file.url;
+  if (Array.isArray(data.files) && data.files.length > 0) {
+    return data.files[0].url || data.files[0].file?.url || data.files[0].src || null;
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0];
+    if (typeof first === 'string') return first;
+    return first.url || first.file?.url || null;
+  }
+  return null;
+}
+
+async function uploadImageToPollinationsMedia(file) {
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
     return null;
   }
   
+  if (!state.apiKey) {
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
+    return null;
+  }
+  
   state.isUploading = true;
   showUploadProgress(true);
+  updateUploadUI();
   
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
     
-    // Generate a random filename with original extension
-    const ext = file.name.split('.').pop() || 'jpg';
-    const randomFilename = `${generateRandomFilename()}.${ext}`;
-    
-    // POST to the service root - FormData avoids CORS preflight
     const formData = new FormData();
-    formData.append('file', file, randomFilename);
+    formData.append('file', file, file.name || `${generateRandomFilename()}.jpg`);
     
-    const response = await fetch('https://transfer.adminforge.de/', {
+    const response = await fetch('https://media.pollinations.ai/upload', {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.apiKey}`
+      },
       body: formData,
       signal: controller.signal
     });
@@ -177,42 +200,26 @@ async function uploadImageToTransferAdminforge(file) {
     
     if (!response.ok) {
       console.error('Upload failed:', response.status);
-      setStatus(i18n.t('uploadErrorServer'), 'error');
+      if (response.status === 401 || response.status === 403) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+      } else if (response.status === 413) {
+        setStatus(i18n.t('uploadErrorFileSize'), 'error');
+      } else {
+        setStatus(i18n.t('uploadErrorServer'), 'error');
+      }
       return null;
     }
     
-    // Try to get the URL from x-url-delete header
-    // Format: https://transfer.adminforge.de/abc123/filename.jpg/deleteToken
-    const deleteUrl = response.headers.get('x-url-delete');
-    
-    if (deleteUrl) {
-      // Extract the file URL by removing the delete token (last path segment)
-      const urlParts = deleteUrl.split('/');
-      urlParts.pop(); // Remove delete token
-      const fileUrl = urlParts.join('/');
-      
-      // Add "get/" for the image parameter
-      const imageUrl = fileUrl.replace(
-        /^(https?:\/\/[^\/]+\/)(.+)$/,
-        '$1get/$2'
-      );
-      
-      return imageUrl;
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.warn('Upload response did not include JSON:', error);
     }
     
-    // Fallback: try to read response body (may be blocked by CORS)
-    try {
-      const text = await response.text();
-      const trimmedUrl = (text || '').trim();
-      if (trimmedUrl && trimmedUrl.startsWith('http')) {
-        const imageUrl = trimmedUrl.replace(
-          /^(https?:\/\/[^\/]+\/)(.+)$/,
-          '$1get/$2'
-        );
-        return imageUrl;
-      }
-    } catch (e) {
-      console.warn('Could not read upload response:', e);
+    const uploadUrl = getUploadUrlFromResponse(data);
+    if (uploadUrl) {
+      return uploadUrl;
     }
     
     console.error('Upload succeeded but could not determine file URL');
@@ -231,6 +238,7 @@ async function uploadImageToTransferAdminforge(file) {
   } finally {
     state.isUploading = false;
     showUploadProgress(false);
+    updateUploadUI();
   }
 }
 
@@ -240,25 +248,31 @@ async function handleImageUpload(file) {
     return;
   }
   
+  if (!state.apiKey) {
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
+    return;
+  }
+  
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
     return;
   }
-  
-  // Set thumbnail immediately for preview
-  setUploadThumbnail(file);
-  state.uploadedImageFile = file;
+
+  state.uploadedImageUrl = null;
+  state.uploadedImageFile = null;
+  setUploadThumbnailFromUrl('');
   updateUploadUI();
   
-  // Upload the image
-  const url = await uploadImageToTransferAdminforge(file);
+  const url = await uploadImageToPollinationsMedia(file);
   
   if (url) {
     state.uploadedImageUrl = url;
+    state.uploadedImageFile = null;
+    setUploadThumbnailFromUrl(url);
     setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
+    updateUploadUI();
   } else {
-    // Clear thumbnail on failure
     clearUploadedImage();
   }
 }
@@ -271,6 +285,10 @@ function setupImageUploadHandlers() {
   
   if (uploadIconContainer) {
     uploadIconContainer.addEventListener('click', () => {
+      if (!state.apiKey) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+        return;
+      }
       if (isImageUploadSupported() && !state.isUploading) {
         // Check if user has consented to external upload
         if (!state.uploadConsent) {
@@ -313,10 +331,14 @@ function showUploadConsentPopup(onConfirm) {
   popup = document.createElement('div');
   popup.id = 'upload-consent-popup';
   popup.className = 'upload-consent-popup';
+  const consentText = i18n.t('uploadConsentText')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+
   popup.innerHTML = `
     <div class="upload-consent-content">
       <h3>${i18n.t('uploadConsentTitle')}</h3>
-      <p>${i18n.t('uploadConsentText')}</p>
+      <p>${consentText}</p>
       <div class="upload-consent-buttons">
         <button class="upload-consent-confirm">${i18n.t('uploadConsentConfirm')}</button>
       </div>
@@ -454,11 +476,13 @@ async function updateBalance(apiKey) {
     state.keyInfoApiKey = null;
     state.allowedModels = null;
     state.profile = null;
+    clearPersistedApiKey();
     setGenerateButtonEnabled(false);
     updateLoginButtonState(false);
     displayProfile(null);
     const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
     renderModelOptions(modelsToRender);
+    updateUploadUI();
     return;
   }
 
@@ -475,11 +499,13 @@ async function updateBalance(apiKey) {
       state.keyInfoApiKey = null;
       state.allowedModels = null;
       state.profile = null;
+      clearPersistedApiKey();
       setGenerateButtonEnabled(false);
       updateLoginButtonState(false);
       displayProfile(null);
       const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
       renderModelOptions(modelsToRender);
+      updateUploadUI();
       return;
     }
 
@@ -487,6 +513,7 @@ async function updateBalance(apiKey) {
     state.keyInfoApiKey = trimmedKey;
   }
 
+  persistApiKey(trimmedKey);
   setGenerateButtonEnabled(true);
   updateLoginButtonState(true);
 
@@ -524,6 +551,7 @@ async function updateBalance(apiKey) {
 
   if (!hasBalancePermission) {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
+    updateUploadUI();
     return;
   }
 
@@ -543,6 +571,7 @@ async function updateBalance(apiKey) {
   } else {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
   }
+  updateUploadUI();
 }
 
 // ============================================================================
@@ -585,6 +614,27 @@ function saveUploadConsent(consent) {
   localStorage.setItem('pollgen_upload_consent', consent.toString());
 }
 
+function loadPerformanceMode() {
+  const saved = localStorage.getItem('pollgen_performance_mode');
+  if (saved !== null) {
+    state.performanceMode = saved === 'true';
+  } else {
+    state.performanceMode = false;
+  }
+
+  const checkbox = document.getElementById('performance-mode');
+  if (checkbox) {
+    checkbox.checked = state.performanceMode;
+  }
+
+  return state.performanceMode;
+}
+
+function savePerformanceMode(enabled) {
+  state.performanceMode = Boolean(enabled);
+  localStorage.setItem('pollgen_performance_mode', state.performanceMode.toString());
+}
+
 function loadApiKey() {
   const saved = sessionStorage.getItem('pollinations_api_key');
   if (saved && saved.trim()) {
@@ -594,12 +644,24 @@ function loadApiKey() {
   return false;
 }
 
-function saveApiKey(key) {
+function persistApiKey(key) {
   if (!key || !key.trim()) {
     return false;
   }
   const trimmedKey = key.trim();
   sessionStorage.setItem('pollinations_api_key', trimmedKey);
+  return true;
+}
+
+function clearPersistedApiKey() {
+  sessionStorage.removeItem('pollinations_api_key');
+}
+
+function saveApiKey(key) {
+  if (!key || !key.trim()) {
+    return false;
+  }
+  const trimmedKey = key.trim();
   state.apiKey = trimmedKey;
   return true;
 }
@@ -611,7 +673,6 @@ function validateApiKey() {
   const key = input.value.trim();
   if (key) {
     saveApiKey(key);
-    setStatus(i18n.t('apiKeyStored'), 'success');
     return true;
   }
   return false;
@@ -867,7 +928,7 @@ function renderModelOptions(models, forceReset = false) {
       select.value = model.name;
       const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
       const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
-      currentModelName.innerHTML = name + btnPremiumIndicator;
+      currentModelName.innerHTML = name + btnPremiumIndicator + btnImg2ImgIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
@@ -889,6 +950,7 @@ function renderModelOptions(models, forceReset = false) {
       const isPremium = model.paid_only === true;
       const isImg2Img = model.input_modalities && model.input_modalities.includes('image');
       const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
+      const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
       currentModelName.innerHTML = model.name + btnPremiumIndicator + btnImg2ImgIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
@@ -1446,7 +1508,7 @@ function collectPayload() {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
   // Include uploaded image URL for image-to-image generation
-  if (state.uploadedImageUrl && mode === 'image') {
+  if (state.uploadedImageUrl && mode === 'image' && isImageUploadSupported()) {
     payload.image = state.uploadedImageUrl;
   }
 
@@ -1740,6 +1802,15 @@ function scheduleImageCardResize() {
   });
 }
 
+function createPerformanceLoader() {
+    const loader = document.createElement('div');
+    loader.className = 'performance-loader';
+    const spinner = document.createElement('div');
+    spinner.className = 'performance-spinner';
+    loader.appendChild(spinner);
+    return loader;
+}
+
 function createPlaceholderCard(genId) {
     const card = document.createElement('div');
     card.className = 'image-card';
@@ -1757,48 +1828,52 @@ function createPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Create firefly animation (bounded to image area)
-    const fireflyLayer = document.createElement('div');
-    fireflyLayer.className = 'firefly-layer';
-    placeholder.appendChild(fireflyLayer);
-
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
-    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+    if (state.performanceMode || prefersReducedMotion) {
+        placeholder.appendChild(createPerformanceLoader());
+    } else {
+        // Create firefly animation (bounded to image area)
+        const fireflyLayer = document.createElement('div');
+        fireflyLayer.className = 'firefly-layer';
+        placeholder.appendChild(fireflyLayer);
 
-    for (let i = 0; i < fireflyCount; i++) {
-        const firefly = document.createElement('div');
-        firefly.className = 'firefly';
+        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+        const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+        const fireflyCount = baseCount;
 
-        const size = Math.random() * 4.5 + 2;
-        firefly.style.width = size + 'px';
-        firefly.style.height = size + 'px';
-        firefly.dataset.size = size.toString();
+        for (let i = 0; i < fireflyCount; i++) {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
 
-        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * 4.5 + 2;
+            firefly.style.width = size + 'px';
+            firefly.style.height = size + 'px';
+            firefly.dataset.size = size.toString();
 
-        const brightness = Math.random() * 0.55 + 0.45;
-        firefly.style.filter = `brightness(${brightness})`;
+            firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
 
-        firefly.dataset.rx = Math.random().toString();
-        firefly.dataset.ry = Math.random().toString();
+            const brightness = Math.random() * 0.55 + 0.45;
+            firefly.style.filter = `brightness(${brightness})`;
 
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 45 + 18; // px/s
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-        firefly.dataset.vx = vx.toString();
-        firefly.dataset.vy = vy.toString();
+            firefly.dataset.rx = Math.random().toString();
+            firefly.dataset.ry = Math.random().toString();
 
-        firefly.style.animationDelay = Math.random() * 4 + 's';
-        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
-        fireflyLayer.appendChild(firefly);
-    }
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 45 + 18; // px/s
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            firefly.dataset.vx = vx.toString();
+            firefly.dataset.vy = vy.toString();
 
-    if (!prefersReducedMotion && fireflyCount > 0) {
-        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+            fireflyLayer.appendChild(firefly);
+        }
+
+        if (fireflyCount > 0) {
+            requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+        }
     }
 
     card.appendChild(placeholder);
@@ -1863,48 +1938,52 @@ function createVideoPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Create firefly animation (bounded to video area)
-    const fireflyLayer = document.createElement('div');
-    fireflyLayer.className = 'firefly-layer';
-    placeholder.appendChild(fireflyLayer);
-
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
-    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+    if (state.performanceMode || prefersReducedMotion) {
+        placeholder.appendChild(createPerformanceLoader());
+    } else {
+        // Create firefly animation (bounded to video area)
+        const fireflyLayer = document.createElement('div');
+        fireflyLayer.className = 'firefly-layer';
+        placeholder.appendChild(fireflyLayer);
 
-    for (let i = 0; i < fireflyCount; i++) {
-        const firefly = document.createElement('div');
-        firefly.className = 'firefly';
+        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+        const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+        const fireflyCount = baseCount;
 
-        const size = Math.random() * 4.5 + 2;
-        firefly.style.width = size + 'px';
-        firefly.style.height = size + 'px';
-        firefly.dataset.size = size.toString();
+        for (let i = 0; i < fireflyCount; i++) {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
 
-        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * 4.5 + 2;
+            firefly.style.width = size + 'px';
+            firefly.style.height = size + 'px';
+            firefly.dataset.size = size.toString();
 
-        const brightness = Math.random() * 0.55 + 0.45;
-        firefly.style.filter = `brightness(${brightness})`;
+            firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
 
-        firefly.dataset.rx = Math.random().toString();
-        firefly.dataset.ry = Math.random().toString();
+            const brightness = Math.random() * 0.55 + 0.45;
+            firefly.style.filter = `brightness(${brightness})`;
 
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 45 + 18;
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-        firefly.dataset.vx = vx.toString();
-        firefly.dataset.vy = vy.toString();
+            firefly.dataset.rx = Math.random().toString();
+            firefly.dataset.ry = Math.random().toString();
 
-        firefly.style.animationDelay = Math.random() * 4 + 's';
-        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
-        fireflyLayer.appendChild(firefly);
-    }
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 45 + 18;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            firefly.dataset.vx = vx.toString();
+            firefly.dataset.vy = vy.toString();
 
-    if (!prefersReducedMotion && fireflyCount > 0) {
-        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+            fireflyLayer.appendChild(firefly);
+        }
+
+        if (fireflyCount > 0) {
+            requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+        }
     }
 
     card.appendChild(placeholder);
@@ -2262,6 +2341,13 @@ function setupEventListeners() {
     });
   }
 
+  const performanceCheckbox = document.getElementById('performance-mode');
+  if (performanceCheckbox) {
+    performanceCheckbox.addEventListener('change', () => {
+      savePerformanceMode(performanceCheckbox.checked);
+    });
+  }
+
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
     apiKeyInput.addEventListener('blur', async () => {
@@ -2282,6 +2368,8 @@ function setupEventListeners() {
         const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
         renderModelOptions(modelsToRender);
       }
+
+      updateUploadUI();
 
       // Disable generate until validation on blur succeeds
       setGenerateButtonEnabled(false);
@@ -2560,6 +2648,9 @@ function init() {
   // Load upload consent
   loadUploadConsent();
 
+  // Load performance mode
+  loadPerformanceMode();
+
   // Check screen resolution
   checkResolution();
   window.addEventListener('resize', checkResolution);
@@ -2780,9 +2871,11 @@ function updateLoginButtonState(isLoggedIn) {
     if (isLoggedIn) {
       loginBtnText.textContent = i18n.t('loggedIn');
       loginBtn.disabled = true;
+      loginBtn.classList.add('active');
     } else {
       loginBtnText.textContent = i18n.t('loginWithPollinations');
       loginBtn.disabled = false;
+      loginBtn.classList.remove('active');
     }
   }
 }
