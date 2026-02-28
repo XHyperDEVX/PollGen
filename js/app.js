@@ -20,6 +20,7 @@ const state = {
   keyInfo: null, // Store key info from /account/key endpoint
   keyInfoApiKey: null, // Which API key the keyInfo was validated for
   hidePremiumModels: false, // Whether to hide premium (paid_only) models
+  uploadConsent: false, // Whether user has consented to external upload
   profile: null, // User profile data from /account/profile
   // Parallel mode state
   parallelMode: false,
@@ -30,10 +31,340 @@ const state = {
   completedCount: 0,
   failedCount: 0,
   currentSetId: null, // ID of current parallel set
-  currentSetJobs: 0 // Number of jobs in current set
+  currentSetJobs: 0, // Number of jobs in current set
+  // Image upload state
+  uploadedImageUrl: null, // URL of uploaded image
+  uploadedImageFile: null, // Original file for thumbnail display
+  isUploading: false, // Upload in progress flag
+  performanceMode: false // Performance mode flag
 };
 
 // ============================================================================
+
+// ============================================================================
+// IMAGE UPLOAD
+// ============================================================================
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
+
+function isImageUploadSupported() {
+  const select = document.getElementById('model');
+  if (!select) return false;
+  
+  const currentModelName = select.value;
+  const models = state.currentMode === 'video' ? state.videoModels : state.models;
+  const model = models.find(m => m.name === currentModelName);
+  
+  if (!model) return false;
+  
+  const inputModalities = model.input_modalities || [];
+  return inputModalities.includes('image');
+}
+
+function updateUploadUI() {
+  const uploadIcon = document.getElementById('upload-icon');
+  const uploadIconContainer = document.getElementById('upload-icon-container');
+  const thumbnailWrapper = document.getElementById('upload-thumbnail-wrapper');
+  
+  if (!uploadIcon || !uploadIconContainer) return;
+  
+  const supported = isImageUploadSupported();
+  const hasValidKey = isApiKeyValidForGeneration();
+
+  if (!supported) {
+    if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
+    uploadIconContainer.style.display = 'none';
+    return;
+  }
+  
+  if (state.isUploading || state.uploadedImageUrl) {
+    if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
+    uploadIconContainer.style.display = 'none';
+  } else {
+    if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
+    uploadIconContainer.style.display = 'flex';
+    
+    if (hasValidKey) {
+      uploadIcon.classList.remove('disabled');
+      uploadIcon.style.cursor = 'pointer';
+    } else {
+      uploadIcon.classList.add('disabled');
+      uploadIcon.style.cursor = 'not-allowed';
+    }
+  }
+}
+
+function showUploadProgress(show) {
+  const progressEl = document.getElementById('upload-progress');
+  if (progressEl) {
+    progressEl.style.display = show ? 'flex' : 'none';
+  }
+}
+
+function setUploadThumbnailFromUrl(url) {
+  const thumbnail = document.getElementById('upload-thumbnail');
+  const preview = document.getElementById('upload-thumbnail-preview');
+  const src = url || '';
+  const hasSrc = Boolean(url);
+
+  if (thumbnail) {
+    thumbnail.src = src;
+    thumbnail.style.visibility = hasSrc ? 'visible' : 'hidden';
+  }
+  if (preview) {
+    preview.src = src;
+    preview.style.display = hasSrc ? 'block' : 'none';
+  }
+}
+
+function clearUploadedImage() {
+  state.uploadedImageUrl = null;
+  state.uploadedImageFile = null;
+  state.isUploading = false;
+
+  setUploadThumbnailFromUrl('');
+  showUploadProgress(false);
+  
+  const fileInput = document.getElementById('image-upload-input');
+  if (fileInput) fileInput.value = '';
+  
+  updateUploadUI();
+}
+
+function validateImageFile(file) {
+  if (!file) {
+    return { valid: false, error: i18n.t('uploadErrorGeneric') };
+  }
+  
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { valid: false, error: i18n.t('uploadErrorFileType') };
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: i18n.t('uploadErrorFileSize') };
+  }
+  
+  return { valid: true };
+}
+
+function getUploadUrlFromResponse(data) {
+  if (!data) return null;
+  if (typeof data === 'string') return data;
+  if (data.url) return data.url;
+  if (data.file && data.file.url) return data.file.url;
+  if (Array.isArray(data.files) && data.files.length > 0) {
+    return data.files[0].url || data.files[0].file?.url || data.files[0].src || null;
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0];
+    if (typeof first === 'string') return first;
+    return first.url || first.file?.url || null;
+  }
+  return null;
+}
+
+async function uploadImageToPollinationsMedia(file) {
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
+    setStatus(validation.error, 'error');
+    return null;
+  }
+  
+  if (!state.apiKey) {
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
+    return null;
+  }
+  
+  state.isUploading = true;
+  showUploadProgress(true);
+  updateUploadUI();
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    
+    const formData = new FormData();
+    formData.append('file', file, file.name || `${generateRandomFilename()}.jpg`);
+    
+    const response = await fetch('https://media.pollinations.ai/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.apiKey}`
+      },
+      body: formData,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      console.error('Upload failed:', response.status);
+      if (response.status === 401 || response.status === 403) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+      } else if (response.status === 413) {
+        setStatus(i18n.t('uploadErrorFileSize'), 'error');
+      } else {
+        setStatus(i18n.t('uploadErrorServer'), 'error');
+      }
+      return null;
+    }
+    
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.warn('Upload response did not include JSON:', error);
+    }
+    
+    const uploadUrl = getUploadUrlFromResponse(data);
+    if (uploadUrl) {
+      return uploadUrl;
+    }
+    
+    console.error('Upload succeeded but could not determine file URL');
+    setStatus(i18n.t('uploadErrorServer'), 'error');
+    return null;
+  } catch (error) {
+    console.error('Upload error:', error);
+    
+    if (error.name === 'AbortError' || error.name === 'TypeError') {
+      setStatus(i18n.t('uploadErrorNetwork'), 'error');
+    } else {
+      setStatus(i18n.t('uploadErrorGeneric'), 'error');
+    }
+    
+    return null;
+  } finally {
+    state.isUploading = false;
+    showUploadProgress(false);
+    updateUploadUI();
+  }
+}
+
+async function handleImageUpload(file) {
+  if (!isImageUploadSupported()) {
+    setStatus(i18n.t('uploadErrorGeneric'), 'error');
+    return;
+  }
+  
+  if (!state.apiKey) {
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
+    return;
+  }
+  
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
+    setStatus(validation.error, 'error');
+    return;
+  }
+
+  state.uploadedImageUrl = null;
+  state.uploadedImageFile = null;
+  setUploadThumbnailFromUrl('');
+  updateUploadUI();
+  
+  const url = await uploadImageToPollinationsMedia(file);
+  
+  if (url) {
+    state.uploadedImageUrl = url;
+    state.uploadedImageFile = null;
+    setUploadThumbnailFromUrl(url);
+    setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
+    updateUploadUI();
+  } else {
+    clearUploadedImage();
+  }
+}
+
+function setupImageUploadHandlers() {
+  const uploadIcon = document.getElementById('upload-icon');
+  const uploadIconContainer = document.getElementById('upload-icon-container');
+  const fileInput = document.getElementById('image-upload-input');
+  const deleteBtn = document.getElementById('upload-thumbnail-delete');
+  
+  if (uploadIconContainer) {
+    uploadIconContainer.addEventListener('click', () => {
+      if (!state.apiKey) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+        return;
+      }
+      if (isImageUploadSupported() && !state.isUploading) {
+        // Check if user has consented to external upload
+        if (!state.uploadConsent) {
+          showUploadConsentPopup(() => {
+            fileInput?.click();
+          });
+        } else {
+          fileInput?.click();
+        }
+      }
+    });
+  }
+  
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleImageUpload(file);
+      }
+    });
+  }
+  
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearUploadedImage();
+    });
+  }
+}
+
+function showUploadConsentPopup(onConfirm) {
+  // Check if popup already exists
+  let popup = document.getElementById('upload-consent-popup');
+  if (popup) {
+    popup.classList.add('visible');
+    return;
+  }
+  
+  // Create popup
+  popup = document.createElement('div');
+  popup.id = 'upload-consent-popup';
+  popup.className = 'upload-consent-popup';
+  const consentText = i18n.t('uploadConsentText')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+
+  popup.innerHTML = `
+    <div class="upload-consent-content">
+      <h3>${i18n.t('uploadConsentTitle')}</h3>
+      <p>${consentText}</p>
+      <div class="upload-consent-buttons">
+        <button class="upload-consent-confirm">${i18n.t('uploadConsentConfirm')}</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(popup);
+  
+  // Show popup
+  requestAnimationFrame(() => {
+    popup.classList.add('visible');
+  });
+  
+  // Handle confirm
+  const confirmBtn = popup.querySelector('.upload-consent-confirm');
+  confirmBtn.addEventListener('click', () => {
+    saveUploadConsent(true);
+    popup.classList.remove('visible');
+    if (onConfirm) onConfirm();
+  });
+}
+
+// Expose upload functions to window for inline script access
+window.clearUploadedImage = clearUploadedImage;
+window.updateUploadUI = updateUploadUI;
+
 // BALANCE DISPLAY
 // ============================================================================
 
@@ -145,11 +476,13 @@ async function updateBalance(apiKey) {
     state.keyInfoApiKey = null;
     state.allowedModels = null;
     state.profile = null;
+    clearPersistedApiKey();
     setGenerateButtonEnabled(false);
     updateLoginButtonState(false);
     displayProfile(null);
     const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
     renderModelOptions(modelsToRender);
+    updateUploadUI();
     return;
   }
 
@@ -166,11 +499,13 @@ async function updateBalance(apiKey) {
       state.keyInfoApiKey = null;
       state.allowedModels = null;
       state.profile = null;
+      clearPersistedApiKey();
       setGenerateButtonEnabled(false);
       updateLoginButtonState(false);
       displayProfile(null);
       const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
       renderModelOptions(modelsToRender);
+      updateUploadUI();
       return;
     }
 
@@ -178,6 +513,7 @@ async function updateBalance(apiKey) {
     state.keyInfoApiKey = trimmedKey;
   }
 
+  persistApiKey(trimmedKey);
   setGenerateButtonEnabled(true);
   updateLoginButtonState(true);
 
@@ -215,6 +551,7 @@ async function updateBalance(apiKey) {
 
   if (!hasBalancePermission) {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
+    updateUploadUI();
     return;
   }
 
@@ -234,6 +571,7 @@ async function updateBalance(apiKey) {
   } else {
     apiKeyHint.textContent = i18n.t('balancePermissionError');
   }
+  updateUploadUI();
 }
 
 // ============================================================================
@@ -261,6 +599,42 @@ function saveHidePremiumModels(hide) {
   localStorage.setItem('pollgen_hide_premium_models', hide.toString());
 }
 
+function loadUploadConsent() {
+  const saved = localStorage.getItem('pollgen_upload_consent');
+  if (saved !== null) {
+    state.uploadConsent = saved === 'true';
+  } else {
+    state.uploadConsent = false;
+  }
+  return state.uploadConsent;
+}
+
+function saveUploadConsent(consent) {
+  state.uploadConsent = consent;
+  localStorage.setItem('pollgen_upload_consent', consent.toString());
+}
+
+function loadPerformanceMode() {
+  const saved = localStorage.getItem('pollgen_performance_mode');
+  if (saved !== null) {
+    state.performanceMode = saved === 'true';
+  } else {
+    state.performanceMode = false;
+  }
+
+  const checkbox = document.getElementById('performance-mode');
+  if (checkbox) {
+    checkbox.checked = state.performanceMode;
+  }
+
+  return state.performanceMode;
+}
+
+function savePerformanceMode(enabled) {
+  state.performanceMode = Boolean(enabled);
+  localStorage.setItem('pollgen_performance_mode', state.performanceMode.toString());
+}
+
 function loadApiKey() {
   const saved = sessionStorage.getItem('pollinations_api_key');
   if (saved && saved.trim()) {
@@ -270,12 +644,24 @@ function loadApiKey() {
   return false;
 }
 
-function saveApiKey(key) {
+function persistApiKey(key) {
   if (!key || !key.trim()) {
     return false;
   }
   const trimmedKey = key.trim();
   sessionStorage.setItem('pollinations_api_key', trimmedKey);
+  return true;
+}
+
+function clearPersistedApiKey() {
+  sessionStorage.removeItem('pollinations_api_key');
+}
+
+function saveApiKey(key) {
+  if (!key || !key.trim()) {
+    return false;
+  }
+  const trimmedKey = key.trim();
   state.apiKey = trimmedKey;
   return true;
 }
@@ -287,7 +673,6 @@ function validateApiKey() {
   const key = input.value.trim();
   if (key) {
     saveApiKey(key);
-    setStatus(i18n.t('apiKeyStored'), 'success');
     return true;
   }
   return false;
@@ -357,6 +742,7 @@ async function loadModels() {
     state.models = imageModels;
     state.videoModels = videoModels;
     renderModelOptions(state.currentMode === 'video' ? videoModels : imageModels);
+    updateUploadUI();
     setStatus('', '');
   } catch (error) {
     const cached = getCachedModels();
@@ -364,6 +750,7 @@ async function loadModels() {
       state.models = cached.imageModels;
       state.videoModels = cached.videoModels || [];
       renderModelOptions(state.currentMode === 'video' ? state.videoModels : state.models);
+      updateUploadUI();
       setStatus('', '');
     } else {
       setStatus(i18n.t('modelLoadError'), 'error');
@@ -465,12 +852,15 @@ function renderModelOptions(models, forceReset = false) {
   
   // Helper function to get premium indicator HTML
   const getPremiumIndicator = () => `<span class="model-premium" title="${i18n.t('paidOnlyError')}">⭐ ${i18n.t('paidOnlyLabel')}</span>`;
+  // Helper function to get img2img indicator HTML
+  const getImg2ImgIndicator = () => `<span class="model-img2img" title="${i18n.t('img2imgSupported')}">🖼️ Img2Img</span>`;
   
   sortedModels.forEach(model => {
     const name = model.name || 'Unknown';
     const description = model.description || '';
     const priceInfo = formatModelPrice(model);
     const isPremium = model.paid_only === true;
+    const isImg2Img = model.input_modalities && model.input_modalities.includes('image');
     
     const option = document.createElement('option');
     option.value = model.name;
@@ -486,7 +876,7 @@ function renderModelOptions(models, forceReset = false) {
     displayHTML += '<div class="model-info">';
     
     if (description && description !== name) {
-      displayHTML += `<div class="model-name-desc">${name}${isPremium ? getPremiumIndicator() : ''}</div>`;
+      displayHTML += `<div class="model-name-desc">${name}${isPremium ? getPremiumIndicator() : ''}${isImg2Img ? getImg2ImgIndicator() : ''}</div>`;
       displayHTML += `<div class="model-description">${description}</div>`;
       
       // Measure width for both lines
@@ -495,7 +885,7 @@ function renderModelOptions(models, forceReset = false) {
       const textWidth = Math.max(nameWidth, descWidth) + 120; // Add padding for badge, premium indicator, and margins
       maxWidth = Math.max(maxWidth, textWidth);
     } else {
-      displayHTML += `<div class="model-name-single">${name}${isPremium ? getPremiumIndicator() : ''}</div>`;
+      displayHTML += `<div class="model-name-single">${name}${isPremium ? getPremiumIndicator() : ''}${isImg2Img ? getImg2ImgIndicator() : ''}</div>`;
       const textWidth = ctx.measureText(name).width + 120;
       maxWidth = Math.max(maxWidth, textWidth);
     }
@@ -536,16 +926,17 @@ function renderModelOptions(models, forceReset = false) {
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
+      const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
       const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
-      currentModelName.innerHTML = name + btnPremiumIndicator;
+      currentModelName.innerHTML = name + btnPremiumIndicator + btnImg2ImgIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
       item.classList.add('selected');
       updateCostDisplay(model);
       modelPopover.classList.remove('visible');
+      updateUploadUI();
     };
-    
     modelPopover.appendChild(item);
   });
   
@@ -557,8 +948,10 @@ function renderModelOptions(models, forceReset = false) {
     const model = sortedModels.find(m => m.name === previousValue);
     if (model) {
       const isPremium = model.paid_only === true;
+      const isImg2Img = model.input_modalities && model.input_modalities.includes('image');
+      const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
       const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
-      currentModelName.innerHTML = model.name + btnPremiumIndicator;
+      currentModelName.innerHTML = model.name + btnPremiumIndicator + btnImg2ImgIndicator;
       const btnBadge = document.querySelector('#model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(model.name);
       updateCostDisplay(model);
@@ -566,8 +959,10 @@ function renderModelOptions(models, forceReset = false) {
   } else if (sortedModels.length > 0) {
     select.value = sortedModels[0].name;
     const isPremium = sortedModels[0].paid_only === true;
-    const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
-    currentModelName.innerHTML = sortedModels[0].name + btnPremiumIndicator;
+    const isImg2Img = sortedModels[0].input_modalities && sortedModels[0].input_modalities.includes('image');
+    const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
+      const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
+    currentModelName.innerHTML = sortedModels[0].name + btnPremiumIndicator + btnImg2ImgIndicator;
     const btnBadge = document.querySelector('#model-select-btn .model-badge');
     if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
     updateCostDisplay(sortedModels[0]);
@@ -672,6 +1067,7 @@ async function generateImage(payload) {
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
+  if (payload.image) params.append('image', payload.image);
   
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
@@ -712,6 +1108,7 @@ async function generateVideo(payload) {
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
+  if (payload.image) params.append('image', payload.image);
 
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
@@ -1110,6 +1507,10 @@ function collectPayload() {
   if (negativePromptInput && negativePromptInput.value.trim()) {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
+  // Include uploaded image URL for image-to-image generation
+  if (state.uploadedImageUrl && mode === 'image' && isImageUploadSupported()) {
+    payload.image = state.uploadedImageUrl;
+  }
 
   // Boolean flags
   ['enhance', 'private', 'nologo', 'nofeed', 'safe'].forEach(flag => {
@@ -1401,6 +1802,15 @@ function scheduleImageCardResize() {
   });
 }
 
+function createPerformanceLoader() {
+    const loader = document.createElement('div');
+    loader.className = 'performance-loader';
+    const spinner = document.createElement('div');
+    spinner.className = 'performance-spinner';
+    loader.appendChild(spinner);
+    return loader;
+}
+
 function createPlaceholderCard(genId) {
     const card = document.createElement('div');
     card.className = 'image-card';
@@ -1418,48 +1828,52 @@ function createPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Create firefly animation (bounded to image area)
-    const fireflyLayer = document.createElement('div');
-    fireflyLayer.className = 'firefly-layer';
-    placeholder.appendChild(fireflyLayer);
-
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
-    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+    if (state.performanceMode || prefersReducedMotion) {
+        placeholder.appendChild(createPerformanceLoader());
+    } else {
+        // Create firefly animation (bounded to image area)
+        const fireflyLayer = document.createElement('div');
+        fireflyLayer.className = 'firefly-layer';
+        placeholder.appendChild(fireflyLayer);
 
-    for (let i = 0; i < fireflyCount; i++) {
-        const firefly = document.createElement('div');
-        firefly.className = 'firefly';
+        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+        const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+        const fireflyCount = baseCount;
 
-        const size = Math.random() * 4.5 + 2;
-        firefly.style.width = size + 'px';
-        firefly.style.height = size + 'px';
-        firefly.dataset.size = size.toString();
+        for (let i = 0; i < fireflyCount; i++) {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
 
-        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * 4.5 + 2;
+            firefly.style.width = size + 'px';
+            firefly.style.height = size + 'px';
+            firefly.dataset.size = size.toString();
 
-        const brightness = Math.random() * 0.55 + 0.45;
-        firefly.style.filter = `brightness(${brightness})`;
+            firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
 
-        firefly.dataset.rx = Math.random().toString();
-        firefly.dataset.ry = Math.random().toString();
+            const brightness = Math.random() * 0.55 + 0.45;
+            firefly.style.filter = `brightness(${brightness})`;
 
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 45 + 18; // px/s
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-        firefly.dataset.vx = vx.toString();
-        firefly.dataset.vy = vy.toString();
+            firefly.dataset.rx = Math.random().toString();
+            firefly.dataset.ry = Math.random().toString();
 
-        firefly.style.animationDelay = Math.random() * 4 + 's';
-        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
-        fireflyLayer.appendChild(firefly);
-    }
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 45 + 18; // px/s
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            firefly.dataset.vx = vx.toString();
+            firefly.dataset.vy = vy.toString();
 
-    if (!prefersReducedMotion && fireflyCount > 0) {
-        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+            fireflyLayer.appendChild(firefly);
+        }
+
+        if (fireflyCount > 0) {
+            requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+        }
     }
 
     card.appendChild(placeholder);
@@ -1524,48 +1938,52 @@ function createVideoPlaceholderCard(genId) {
     placeholder.className = 'noise-placeholder';
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    // Create firefly animation (bounded to video area)
-    const fireflyLayer = document.createElement('div');
-    fireflyLayer.className = 'firefly-layer';
-    placeholder.appendChild(fireflyLayer);
-
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
-    const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
-    const fireflyCount = prefersReducedMotion ? 0 : baseCount;
+    if (state.performanceMode || prefersReducedMotion) {
+        placeholder.appendChild(createPerformanceLoader());
+    } else {
+        // Create firefly animation (bounded to video area)
+        const fireflyLayer = document.createElement('div');
+        fireflyLayer.className = 'firefly-layer';
+        placeholder.appendChild(fireflyLayer);
 
-    for (let i = 0; i < fireflyCount; i++) {
-        const firefly = document.createElement('div');
-        firefly.className = 'firefly';
+        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+        const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+        const fireflyCount = baseCount;
 
-        const size = Math.random() * 4.5 + 2;
-        firefly.style.width = size + 'px';
-        firefly.style.height = size + 'px';
-        firefly.dataset.size = size.toString();
+        for (let i = 0; i < fireflyCount; i++) {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
 
-        firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const size = Math.random() * 4.5 + 2;
+            firefly.style.width = size + 'px';
+            firefly.style.height = size + 'px';
+            firefly.dataset.size = size.toString();
 
-        const brightness = Math.random() * 0.55 + 0.45;
-        firefly.style.filter = `brightness(${brightness})`;
+            firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
 
-        firefly.dataset.rx = Math.random().toString();
-        firefly.dataset.ry = Math.random().toString();
+            const brightness = Math.random() * 0.55 + 0.45;
+            firefly.style.filter = `brightness(${brightness})`;
 
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 45 + 18;
-        const vx = Math.cos(angle) * speed;
-        const vy = Math.sin(angle) * speed;
-        firefly.dataset.vx = vx.toString();
-        firefly.dataset.vy = vy.toString();
+            firefly.dataset.rx = Math.random().toString();
+            firefly.dataset.ry = Math.random().toString();
 
-        firefly.style.animationDelay = Math.random() * 4 + 's';
-        firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
-        fireflyLayer.appendChild(firefly);
-    }
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 45 + 18;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            firefly.dataset.vx = vx.toString();
+            firefly.dataset.vy = vy.toString();
 
-    if (!prefersReducedMotion && fireflyCount > 0) {
-        requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+            fireflyLayer.appendChild(firefly);
+        }
+
+        if (fireflyCount > 0) {
+            requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+        }
     }
 
     card.appendChild(placeholder);
@@ -1923,6 +2341,13 @@ function setupEventListeners() {
     });
   }
 
+  const performanceCheckbox = document.getElementById('performance-mode');
+  if (performanceCheckbox) {
+    performanceCheckbox.addEventListener('change', () => {
+      savePerformanceMode(performanceCheckbox.checked);
+    });
+  }
+
   const apiKeyInput = document.getElementById('api-key');
   if (apiKeyInput) {
     apiKeyInput.addEventListener('blur', async () => {
@@ -1943,6 +2368,8 @@ function setupEventListeners() {
         const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
         renderModelOptions(modelsToRender);
       }
+
+      updateUploadUI();
 
       // Disable generate until validation on blur succeeds
       setGenerateButtonEnabled(false);
@@ -2217,6 +2644,12 @@ function init() {
 
   // Load premium models filter setting
   loadHidePremiumModels();
+  
+  // Load upload consent
+  loadUploadConsent();
+
+  // Load performance mode
+  loadPerformanceMode();
 
   // Check screen resolution
   checkResolution();
@@ -2241,7 +2674,9 @@ function init() {
     }
   }
   setupEventListeners();
+  setupImageUploadHandlers();
   loadModels();
+  updateUploadUI();
   adjustPromptHeight();
 
   window.addEventListener('resize', scheduleImageCardResize);
@@ -2436,9 +2871,11 @@ function updateLoginButtonState(isLoggedIn) {
     if (isLoggedIn) {
       loginBtnText.textContent = i18n.t('loggedIn');
       loginBtn.disabled = true;
+      loginBtn.classList.add('active');
     } else {
       loginBtnText.textContent = i18n.t('loginWithPollinations');
       loginBtn.disabled = false;
+      loginBtn.classList.remove('active');
     }
   }
 }

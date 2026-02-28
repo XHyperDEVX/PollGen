@@ -42,7 +42,6 @@ const translations = {
     promptPlaceholder: 'Describe the image you want to generate',
     videoPromptPlaceholder: 'Describe the video you want to generate',
     startScreenIntro: 'Describe your vision and bring it to life',
-    uploadTooltip: 'Coming Soon!',
     modelLabel: 'Model',
     aspectRatioLabel: 'Aspect Ratio',
     imageModeLabel: 'Image',
@@ -100,6 +99,7 @@ const translations = {
     errorGeneration: 'Generation error',
     paidOnlyLabel: 'Paid only',
     paidOnlyError: 'This model requires paid pollen',
+    img2imgSupported: 'Supports image-to-image generation',
     tokensPerMillion: '/million tokens',
     perImage: 'per image',
     perSecond: 'per second',
@@ -111,6 +111,7 @@ const translations = {
     resolutionWarning: 'For optimal use, a resolution of at least 1080p is recommended.',
     // Parallel Mode
     parallelModeLabel: 'Parallel Generation',
+    performanceModeLabel: 'Performance Mode',
     generateLabel: 'Generate',
     imagesLabel: 'Images',
     videosLabel: 'Videos',
@@ -122,6 +123,18 @@ const translations = {
     // Context Menu
     downloadImage: 'Download Image',
     downloadVideo: 'Download Video',
+
+    // Upload Messages
+    uploadSuccess: 'Image uploaded successfully',
+    uploadConsentTitle: 'External Upload',
+    uploadConsentText: 'Maximum upload size is 10 MB. Images are stored for 12 hours. No pornography or violent content. Only legally permitted images (according to German, Swedish, and French law).\nOnly upload images you own the rights to.\n\n**Your image will be uploaded to the Pollinations Media Server.**',
+    uploadConsentConfirm: 'Confirm',
+    uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
+    uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
+    uploadErrorFileSize: 'File too large. Please choose a smaller image.',
+    uploadErrorFileType: 'Invalid file type. Please upload an image file.',
+    uploadErrorGeneric: 'Upload failed. Please try again.',
+    uploadErrorAuth: 'Upload requires a valid API key.',
   },
   de: {
     // Page
@@ -219,6 +232,7 @@ const translations = {
     errorGeneration: 'Generierungsfehler',
     paidOnlyLabel: 'Paid only',
     paidOnlyError: 'Dieses Modell erfordert bezahltes Pollen',
+    img2imgSupported: 'Unterstützt Bild-zu-Bild-Generierung',
     tokensPerMillion: '/Million Token',
     perImage: 'pro Bild',
     perSecond: 'pro Sekunde',
@@ -230,6 +244,7 @@ const translations = {
     resolutionWarning: 'Für die optimale Nutzung wird eine Auflösung von mindestens 1080p empfohlen.',
     // Parallel Mode
     parallelModeLabel: 'Parallele Generierung',
+    performanceModeLabel: 'Performance-Modus',
     generateLabel: 'Generiere',
     imagesLabel: 'Bilder',
     videosLabel: 'Videos',
@@ -241,6 +256,18 @@ const translations = {
     // Context Menu
     downloadImage: 'Bild herunterladen',
     downloadVideo: 'Video herunterladen',
+
+    // Upload Messages
+    uploadSuccess: 'Bild erfolgreich hochgeladen',
+    uploadConsentTitle: 'Externer Upload',
+    uploadConsentText: 'Maximale Uploadgröße: 10 MB. Bilder werden 12 Stunden gespeichert. Keine pornografischen oder gewalttätigen Inhalte. Nur gesetzlich zulässige Bilder (nach deutschem, schwedischem und französischem Recht).\nLaden Sie nur Bilder hoch, deren Rechte Sie besitzen.\n\n**Ihr Bild wird auf den Pollinations Media Server hochgeladen.**',
+    uploadConsentConfirm: 'Bestätigen',
+    uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
+    uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',
+    uploadErrorFileSize: 'Datei zu groß. Bitte wählen Sie ein kleineres Bild.',
+    uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
+    uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
   }
 };
 
