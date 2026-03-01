@@ -127,6 +127,11 @@
 
         .custom-select:hover { border-color: #4a4a4c; }
 
+        .custom-select.disabled {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
         .select-value {
             font-size: 13px;
             display: flex;
@@ -621,23 +626,18 @@
 
         .upload-delete-progress {
             position: absolute;
-            top: -6px;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: rgba(17, 24, 39, 0.9);
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
             z-index: 2;
         }
 
         .upload-delete-progress svg {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             color: white;
             animation: spin 1s linear infinite;
         }
@@ -829,9 +829,9 @@
                     </div>
                     <select id="model" name="model" style="display: none;"></select>
                 </div>
-                <label class="checkbox-item premium-filter">
-                    <input type="checkbox" id="hide-premium-models" name="hide-premium-models">
-                    <span data-i18n="hidePremiumModelsLabel">Hide premium models</span>
+                <label class="checkbox-item premium-filter hidden" id="premium-models-toggle">
+                    <input type="checkbox" id="show-premium-models" name="show-premium-models">
+                    <span data-i18n="showPremiumModelsLabel">Also show premium models</span>
                 </label>
                 <div class="form-group" id="aspect-ratio-group">
                     <label class="form-label" data-i18n="aspectRatioLabel">Aspect Ratio</label>

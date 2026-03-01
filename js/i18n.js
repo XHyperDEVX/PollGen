@@ -105,7 +105,7 @@ const translations = {
     perSecond: 'per second',
 
     // Premium Filter
-    hidePremiumModelsLabel: 'Hide premium models',
+    showPremiumModelsLabel: 'Also show premium models',
 
     // Resolution Warning
     resolutionWarning: 'For optimal use, a resolution of at least 1080p is recommended.',
@@ -239,7 +239,7 @@ const translations = {
     perSecond: 'pro Sekunde',
 
     // Premium Filter
-    hidePremiumModelsLabel: 'Premium-Modelle ausblenden',
+    showPremiumModelsLabel: 'Auch Premium-Modelle anzeigen',
 
     // Resolution Warning
     resolutionWarning: 'Für die optimale Nutzung wird eine Auflösung von mindestens 1080p empfohlen.',
