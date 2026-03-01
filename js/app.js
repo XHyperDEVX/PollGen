@@ -332,14 +332,24 @@ function setupImageUploadHandlers() {
         setStatus(i18n.t('uploadErrorAuth'), 'error');
         return;
       }
-      if (isImageUploadSupported() && !state.isUploading) {
-        // Check if user has consented to external upload
+      if (!state.isUploading) {
+        // Check if user has consented to external upload - always show popup first to get consent
         if (!state.uploadConsent) {
           showUploadConsentPopup(() => {
-            fileInput?.click();
+            // After consent, check if image upload is supported for the model
+            if (isImageUploadSupported()) {
+              fileInput?.click();
+            } else {
+              setStatus(i18n.t('img2imgNotSupported') || 'Image-to-image is not supported for the selected model. Please select a model that supports image input.', 'info');
+            }
           });
         } else {
-          fileInput?.click();
+          // User already consented - check if model supports img2img
+          if (isImageUploadSupported()) {
+            fileInput?.click();
+          } else {
+            setStatus(i18n.t('img2imgNotSupported') || 'Image-to-image is not supported for the selected model. Please select a model that supports image input.', 'info');
+          }
         }
       }
     });

@@ -136,6 +136,7 @@ const translations = {
     uploadErrorGeneric: 'Upload failed. Please try again.',
     uploadErrorAuth: 'Upload requires a valid API key.',
     uploadDeleteSuccess: 'Image deleted from Pollinations Media Server',
+    img2imgNotSupported: 'Image-to-image is not supported for the selected model. Please select a model that supports image input.',
   },
   de: {
     // Page
@@ -270,6 +271,7 @@ const translations = {
     uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
     uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
     uploadDeleteSuccess: 'Bild von Pollinations Media Server gelöscht',
+    img2imgNotSupported: 'Bild-zu-Bild wird für das ausgewählte Modell nicht unterstützt. Bitte wählen Sie ein Modell, das Bildeingabe unterstützt.',
   }
 };
 
