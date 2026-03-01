@@ -34,6 +34,7 @@ const state = {
   currentSetJobs: 0, // Number of jobs in current set
   // Image upload state
   uploadedImageUrl: null, // URL of uploaded image
+  uploadedImageId: null, // Media server ID for uploaded image
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false, // Upload in progress flag
   performanceMode: false // Performance mode flag
@@ -120,6 +121,7 @@ function setUploadThumbnailFromUrl(url) {
 
 function clearUploadedImage() {
   state.uploadedImageUrl = null;
+  state.uploadedImageId = null;
   state.uploadedImageFile = null;
   state.isUploading = false;
 
@@ -130,6 +132,45 @@ function clearUploadedImage() {
   if (fileInput) fileInput.value = '';
   
   updateUploadUI();
+}
+
+async function deleteUploadedImage() {
+  const uploadId = state.uploadedImageId;
+
+  if (!uploadId) {
+    clearUploadedImage();
+    return;
+  }
+
+  if (!state.apiKey) {
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
+    clearUploadedImage();
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://media.pollinations.ai/${encodeURIComponent(uploadId)}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${state.apiKey}`
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+      } else {
+        setStatus(i18n.t('uploadErrorServer'), 'error');
+      }
+    } else {
+      setStatus(i18n.t('uploadDeleteSuccess'), 'success');
+    }
+  } catch (error) {
+    console.error('Delete upload error:', error);
+    setStatus(i18n.t('uploadErrorNetwork'), 'error');
+  } finally {
+    clearUploadedImage();
+  }
 }
 
 function validateImageFile(file) {
@@ -160,6 +201,22 @@ function getUploadUrlFromResponse(data) {
     const first = data[0];
     if (typeof first === 'string') return first;
     return first.url || first.file?.url || null;
+  }
+  return null;
+}
+
+function getUploadIdFromResponse(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data.id) return data.id;
+  if (data.file && data.file.id) return data.file.id;
+  if (Array.isArray(data.files) && data.files.length > 0) {
+    return data.files[0].id || data.files[0].file?.id || null;
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0];
+    if (first && typeof first === 'object') {
+      return first.id || first.file?.id || null;
+    }
   }
   return null;
 }
@@ -217,6 +274,8 @@ async function uploadImageToPollinationsMedia(file) {
       console.warn('Upload response did not include JSON:', error);
     }
     
+    state.uploadedImageId = getUploadIdFromResponse(data);
+    
     const uploadUrl = getUploadUrlFromResponse(data);
     if (uploadUrl) {
       return uploadUrl;
@@ -260,6 +319,7 @@ async function handleImageUpload(file) {
   }
 
   state.uploadedImageUrl = null;
+  state.uploadedImageId = null;
   state.uploadedImageFile = null;
   setUploadThumbnailFromUrl('');
   updateUploadUI();
@@ -314,7 +374,7 @@ function setupImageUploadHandlers() {
   if (deleteBtn) {
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      clearUploadedImage();
+      deleteUploadedImage();
     });
   }
 }
