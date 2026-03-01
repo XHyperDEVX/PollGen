@@ -125,7 +125,7 @@ const translations = {
     downloadVideo: 'Download Video',
 
     // Upload Messages
-    uploadSuccess: 'Image uploaded successfully',
+    uploadSuccess: 'Image uploaded successfully to Pollinations Media Server',
     uploadConsentTitle: 'External Upload',
     uploadConsentText: 'Maximum upload size is 10 MB. Your image will be stored permanently on Pollinations servers until you delete it. No pornography or violent content. Only legally permitted images (according to German, Swedish, and French law).\nOnly upload images you own the rights to.\n\n**Your image will be uploaded to the Pollinations Media Server and can be deleted at any time.**',
     uploadConsentConfirm: 'Confirm',
@@ -135,7 +135,7 @@ const translations = {
     uploadErrorFileType: 'Invalid file type. Please upload an image file.',
     uploadErrorGeneric: 'Upload failed. Please try again.',
     uploadErrorAuth: 'Upload requires a valid API key.',
-    uploadDeleteSuccess: 'Image deleted successfully',
+    uploadDeleteSuccess: 'Image deleted from Pollinations Media Server',
   },
   de: {
     // Page
@@ -259,7 +259,7 @@ const translations = {
     downloadVideo: 'Video herunterladen',
 
     // Upload Messages
-    uploadSuccess: 'Bild erfolgreich hochgeladen',
+    uploadSuccess: 'Bild erfolgreich auf Pollinations Media Server hochgeladen',
     uploadConsentTitle: 'Externer Upload',
     uploadConsentText: 'Maximale Uploadgröße: 10 MB. Ihr Bild wird dauerhaft auf den Pollinations-Servern gespeichert, bis Sie es löschen. Keine pornografischen oder gewalttätigen Inhalte. Nur gesetzlich zulässige Bilder (nach deutschem, schwedischem und französischem Recht).\nLaden Sie nur Bilder hoch, deren Rechte Sie besitzen.\n\n**Ihr Bild wird auf den Pollinations Media Server hochgeladen und kann jederzeit gelöscht werden.**',
     uploadConsentConfirm: 'Bestätigen',
@@ -269,7 +269,7 @@ const translations = {
     uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
     uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
     uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
-    uploadDeleteSuccess: 'Bild erfolgreich gelöscht',
+    uploadDeleteSuccess: 'Bild von Pollinations Media Server gelöscht',
   }
 };
 
