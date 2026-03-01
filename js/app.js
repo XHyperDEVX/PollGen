@@ -73,11 +73,6 @@ function updateUploadUI() {
   const supported = isImageUploadSupported();
   const hasValidKey = isApiKeyValidForGeneration();
 
-  if (!supported) {
-    if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
-    uploadIconContainer.style.display = 'none';
-    return;
-  }
   
   if (state.isUploading || state.uploadedImageUrl) {
     if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
@@ -410,6 +405,7 @@ function showUploadConsentPopup(onConfirm) {
   confirmBtn.addEventListener('click', () => {
     saveUploadConsent(true);
     popup.classList.remove('visible');
+    setTimeout(() => popup.remove(), 300); // Remove from DOM after fade out
     if (onConfirm) onConfirm();
   });
 }
