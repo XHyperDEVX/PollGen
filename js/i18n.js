@@ -123,6 +123,10 @@ const translations = {
     // Context Menu
     downloadImage: 'Download Image',
     downloadVideo: 'Download Video',
+    copyImage: 'Copy Image',
+    copyVideo: 'Copy Video',
+    copySuccess: 'Copied to clipboard',
+    copyError: 'Failed to copy',
 
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
@@ -257,6 +261,10 @@ const translations = {
     // Context Menu
     downloadImage: 'Bild herunterladen',
     downloadVideo: 'Video herunterladen',
+    copyImage: 'Bild kopieren',
+    copyVideo: 'Video kopieren',
+    copySuccess: 'In Zwischenablage kopiert',
+    copyError: 'Kopieren fehlgeschlagen',
 
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',

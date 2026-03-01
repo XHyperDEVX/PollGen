@@ -927,7 +927,7 @@ async function loadModels() {
     saveShowPremiumModels(false);
   }
 
-  applyActiveModels(true);
+  applyActiveModels(false);
   setStatus('', '');
 }
 
@@ -2456,6 +2456,22 @@ async function downloadImage(url, filename) {
     }
 }
 
+async function copyImageToClipboard(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        await navigator.clipboard.write([
+            new ClipboardItem({ [blob.type]: blob })
+        ]);
+        setStatus(i18n.t('copySuccess'), 'success');
+        return true;
+    } catch (e) {
+        console.error("Copy failed", e);
+        setStatus(i18n.t('copyError'), 'error');
+        return false;
+    }
+}
+
 function addToImageHistory(historyItem) {
   if (!historyItem || !historyItem.imageData) return;
   state.imageHistory.unshift(historyItem);
@@ -2728,6 +2744,29 @@ function setupContextMenu() {
       contextMenu.classList.remove('visible');
     });
   }
+  
+  // Handle copy from context menu
+  const copyItem = document.getElementById('context-copy');
+  if (copyItem) {
+    copyItem.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      
+      if (contextMenuImageUrl) {
+        // Copy from lightbox
+        await copyImageToClipboard(contextMenuImageUrl);
+      } else if (contextMenuTarget) {
+        const img = contextMenuTarget.querySelector('img');
+        const video = contextMenuTarget.querySelector('video');
+        
+        if (img) {
+          await copyImageToClipboard(img.src);
+        } else if (video) {
+          setStatus(i18n.t('copyError'), 'error');
+        }
+      }
+      contextMenu.classList.remove('visible');
+    });
+  }
 }
 
 function showContextMenu(x, y, card) {
@@ -2756,7 +2795,7 @@ function positionContextMenu(x, y) {
   if (!contextMenu) return;
   
   const menuWidth = 180;
-  const menuHeight = 50;
+  const menuHeight = 90;
   
   let posX = x;
   let posY = y;
