@@ -37,6 +37,7 @@ const state = {
   uploadedImageId: null, // Media server ID for uploaded image
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false, // Upload in progress flag
+  isDeletingUpload: false, // Delete in progress flag
   performanceMode: false // Performance mode flag
 };
 
@@ -48,6 +49,7 @@ const state = {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
+const UPLOAD_CONSENT_VERSION = '2';
 
 function isImageUploadSupported() {
   const select = document.getElementById('model');
@@ -103,6 +105,13 @@ function showUploadProgress(show) {
   }
 }
 
+function showDeleteProgress(show) {
+  const progressEl = document.getElementById('upload-delete-progress');
+  if (progressEl) {
+    progressEl.style.display = show ? 'flex' : 'none';
+  }
+}
+
 function setUploadThumbnailFromUrl(url) {
   const thumbnail = document.getElementById('upload-thumbnail');
   const preview = document.getElementById('upload-thumbnail-preview');
@@ -124,9 +133,11 @@ function clearUploadedImage() {
   state.uploadedImageId = null;
   state.uploadedImageFile = null;
   state.isUploading = false;
+  state.isDeletingUpload = false;
 
   setUploadThumbnailFromUrl('');
   showUploadProgress(false);
+  showDeleteProgress(false);
   
   const fileInput = document.getElementById('image-upload-input');
   if (fileInput) fileInput.value = '';
@@ -147,6 +158,9 @@ async function deleteUploadedImage() {
     clearUploadedImage();
     return;
   }
+
+  state.isDeletingUpload = true;
+  showDeleteProgress(true);
 
   try {
     const response = await fetch(`https://media.pollinations.ai/${encodeURIComponent(uploadId)}`, {
@@ -660,18 +674,29 @@ function saveHidePremiumModels(hide) {
 }
 
 function loadUploadConsent() {
+  const storedVersion = localStorage.getItem('pollgen_upload_consent_version');
   const saved = localStorage.getItem('pollgen_upload_consent');
+
+  if (storedVersion !== UPLOAD_CONSENT_VERSION) {
+    state.uploadConsent = false;
+    localStorage.setItem('pollgen_upload_consent', 'false');
+    localStorage.setItem('pollgen_upload_consent_version', UPLOAD_CONSENT_VERSION);
+    return state.uploadConsent;
+  }
+
   if (saved !== null) {
     state.uploadConsent = saved === 'true';
   } else {
     state.uploadConsent = false;
   }
+
   return state.uploadConsent;
 }
 
 function saveUploadConsent(consent) {
   state.uploadConsent = consent;
   localStorage.setItem('pollgen_upload_consent', consent.toString());
+  localStorage.setItem('pollgen_upload_consent_version', UPLOAD_CONSENT_VERSION);
 }
 
 function loadPerformanceMode() {
