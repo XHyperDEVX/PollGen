@@ -105,7 +105,7 @@ const translations = {
     perSecond: 'per second',
 
     // Premium Filter
-    hidePremiumModelsLabel: 'Hide premium models',
+    showPremiumModelsLabel: 'Also show premium models',
 
     // Resolution Warning
     resolutionWarning: 'For optimal use, a resolution of at least 1080p is recommended.',
@@ -126,8 +126,9 @@ const translations = {
 
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
+    uploadDeleteSuccess: 'Uploaded image deleted',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'Maximum upload size is 10 MB. Images are stored for 12 hours. No pornography or violent content. Only legally permitted images (according to German, Swedish, and French law).\nOnly upload images you own the rights to.\n\n**Your image will be uploaded to the Pollinations Media Server.**',
+    uploadConsentText: 'Maximum upload size is 10 MB. Images are stored permanently unless deleted. No pornography or violent content. Only legally permitted images (according to German, Swedish, and French law).\nOnly upload images you own the rights to.\n\n**Your image will be uploaded to the Pollinations Media Server and stored permanently.**',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
@@ -238,7 +239,7 @@ const translations = {
     perSecond: 'pro Sekunde',
 
     // Premium Filter
-    hidePremiumModelsLabel: 'Premium-Modelle ausblenden',
+    showPremiumModelsLabel: 'Auch Premium-Modelle anzeigen',
 
     // Resolution Warning
     resolutionWarning: 'Für die optimale Nutzung wird eine Auflösung von mindestens 1080p empfohlen.',
@@ -259,8 +260,9 @@ const translations = {
 
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
+    uploadDeleteSuccess: 'Hochgeladenes Bild gelöscht',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Maximale Uploadgröße: 10 MB. Bilder werden 12 Stunden gespeichert. Keine pornografischen oder gewalttätigen Inhalte. Nur gesetzlich zulässige Bilder (nach deutschem, schwedischem und französischem Recht).\nLaden Sie nur Bilder hoch, deren Rechte Sie besitzen.\n\n**Ihr Bild wird auf den Pollinations Media Server hochgeladen.**',
+    uploadConsentText: 'Maximale Uploadgröße: 10 MB. Bilder werden dauerhaft gespeichert, bis sie gelöscht werden. Keine pornografischen oder gewalttätigen Inhalte. Nur gesetzlich zulässige Bilder (nach deutschem, schwedischem und französischem Recht).\nLaden Sie nur Bilder hoch, deren Rechte Sie besitzen.\n\n**Ihr Bild wird auf den Pollinations Media Server hochgeladen und dauerhaft gespeichert.**',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',

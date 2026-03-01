@@ -19,9 +19,14 @@ const state = {
   allowedModels: null, // For filtering models based on API key permissions
   keyInfo: null, // Store key info from /account/key endpoint
   keyInfoApiKey: null, // Which API key the keyInfo was validated for
-  hidePremiumModels: false, // Whether to hide premium (paid_only) models
+  showPremiumModels: false, // Whether to show premium models when toggle is available
+  premiumToggleVisible: false, // Whether premium toggle should be shown
   uploadConsent: false, // Whether user has consented to external upload
   profile: null, // User profile data from /account/profile
+  allModels: [], // Full model list (no API key)
+  allVideoModels: [], // Full video model list (no API key)
+  restrictedModels: [], // API-key filtered models
+  restrictedVideoModels: [], // API-key filtered video models
   // Parallel mode state
   parallelMode: false,
   parallelCount: 2, // Number of images to generate in parallel
@@ -34,8 +39,10 @@ const state = {
   currentSetJobs: 0, // Number of jobs in current set
   // Image upload state
   uploadedImageUrl: null, // URL of uploaded image
+  uploadedImageId: null, // Media server ID for uploaded image
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false, // Upload in progress flag
+  isDeletingUpload: false, // Delete in progress flag
   performanceMode: false // Performance mode flag
 };
 
@@ -47,6 +54,7 @@ const state = {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
+const UPLOAD_CONSENT_VERSION = '2';
 
 function isImageUploadSupported() {
   const select = document.getElementById('model');
@@ -102,6 +110,13 @@ function showUploadProgress(show) {
   }
 }
 
+function showDeleteProgress(show) {
+  const progressEl = document.getElementById('upload-delete-progress');
+  if (progressEl) {
+    progressEl.style.display = show ? 'flex' : 'none';
+  }
+}
+
 function setUploadThumbnailFromUrl(url) {
   const thumbnail = document.getElementById('upload-thumbnail');
   const preview = document.getElementById('upload-thumbnail-preview');
@@ -120,16 +135,61 @@ function setUploadThumbnailFromUrl(url) {
 
 function clearUploadedImage() {
   state.uploadedImageUrl = null;
+  state.uploadedImageId = null;
   state.uploadedImageFile = null;
   state.isUploading = false;
+  state.isDeletingUpload = false;
 
   setUploadThumbnailFromUrl('');
   showUploadProgress(false);
+  showDeleteProgress(false);
   
   const fileInput = document.getElementById('image-upload-input');
   if (fileInput) fileInput.value = '';
   
   updateUploadUI();
+}
+
+async function deleteUploadedImage() {
+  const uploadId = state.uploadedImageId;
+
+  if (!uploadId) {
+    clearUploadedImage();
+    return;
+  }
+
+  if (!state.apiKey) {
+    setStatus(i18n.t('uploadErrorAuth'), 'error');
+    clearUploadedImage();
+    return;
+  }
+
+  state.isDeletingUpload = true;
+  showDeleteProgress(true);
+
+  try {
+    const response = await fetch(`https://media.pollinations.ai/${encodeURIComponent(uploadId)}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${state.apiKey}`
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+      } else {
+        setStatus(i18n.t('uploadErrorServer'), 'error');
+      }
+    } else {
+      setStatus(i18n.t('uploadDeleteSuccess'), 'success');
+    }
+  } catch (error) {
+    console.error('Delete upload error:', error);
+    setStatus(i18n.t('uploadErrorNetwork'), 'error');
+  } finally {
+    clearUploadedImage();
+  }
 }
 
 function validateImageFile(file) {
@@ -160,6 +220,22 @@ function getUploadUrlFromResponse(data) {
     const first = data[0];
     if (typeof first === 'string') return first;
     return first.url || first.file?.url || null;
+  }
+  return null;
+}
+
+function getUploadIdFromResponse(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data.id) return data.id;
+  if (data.file && data.file.id) return data.file.id;
+  if (Array.isArray(data.files) && data.files.length > 0) {
+    return data.files[0].id || data.files[0].file?.id || null;
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0];
+    if (first && typeof first === 'object') {
+      return first.id || first.file?.id || null;
+    }
   }
   return null;
 }
@@ -217,6 +293,8 @@ async function uploadImageToPollinationsMedia(file) {
       console.warn('Upload response did not include JSON:', error);
     }
     
+    state.uploadedImageId = getUploadIdFromResponse(data);
+    
     const uploadUrl = getUploadUrlFromResponse(data);
     if (uploadUrl) {
       return uploadUrl;
@@ -260,6 +338,7 @@ async function handleImageUpload(file) {
   }
 
   state.uploadedImageUrl = null;
+  state.uploadedImageId = null;
   state.uploadedImageFile = null;
   setUploadThumbnailFromUrl('');
   updateUploadUI();
@@ -314,7 +393,7 @@ function setupImageUploadHandlers() {
   if (deleteBtn) {
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      clearUploadedImage();
+      deleteUploadedImage();
     });
   }
 }
@@ -453,6 +532,21 @@ function setGenerateButtonEnabled(enabled) {
   generateBtn.disabled = !enabled;
 }
 
+function setSidebarControlsEnabled(enabled) {
+  const sidebarContent = document.querySelector('.sidebar-content');
+  if (!sidebarContent) return;
+
+  const controls = sidebarContent.querySelectorAll('input, select, textarea, button');
+  controls.forEach(control => {
+    control.disabled = !enabled;
+  });
+
+  const customSelects = sidebarContent.querySelectorAll('.custom-select');
+  customSelects.forEach(select => {
+    select.classList.toggle('disabled', !enabled);
+  });
+}
+
 function isApiKeyValidForGeneration() {
   return Boolean(
     state.apiKey &&
@@ -480,9 +574,9 @@ async function updateBalance(apiKey) {
     setGenerateButtonEnabled(false);
     updateLoginButtonState(false);
     displayProfile(null);
-    const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
-    renderModelOptions(modelsToRender);
-    updateUploadUI();
+    setSidebarControlsEnabled(false);
+    setPremiumToggleVisible(false);
+    clearModels();
     return;
   }
 
@@ -503,9 +597,9 @@ async function updateBalance(apiKey) {
       setGenerateButtonEnabled(false);
       updateLoginButtonState(false);
       displayProfile(null);
-      const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
-      renderModelOptions(modelsToRender);
-      updateUploadUI();
+      setSidebarControlsEnabled(false);
+      setPremiumToggleVisible(false);
+      clearModels();
       return;
     }
 
@@ -523,9 +617,8 @@ async function updateBalance(apiKey) {
     state.allowedModels = null;
   }
 
-  // Render models based on current mode
-  const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
-  renderModelOptions(modelsToRender);
+  setSidebarControlsEnabled(true);
+  await loadModels();
 
   // Check for profile permission and fetch profile
   const hasProfilePermission =
@@ -579,39 +672,63 @@ async function updateBalance(apiKey) {
 // ============================================================================
 
 // Premium Models Filter
-function loadHidePremiumModels() {
-  const saved = localStorage.getItem('pollgen_hide_premium_models');
+function loadShowPremiumModels() {
+  const saved = localStorage.getItem('pollgen_show_premium_models');
   if (saved !== null) {
-    state.hidePremiumModels = saved === 'true';
+    state.showPremiumModels = saved === 'true';
   } else {
-    state.hidePremiumModels = false;
+    state.showPremiumModels = false;
   }
-  // Update checkbox state
-  const checkbox = document.getElementById('hide-premium-models');
+
+  const checkbox = document.getElementById('show-premium-models');
   if (checkbox) {
-    checkbox.checked = state.hidePremiumModels;
+    checkbox.checked = state.showPremiumModels;
   }
-  return state.hidePremiumModels;
+
+  return state.showPremiumModels;
 }
 
-function saveHidePremiumModels(hide) {
-  state.hidePremiumModels = hide;
-  localStorage.setItem('pollgen_hide_premium_models', hide.toString());
+function saveShowPremiumModels(show) {
+  state.showPremiumModels = show;
+  localStorage.setItem('pollgen_show_premium_models', show.toString());
+}
+
+function setPremiumToggleVisible(visible) {
+  state.premiumToggleVisible = visible;
+  const toggle = document.getElementById('premium-models-toggle');
+  if (toggle) {
+    toggle.classList.toggle('hidden', !visible);
+  }
+  if (!visible) {
+    state.showPremiumModels = false;
+    saveShowPremiumModels(false);
+  }
 }
 
 function loadUploadConsent() {
+  const storedVersion = localStorage.getItem('pollgen_upload_consent_version');
   const saved = localStorage.getItem('pollgen_upload_consent');
+
+  if (storedVersion !== UPLOAD_CONSENT_VERSION) {
+    state.uploadConsent = false;
+    localStorage.setItem('pollgen_upload_consent', 'false');
+    localStorage.setItem('pollgen_upload_consent_version', UPLOAD_CONSENT_VERSION);
+    return state.uploadConsent;
+  }
+
   if (saved !== null) {
     state.uploadConsent = saved === 'true';
   } else {
     state.uploadConsent = false;
   }
+
   return state.uploadConsent;
 }
 
 function saveUploadConsent(consent) {
   state.uploadConsent = consent;
   localStorage.setItem('pollgen_upload_consent', consent.toString());
+  localStorage.setItem('pollgen_upload_consent_version', UPLOAD_CONSENT_VERSION);
 }
 
 function loadPerformanceMode() {
@@ -686,9 +803,14 @@ const MODELS_CACHE_KEY = 'pollinations_models_cache';
 const MODELS_CACHE_TIMESTAMP_KEY = 'pollinations_models_cache_timestamp';
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-async function fetchModelsFromAPI() {
+async function fetchModelsFromAPI(apiKey = null) {
   try {
-    const response = await fetch('https://gen.pollinations.ai/image/models');
+    const headers = {};
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey.trim()}`;
+    }
+
+    const response = await fetch('https://gen.pollinations.ai/image/models', { headers });
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.status}`);
     }
@@ -706,9 +828,11 @@ async function fetchModelsFromAPI() {
       return modalities.includes('video');
     });
 
-    localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify(imageModels));
-    localStorage.setItem('pollinations_video_models_cache', JSON.stringify(videoModels));
-    localStorage.setItem(MODELS_CACHE_TIMESTAMP_KEY, Date.now().toString());
+    if (!apiKey) {
+      localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify(imageModels));
+      localStorage.setItem('pollinations_video_models_cache', JSON.stringify(videoModels));
+      localStorage.setItem(MODELS_CACHE_TIMESTAMP_KEY, Date.now().toString());
+    }
 
     return { imageModels, videoModels };
   } catch (error) {
@@ -735,27 +859,76 @@ function getCachedModels() {
   }
 }
 
+function clearModels() {
+  state.models = [];
+  state.videoModels = [];
+  state.allModels = [];
+  state.allVideoModels = [];
+  state.restrictedModels = [];
+  state.restrictedVideoModels = [];
+  renderModelOptions([]);
+  updateUploadUI();
+}
+
+function applyActiveModels(forceReset = false) {
+  const useAllModels = !state.premiumToggleVisible || state.showPremiumModels;
+  state.models = useAllModels ? state.allModels : state.restrictedModels;
+  state.videoModels = useAllModels ? state.allVideoModels : state.restrictedVideoModels;
+
+  const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+  renderModelOptions(modelsToRender, forceReset);
+  updateUploadUI();
+}
+
 async function loadModels() {
-  setStatus(i18n.t('modelLoading'), 'info');
-  try {
-    const { imageModels, videoModels } = await fetchModelsFromAPI();
-    state.models = imageModels;
-    state.videoModels = videoModels;
-    renderModelOptions(state.currentMode === 'video' ? videoModels : imageModels);
-    updateUploadUI();
+  if (!state.apiKey) {
+    clearModels();
+    setPremiumToggleVisible(false);
     setStatus('', '');
+    return;
+  }
+
+  setStatus(i18n.t('modelLoading'), 'info');
+
+  let publicModels = null;
+  try {
+    publicModels = await fetchModelsFromAPI();
   } catch (error) {
     const cached = getCachedModels();
     if (cached && cached.imageModels && cached.imageModels.length > 0) {
-      state.models = cached.imageModels;
-      state.videoModels = cached.videoModels || [];
-      renderModelOptions(state.currentMode === 'video' ? state.videoModels : state.models);
-      updateUploadUI();
-      setStatus('', '');
+      publicModels = cached;
     } else {
       setStatus(i18n.t('modelLoadError'), 'error');
+      return;
     }
   }
+
+  let keyModels = null;
+  try {
+    keyModels = await fetchModelsFromAPI(state.apiKey);
+  } catch (error) {
+    keyModels = publicModels;
+  }
+
+  state.allModels = publicModels.imageModels;
+  state.allVideoModels = publicModels.videoModels || [];
+  state.restrictedModels = keyModels.imageModels;
+  state.restrictedVideoModels = keyModels.videoModels || [];
+
+  const publicCount = state.allModels.length + state.allVideoModels.length;
+  const restrictedCount = state.restrictedModels.length + state.restrictedVideoModels.length;
+
+  if (restrictedCount < publicCount) {
+    setPremiumToggleVisible(true);
+    loadShowPremiumModels();
+  } else {
+    setPremiumToggleVisible(false);
+    state.showPremiumModels = false;
+    saveShowPremiumModels(false);
+  }
+
+  applyActiveModels(true);
+  setStatus('', '');
 }
 
 function formatModelPrice(model) {
@@ -825,11 +998,6 @@ function renderModelOptions(models, forceReset = false) {
     filteredModels = models.filter(model => state.allowedModels.includes(model.name));
   }
 
-  // Filter out premium models if hidePremiumModels is enabled
-  if (state.hidePremiumModels) {
-    filteredModels = filteredModels.filter(model => model.paid_only !== true);
-  }
-  
   const sortedModels = [...filteredModels].sort((a, b) => {
     const isVideoA = a.output_modalities && a.output_modalities.includes('video');
     const isVideoB = b.output_modalities && b.output_modalities.includes('video');
@@ -843,6 +1011,16 @@ function renderModelOptions(models, forceReset = false) {
     if (typeof priceB === 'string') priceB = parseFloat(priceB) || 0;
     return priceA - priceB;
   });
+
+  if (sortedModels.length === 0) {
+    if (currentModelName) {
+      currentModelName.textContent = i18n.t('modelPlaceholder');
+    }
+    select.value = '';
+    const costText = document.getElementById('cost-text');
+    if (costText) costText.textContent = '0';
+    return;
+  }
   
   // Calculate max width needed for descriptions
   let maxWidth = 280; // Default minimum width
@@ -2331,13 +2509,12 @@ function setupEventListeners() {
     });
   }
 
-  // Premium models filter checkbox
-  const hidePremiumCheckbox = document.getElementById('hide-premium-models');
-  if (hidePremiumCheckbox) {
-    hidePremiumCheckbox.addEventListener('change', () => {
-      saveHidePremiumModels(hidePremiumCheckbox.checked);
-      const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
-      renderModelOptions(modelsToRender, true);
+  // Premium models toggle checkbox
+  const showPremiumCheckbox = document.getElementById('show-premium-models');
+  if (showPremiumCheckbox) {
+    showPremiumCheckbox.addEventListener('change', () => {
+      saveShowPremiumModels(showPremiumCheckbox.checked);
+      applyActiveModels(true);
     });
   }
 
@@ -2365,8 +2542,14 @@ function setupEventListeners() {
         state.keyInfo = null;
         state.keyInfoApiKey = null;
         state.allowedModels = null;
-        const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
-        renderModelOptions(modelsToRender);
+        setPremiumToggleVisible(false);
+        clearModels();
+      }
+
+      if (!key) {
+        setSidebarControlsEnabled(false);
+        setPremiumToggleVisible(false);
+        clearModels();
       }
 
       updateUploadUI();
@@ -2638,12 +2821,14 @@ function init() {
 
   // Default disabled until validated
   setGenerateButtonEnabled(false);
+  setSidebarControlsEnabled(false);
+  setPremiumToggleVisible(false);
 
   // Update login button state
   updateLoginButtonState(false);
 
-  // Load premium models filter setting
-  loadHidePremiumModels();
+  // Load premium models toggle setting
+  loadShowPremiumModels();
   
   // Load upload consent
   loadUploadConsent();
@@ -2675,7 +2860,6 @@ function init() {
   }
   setupEventListeners();
   setupImageUploadHandlers();
-  loadModels();
   updateUploadUI();
   adjustPromptHeight();
 
