@@ -126,8 +126,10 @@ const translations = {
 
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
+    uploadDeleteSuccess: 'Image deleted successfully',
+    uploadDeleteError: 'Failed to delete image from server',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'Maximum upload size is 10 MB. Images are stored for 12 hours. No pornography or violent content. Only legally permitted images (according to German, Swedish, and French law).\nOnly upload images you own the rights to.\n\n**Your image will be uploaded to the Pollinations Media Server.**',
+    uploadConsentText: 'Maximum upload size is 10 MB. **Images are stored permanently.** No pornography or violent content. Only legally permitted images (according to German, Swedish, and French law).\nOnly upload images you own the rights to.\n\n**Your image will be uploaded to the Pollinations Media Server.**',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
@@ -259,8 +261,10 @@ const translations = {
 
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',
+    uploadDeleteSuccess: 'Bild erfolgreich gelöscht',
+    uploadDeleteError: 'Fehler beim Löschen des Bildes vom Server',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Maximale Uploadgröße: 10 MB. Bilder werden 12 Stunden gespeichert. Keine pornografischen oder gewalttätigen Inhalte. Nur gesetzlich zulässige Bilder (nach deutschem, schwedischem und französischem Recht).\nLaden Sie nur Bilder hoch, deren Rechte Sie besitzen.\n\n**Ihr Bild wird auf den Pollinations Media Server hochgeladen.**',
+    uploadConsentText: 'Maximale Uploadgröße: 10 MB. **Bilder werden dauerhaft gespeichert.** Keine pornografischen oder gewalttätigen Inhalte. Nur gesetzlich zulässige Bilder (nach deutschem, schwedischem und französischem Recht).\nLaden Sie nur Bilder hoch, deren Rechte Sie besitzen.\n\n**Ihr Bild wird auf den Pollinations Media Server hochgeladen.**',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',
