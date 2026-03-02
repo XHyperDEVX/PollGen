@@ -927,7 +927,7 @@ async function loadModels() {
     saveShowPremiumModels(false);
   }
 
-  applyActiveModels(true);
+  applyActiveModels(false);
   setStatus('', '');
 }
 
@@ -2456,6 +2456,30 @@ async function downloadImage(url, filename) {
     }
 }
 
+async function copyImageToClipboard(url) {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const pngBlob = blob.type === 'image/png' ? blob : await convertToPng(blob);
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+}
+
+async function convertToPng(blob) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(blob);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            URL.revokeObjectURL(objectUrl);
+            canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/png');
+        };
+        img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
+        img.src = objectUrl;
+    });
+}
+
 function addToImageHistory(historyItem) {
   if (!historyItem || !historyItem.imageData) return;
   state.imageHistory.unshift(historyItem);
@@ -2670,55 +2694,56 @@ let contextMenuImageUrl = null;
 function setupContextMenu() {
   const contextMenu = document.getElementById('context-menu');
   const downloadItem = document.getElementById('context-download');
-  
+  const copyItem = document.getElementById('context-copy');
+
   if (!contextMenu) return;
-  
-  // Hide context menu on any click anywhere (like native browser context menu)
+
   document.addEventListener('mousedown', (e) => {
+    if (e.button === 2) return;
+    if (contextMenu.contains(e.target)) return;
     if (contextMenu.classList.contains('visible')) {
       contextMenu.classList.remove('visible');
     }
   });
-  
-  // Prevent the context menu from closing when right-clicking inside it
+
   contextMenu.addEventListener('contextmenu', (e) => {
     e.stopPropagation();
   });
-  
-  // Hide context menu on scroll
+
   document.addEventListener('scroll', () => {
     contextMenu.classList.remove('visible');
   }, true);
-  
-  // Handle right-click on image/video cards
+
   document.addEventListener('contextmenu', (e) => {
     const card = e.target.closest('.image-card, .video-card');
     const lightboxImg = e.target.closest('#lightbox-image');
-    
+
     if (card) {
+      if (card.querySelector('.noise-placeholder')) return;
       e.preventDefault();
       contextMenuImageUrl = null;
+      const isVideo = !!card.querySelector('video');
+      updateContextMenuLabels(isVideo);
       showContextMenu(e.clientX, e.clientY, card);
     } else if (lightboxImg) {
       e.preventDefault();
       contextMenuImageUrl = lightboxImg.src;
+      updateContextMenuLabels(false);
       showContextMenuForLightbox(e.clientX, e.clientY);
     }
   });
-  
-  // Handle download from context menu
+
   if (downloadItem) {
     downloadItem.addEventListener('click', (e) => {
       e.stopPropagation();
-      
+
       if (contextMenuImageUrl) {
-        // Download from lightbox
         downloadImage(contextMenuImageUrl, `pollgen-${Date.now()}.png`);
       } else if (contextMenuTarget) {
         const img = contextMenuTarget.querySelector('img');
         const video = contextMenuTarget.querySelector('video');
         const genId = contextMenuTarget.id?.replace('gen-card-', '');
-        
+
         if (img) {
           downloadImage(img.src, `pollgen-${genId || Date.now()}.png`);
         } else if (video) {
@@ -2727,6 +2752,76 @@ function setupContextMenu() {
       }
       contextMenu.classList.remove('visible');
     });
+  }
+
+  if (copyItem) {
+    copyItem.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      contextMenu.classList.remove('visible');
+
+      let url = null;
+
+      if (contextMenuImageUrl) {
+        url = contextMenuImageUrl;
+      } else if (contextMenuTarget) {
+        const img = contextMenuTarget.querySelector('img');
+        if (img) url = img.src;
+      }
+
+      if (!url) return;
+      await copyImageToClipboard(url);
+    });
+  }
+}
+
+async function copyImageToClipboard(url) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const imageBlob = blob.type === 'image/png' ? blob : await convertBlobToPng(blob);
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': imageBlob })
+    ]);
+    setStatus(i18n.t('copySuccess'), 'success');
+  } catch (e) {
+    console.error('Copy to clipboard failed', e);
+    setStatus(i18n.t('copyError'), 'error');
+  }
+}
+
+async function convertBlobToPng(blob) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(blob);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      URL.revokeObjectURL(objectUrl);
+      canvas.toBlob(pngBlob => {
+        if (pngBlob) resolve(pngBlob);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/png');
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Image load failed'));
+    };
+    img.src = objectUrl;
+  });
+}
+
+function updateContextMenuLabels(isVideo) {
+  const downloadSpan = document.querySelector('#context-download [data-i18n]');
+  const copyItem = document.getElementById('context-copy');
+  if (downloadSpan) {
+    const key = isVideo ? 'downloadVideo' : 'downloadImage';
+    downloadSpan.setAttribute('data-i18n', key);
+    downloadSpan.textContent = i18n.t(key);
+  }
+  if (copyItem) {
+    copyItem.style.display = isVideo ? 'none' : '';
   }
 }
 
@@ -2754,21 +2849,28 @@ function showContextMenuForLightbox(x, y) {
 function positionContextMenu(x, y) {
   const contextMenu = document.getElementById('context-menu');
   if (!contextMenu) return;
-  
-  const menuWidth = 180;
-  const menuHeight = 50;
-  
+
+
+  contextMenu.style.visibility = 'hidden';
+  contextMenu.style.display = 'block';
+
+  const menuWidth = contextMenu.offsetWidth || 180;
+  const menuHeight = contextMenu.offsetHeight || 100;
+
+  contextMenu.style.display = '';
+  contextMenu.style.visibility = '';
+
+
   let posX = x;
   let posY = y;
-  
-  // Keep menu in viewport
+
   if (x + menuWidth > window.innerWidth) {
     posX = window.innerWidth - menuWidth - 10;
   }
   if (y + menuHeight > window.innerHeight) {
     posY = window.innerHeight - menuHeight - 10;
   }
-  
+
   contextMenu.style.left = `${posX}px`;
   contextMenu.style.top = `${posY}px`;
 }

@@ -373,7 +373,7 @@
         .parallel-set .image-card, .parallel-set .video-card { flex: 1 1 calc(33.333% - 6px); min-width: calc(33.333% - 6px); max-width: calc(33.333% - 6px); }
 
         /* Custom Context Menu */
-        .context-menu { position: fixed; background: rgba(30, 30, 32, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05); z-index: 2000; padding: 6px; min-width: 180px; display: none; }
+        .context-menu { position: fixed; background: rgba(30, 30, 32, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05); z-index: 10001; padding: 6px; min-width: 180px; display: none; }
         .context-menu.visible { display: block; animation: contextFadeIn 0.15s ease-out; }
         @keyframes contextFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .context-menu-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; color: var(--text-secondary); border-radius: 8px; transition: all 0.15s ease; }
@@ -1019,10 +1019,16 @@
             <div class="mobile-warning-text">
                 This app is not optimized for mobile devices. Please use a device with a larger screen.
             </div>
+        </div>
+    </div>
     <div id="context-menu" class="context-menu">
         <div class="context-menu-item" id="context-download">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
             <span data-i18n="downloadImage">Download Image</span>
+        </div>
+        <div class="context-menu-item" id="context-copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span data-i18n="copyImage">Copy Image</span>
         </div>
     </div>
     <form id="generation-form" style="display: none;">
