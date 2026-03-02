@@ -927,7 +927,7 @@ async function loadModels() {
     saveShowPremiumModels(false);
   }
 
-  applyActiveModels(true);
+  applyActiveModels(false);
   setStatus('', '');
 }
 
@@ -2456,6 +2456,48 @@ async function downloadImage(url, filename) {
     }
 }
 
+async function copyImageToClipboard(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        
+        // Convert to PNG if needed (clipboard API prefers PNG)
+        let pngBlob = blob;
+        if (blob.type !== 'image/png') {
+            // Create canvas to convert to PNG
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = URL.createObjectURL(blob);
+            });
+            
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+            
+            pngBlob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/png');
+            });
+            
+            URL.revokeObjectURL(img.src);
+        }
+        
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': pngBlob })
+        ]);
+        
+        setStatus(i18n.t('copiedToClipboard'), 'success');
+    } catch (e) {
+        console.error("Copy to clipboard failed", e);
+        setStatus(i18n.t('copyFailed'), 'error');
+    }
+}
+
 function addToImageHistory(historyItem) {
   if (!historyItem || !historyItem.imageData) return;
   state.imageHistory.unshift(historyItem);
@@ -2670,6 +2712,7 @@ let contextMenuImageUrl = null;
 function setupContextMenu() {
   const contextMenu = document.getElementById('context-menu');
   const downloadItem = document.getElementById('context-download');
+  const copyItem = document.getElementById('context-copy');
   
   if (!contextMenu) return;
   
@@ -2728,6 +2771,30 @@ function setupContextMenu() {
       contextMenu.classList.remove('visible');
     });
   }
+  
+  // Handle copy from context menu
+  if (copyItem) {
+    copyItem.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      
+      let imageUrl = null;
+      
+      if (contextMenuImageUrl) {
+        // Copy from lightbox
+        imageUrl = contextMenuImageUrl;
+      } else if (contextMenuTarget) {
+        const img = contextMenuTarget.querySelector('img');
+        if (img) {
+          imageUrl = img.src;
+        }
+      }
+      
+      if (imageUrl) {
+        await copyImageToClipboard(imageUrl);
+      }
+      contextMenu.classList.remove('visible');
+    });
+  }
 }
 
 function showContextMenu(x, y, card) {
@@ -2756,7 +2823,7 @@ function positionContextMenu(x, y) {
   if (!contextMenu) return;
   
   const menuWidth = 180;
-  const menuHeight = 50;
+  const menuHeight = 100;
   
   let posX = x;
   let posY = y;
