@@ -2719,6 +2719,7 @@ function setupContextMenu() {
     const lightboxImg = e.target.closest('#lightbox-image');
 
     if (card) {
+      if (card.querySelector('.noise-placeholder')) return;
       e.preventDefault();
       contextMenuImageUrl = null;
       const isVideo = !!card.querySelector('video');
@@ -2759,28 +2760,15 @@ function setupContextMenu() {
       contextMenu.classList.remove('visible');
 
       let url = null;
-      let isVideo = false;
 
       if (contextMenuImageUrl) {
         url = contextMenuImageUrl;
       } else if (contextMenuTarget) {
         const img = contextMenuTarget.querySelector('img');
-        const video = contextMenuTarget.querySelector('video');
-        if (img) {
-          url = img.src;
-        } else if (video) {
-          url = video.src;
-          isVideo = true;
-        }
+        if (img) url = img.src;
       }
 
       if (!url) return;
-
-      if (isVideo) {
-        setStatus(i18n.t('copyError'), 'error');
-        return;
-      }
-
       await copyImageToClipboard(url);
     });
   }
@@ -2826,16 +2814,14 @@ async function convertBlobToPng(blob) {
 
 function updateContextMenuLabels(isVideo) {
   const downloadSpan = document.querySelector('#context-download [data-i18n]');
-  const copySpan = document.querySelector('#context-copy [data-i18n]');
+  const copyItem = document.getElementById('context-copy');
   if (downloadSpan) {
     const key = isVideo ? 'downloadVideo' : 'downloadImage';
     downloadSpan.setAttribute('data-i18n', key);
     downloadSpan.textContent = i18n.t(key);
   }
-  if (copySpan) {
-    const key = isVideo ? 'copyVideo' : 'copyImage';
-    copySpan.setAttribute('data-i18n', key);
-    copySpan.textContent = i18n.t(key);
+  if (copyItem) {
+    copyItem.style.display = isVideo ? 'none' : '';
   }
 }
 

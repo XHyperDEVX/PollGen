@@ -124,7 +124,6 @@ const translations = {
     downloadImage: 'Download Image',
     downloadVideo: 'Download Video',
     copyImage: 'Copy Image',
-    copyVideo: 'Copy Video',
     copySuccess: 'Copied to clipboard',
     copyError: 'Failed to copy',
 
@@ -262,7 +261,6 @@ const translations = {
     downloadImage: 'Bild herunterladen',
     downloadVideo: 'Video herunterladen',
     copyImage: 'Bild kopieren',
-    copyVideo: 'Video kopieren',
     copySuccess: 'In die Zwischenablage kopiert',
     copyError: 'Kopieren fehlgeschlagen',
 
