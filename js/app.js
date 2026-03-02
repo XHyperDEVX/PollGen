@@ -2699,6 +2699,8 @@ function setupContextMenu() {
   if (!contextMenu) return;
 
   document.addEventListener('mousedown', (e) => {
+    if (e.button === 2) return;
+    if (contextMenu.contains(e.target)) return;
     if (contextMenu.classList.contains('visible')) {
       contextMenu.classList.remove('visible');
     }
