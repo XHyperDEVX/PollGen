@@ -927,7 +927,7 @@ async function loadModels() {
     saveShowPremiumModels(false);
   }
 
-  applyActiveModels(true);
+  applyActiveModels(false);
   setStatus('', '');
 }
 
@@ -2514,7 +2514,7 @@ function setupEventListeners() {
   if (showPremiumCheckbox) {
     showPremiumCheckbox.addEventListener('change', () => {
       saveShowPremiumModels(showPremiumCheckbox.checked);
-      applyActiveModels(true);
+      applyActiveModels(false);
     });
   }
 
@@ -2667,9 +2667,24 @@ function setupEventListeners() {
 let contextMenuTarget = null;
 let contextMenuImageUrl = null;
 
+async function copyImageToClipboard(url) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    await navigator.clipboard.write([
+      new ClipboardItem({ [blob.type]: blob })
+    ]);
+    return true;
+  } catch (error) {
+    console.error('Failed to copy image to clipboard:', error);
+    return false;
+  }
+}
+
 function setupContextMenu() {
   const contextMenu = document.getElementById('context-menu');
   const downloadItem = document.getElementById('context-download');
+  const copyItem = document.getElementById('context-copy');
   
   if (!contextMenu) return;
   
@@ -2725,6 +2740,45 @@ function setupContextMenu() {
           downloadVideo(video.src, `pollgen-video-${genId || Date.now()}.mp4`);
         }
       }
+      contextMenu.classList.remove('visible');
+    });
+  }
+  
+  // Handle copy from context menu
+  if (copyItem) {
+    copyItem.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      
+      let imageUrl = null;
+      let isVideo = false;
+      
+      if (contextMenuImageUrl) {
+        // Copy from lightbox (always image)
+        imageUrl = contextMenuImageUrl;
+      } else if (contextMenuTarget) {
+        const img = contextMenuTarget.querySelector('img');
+        const video = contextMenuTarget.querySelector('video');
+        
+        if (img) {
+          imageUrl = img.src;
+        } else if (video) {
+          imageUrl = video.src;
+          isVideo = true;
+        }
+      }
+      
+      if (imageUrl && !isVideo) {
+        const success = await copyImageToClipboard(imageUrl);
+        if (success) {
+          setStatus(i18n.t('copySuccess'), 'success');
+        } else {
+          setStatus(i18n.t('copyError'), 'error');
+        }
+      } else if (isVideo) {
+        // Video copying not well supported, show message
+        setStatus(i18n.t('copyError'), 'error');
+      }
+      
       contextMenu.classList.remove('visible');
     });
   }
