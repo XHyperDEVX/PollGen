@@ -2694,55 +2694,53 @@ let contextMenuImageUrl = null;
 function setupContextMenu() {
   const contextMenu = document.getElementById('context-menu');
   const downloadItem = document.getElementById('context-download');
-  
+  const copyItem = document.getElementById('context-copy');
+
   if (!contextMenu) return;
-  
-  // Hide context menu on any click anywhere (like native browser context menu)
+
   document.addEventListener('mousedown', (e) => {
     if (contextMenu.classList.contains('visible')) {
       contextMenu.classList.remove('visible');
     }
   });
-  
-  // Prevent the context menu from closing when right-clicking inside it
+
   contextMenu.addEventListener('contextmenu', (e) => {
     e.stopPropagation();
   });
-  
-  // Hide context menu on scroll
+
   document.addEventListener('scroll', () => {
     contextMenu.classList.remove('visible');
   }, true);
-  
-  // Handle right-click on image/video cards
+
   document.addEventListener('contextmenu', (e) => {
     const card = e.target.closest('.image-card, .video-card');
     const lightboxImg = e.target.closest('#lightbox-image');
-    
+
     if (card) {
       e.preventDefault();
       contextMenuImageUrl = null;
+      const isVideo = !!card.querySelector('video');
+      updateContextMenuLabels(isVideo);
       showContextMenu(e.clientX, e.clientY, card);
     } else if (lightboxImg) {
       e.preventDefault();
       contextMenuImageUrl = lightboxImg.src;
+      updateContextMenuLabels(false);
       showContextMenuForLightbox(e.clientX, e.clientY);
     }
   });
-  
-  // Handle download from context menu
+
   if (downloadItem) {
     downloadItem.addEventListener('click', (e) => {
       e.stopPropagation();
-      
+
       if (contextMenuImageUrl) {
-        // Download from lightbox
         downloadImage(contextMenuImageUrl, `pollgen-${Date.now()}.png`);
       } else if (contextMenuTarget) {
         const img = contextMenuTarget.querySelector('img');
         const video = contextMenuTarget.querySelector('video');
         const genId = contextMenuTarget.id?.replace('gen-card-', '');
-        
+
         if (img) {
           downloadImage(img.src, `pollgen-${genId || Date.now()}.png`);
         } else if (video) {
@@ -2753,24 +2751,89 @@ function setupContextMenu() {
     });
   }
 
-  const copyItem = document.getElementById('context-copy');
   if (copyItem) {
-    copyItem.addEventListener('click', (e) => {
+    copyItem.addEventListener('click', async (e) => {
       e.stopPropagation();
       contextMenu.classList.remove('visible');
 
-      const url = contextMenuImageUrl || (() => {
-        if (!contextMenuTarget) return null;
+      let url = null;
+      let isVideo = false;
+
+      if (contextMenuImageUrl) {
+        url = contextMenuImageUrl;
+      } else if (contextMenuTarget) {
         const img = contextMenuTarget.querySelector('img');
-        return img ? img.src : null;
-      })();
+        const video = contextMenuTarget.querySelector('video');
+        if (img) {
+          url = img.src;
+        } else if (video) {
+          url = video.src;
+          isVideo = true;
+        }
+      }
 
       if (!url) return;
 
-      copyImageToClipboard(url)
-        .then(() => setStatus(i18n.t('copySuccess'), 'success'))
-        .catch(() => setStatus(i18n.t('copyError'), 'error'));
+      if (isVideo) {
+        setStatus(i18n.t('copyError'), 'error');
+        return;
+      }
+
+      await copyImageToClipboard(url);
     });
+  }
+}
+
+async function copyImageToClipboard(url) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const imageBlob = blob.type === 'image/png' ? blob : await convertBlobToPng(blob);
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': imageBlob })
+    ]);
+    setStatus(i18n.t('copySuccess'), 'success');
+  } catch (e) {
+    console.error('Copy to clipboard failed', e);
+    setStatus(i18n.t('copyError'), 'error');
+  }
+}
+
+async function convertBlobToPng(blob) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(blob);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      URL.revokeObjectURL(objectUrl);
+      canvas.toBlob(pngBlob => {
+        if (pngBlob) resolve(pngBlob);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/png');
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Image load failed'));
+    };
+    img.src = objectUrl;
+  });
+}
+
+function updateContextMenuLabels(isVideo) {
+  const downloadSpan = document.querySelector('#context-download [data-i18n]');
+  const copySpan = document.querySelector('#context-copy [data-i18n]');
+  if (downloadSpan) {
+    const key = isVideo ? 'downloadVideo' : 'downloadImage';
+    downloadSpan.setAttribute('data-i18n', key);
+    downloadSpan.textContent = i18n.t(key);
+  }
+  if (copySpan) {
+    const key = isVideo ? 'copyVideo' : 'copyImage';
+    copySpan.setAttribute('data-i18n', key);
+    copySpan.textContent = i18n.t(key);
   }
 }
 
@@ -2799,6 +2862,7 @@ function positionContextMenu(x, y) {
   const contextMenu = document.getElementById('context-menu');
   if (!contextMenu) return;
 
+
   contextMenu.style.visibility = 'hidden';
   contextMenu.style.display = 'block';
 
@@ -2807,6 +2871,7 @@ function positionContextMenu(x, y) {
 
   contextMenu.style.display = '';
   contextMenu.style.visibility = '';
+
 
   let posX = x;
   let posY = y;
