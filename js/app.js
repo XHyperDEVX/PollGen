@@ -927,7 +927,7 @@ async function loadModels() {
     saveShowPremiumModels(false);
   }
 
-  applyActiveModels(true);
+  applyActiveModels(false);
   setStatus('', '');
 }
 
@@ -2456,6 +2456,30 @@ async function downloadImage(url, filename) {
     }
 }
 
+async function copyImageToClipboard(url) {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const pngBlob = blob.type === 'image/png' ? blob : await convertToPng(blob);
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+}
+
+async function convertToPng(blob) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(blob);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            URL.revokeObjectURL(objectUrl);
+            canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/png');
+        };
+        img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
+        img.src = objectUrl;
+    });
+}
+
 function addToImageHistory(historyItem) {
   if (!historyItem || !historyItem.imageData) return;
   state.imageHistory.unshift(historyItem);
@@ -2728,6 +2752,26 @@ function setupContextMenu() {
       contextMenu.classList.remove('visible');
     });
   }
+
+  const copyItem = document.getElementById('context-copy');
+  if (copyItem) {
+    copyItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      contextMenu.classList.remove('visible');
+
+      const url = contextMenuImageUrl || (() => {
+        if (!contextMenuTarget) return null;
+        const img = contextMenuTarget.querySelector('img');
+        return img ? img.src : null;
+      })();
+
+      if (!url) return;
+
+      copyImageToClipboard(url)
+        .then(() => setStatus(i18n.t('copySuccess'), 'success'))
+        .catch(() => setStatus(i18n.t('copyError'), 'error'));
+    });
+  }
 }
 
 function showContextMenu(x, y, card) {
@@ -2754,21 +2798,26 @@ function showContextMenuForLightbox(x, y) {
 function positionContextMenu(x, y) {
   const contextMenu = document.getElementById('context-menu');
   if (!contextMenu) return;
-  
-  const menuWidth = 180;
-  const menuHeight = 50;
-  
+
+  contextMenu.style.visibility = 'hidden';
+  contextMenu.style.display = 'block';
+
+  const menuWidth = contextMenu.offsetWidth || 180;
+  const menuHeight = contextMenu.offsetHeight || 100;
+
+  contextMenu.style.display = '';
+  contextMenu.style.visibility = '';
+
   let posX = x;
   let posY = y;
-  
-  // Keep menu in viewport
+
   if (x + menuWidth > window.innerWidth) {
     posX = window.innerWidth - menuWidth - 10;
   }
   if (y + menuHeight > window.innerHeight) {
     posY = window.innerHeight - menuHeight - 10;
   }
-  
+
   contextMenu.style.left = `${posX}px`;
   contextMenu.style.top = `${posY}px`;
 }
