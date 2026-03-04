@@ -3198,7 +3198,7 @@ if (document.readyState === 'loading') {
 
 function initiateOAuthLogin() {
   const redirectUrl = window.location.href.split('#')[0]; // Remove any existing hash
-  const authUrl = `https://enter.pollinations.ai/authorize?redirect_url=${encodeURIComponent(redirectUrl)}&permissions=profile,balance&expiry=3&budget=1`;
+  const authUrl = `https://enter.pollinations.ai/authorize?redirect_url=${encodeURIComponent(redirectUrl)}&app_key=pk_ZWDXoNBfRRBS7AEN&permissions=profile,balance&expiry=3&budget=1`;
   
   // Redirect in the same tab instead of popup
   window.location.href = authUrl;
