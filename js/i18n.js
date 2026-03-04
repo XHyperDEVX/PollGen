@@ -42,6 +42,7 @@ const translations = {
     promptPlaceholder: 'Describe the image you want to generate',
     videoPromptPlaceholder: 'Describe the video you want to generate',
     startScreenIntro: 'Describe your vision and bring it to life',
+    uploadTooltip: 'Coming soon!',
     modelLabel: 'Model',
     aspectRatioLabel: 'Aspect Ratio',
     imageModeLabel: 'Image',
@@ -139,6 +140,13 @@ const translations = {
     uploadErrorFileType: 'Invalid file type. Please upload an image file.',
     uploadErrorGeneric: 'Upload failed. Please try again.',
     uploadErrorAuth: 'Upload requires a valid API key.',
+
+    // Generation Timer / Stats
+    timerModelLabel: 'Model',
+    timerTimeLabel: 'Time',
+    timerCostLabel: 'Cost',
+    timerFreeLabel: 'free',
+    timerPaidLabel: 'paid',
   },
   de: {
     // Page
@@ -276,6 +284,13 @@ const translations = {
     uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
     uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
     uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
+
+    // Generation Timer / Stats
+    timerModelLabel: 'Modell',
+    timerTimeLabel: 'Zeit',
+    timerCostLabel: 'Kosten',
+    timerFreeLabel: 'kostenlos',
+    timerPaidLabel: 'bezahlt',
   }
 };
 
