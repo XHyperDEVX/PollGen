@@ -139,6 +139,13 @@ const translations = {
     uploadErrorFileType: 'Invalid file type. Please upload an image file.',
     uploadErrorGeneric: 'Upload failed. Please try again.',
     uploadErrorAuth: 'Upload requires a valid API key.',
+
+    // Timer Overlay
+    timerModel: 'Model',
+    timerTime: 'Time',
+    timerCost: 'Cost',
+    timerFree: 'free',
+    timerPaid: 'paid',
   },
   de: {
     // Page
@@ -276,6 +283,13 @@ const translations = {
     uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
     uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
     uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
+
+    // Timer Overlay
+    timerModel: 'Modell',
+    timerTime: 'Zeit',
+    timerCost: 'Kosten',
+    timerFree: 'kostenlos',
+    timerPaid: 'bezahlt',
   }
 };
 
