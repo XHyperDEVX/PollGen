@@ -416,6 +416,51 @@
         .overlay-btn:hover { background: rgba(0, 0, 0, 0.7); border-color: rgba(255, 255, 255, 0.2); }
         .overlay-btn svg { width: 14px; height: 14px; }
 
+        /* Generation Timer/Stats Overlay */
+        .generation-timer {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.9);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+            min-width: 120px;
+        }
+        .generation-timer.generating {
+            opacity: 1;
+        }
+        .image-card:hover .generation-timer.completed,
+        .video-card:hover .generation-timer.completed {
+            opacity: 1;
+        }
+        .generation-timer-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            line-height: 1.4;
+        }
+        .generation-timer-label {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .generation-timer-value {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+        .generation-timer-value.free {
+            color: #4ade80;
+        }
+        .generation-timer-value.paid {
+            color: #fbbf24;
+        }
+
         .mini-view { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 10px; background: rgba(31, 31, 33, 0.8); backdrop-filter: blur(20px); border-radius: 16px; max-width: 70%; overflow-x: auto; z-index: 25; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5); visibility: hidden; opacity: 0; transition: all 0.3s; }
         .mini-view.visible { visibility: visible; opacity: 1; }
         .mini-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; flex-shrink: 0; background: #000; }

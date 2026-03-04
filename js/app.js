@@ -43,7 +43,10 @@ const state = {
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false, // Upload in progress flag
   isDeletingUpload: false, // Delete in progress flag
-  performanceMode: false // Performance mode flag
+  performanceMode: false, // Performance mode flag
+  // Generation timer/tracking state
+  generationStartTimes: new Map(), // Track start times by genId
+  timerIntervals: new Map() // Track active timer intervals
 };
 
 // ============================================================================
@@ -443,6 +446,200 @@ function showUploadConsentPopup(onConfirm) {
 // Expose upload functions to window for inline script access
 window.clearUploadedImage = clearUploadedImage;
 window.updateUploadUI = updateUploadUI;
+
+// GENERATION TIMER & STATS
+// ============================================================================
+
+function formatDuration(seconds) {
+  if (seconds < 60) {
+    return `${Math.round(seconds)}s`;
+  }
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return `${mins}m ${secs}s`;
+}
+
+function formatResponseTime(ms) {
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
+  const seconds = Math.round(ms / 1000);
+  return formatDuration(seconds);
+}
+
+function formatMeterSource(source) {
+  if (source === 'tier') {
+    return i18n.t('timerFreeLabel');
+  }
+  return i18n.t('timerPaidLabel');
+}
+
+function createTimerOverlay(genId) {
+  const timerEl = document.createElement('div');
+  timerEl.className = 'generation-timer generating';
+  timerEl.id = `gen-timer-${genId}`;
+  timerEl.innerHTML = `
+    <div class="generation-timer-row">
+      <span class="generation-timer-label">${i18n.t('timerTimeLabel')}</span>
+      <span class="generation-timer-value" id="gen-timer-value-${genId}">0s</span>
+    </div>
+  `;
+  return timerEl;
+}
+
+function startGenerationTimer(genId, card) {
+  const startTime = Date.now();
+  state.generationStartTimes.set(genId, startTime);
+  if (card) {
+    const timerEl = createTimerOverlay(genId);
+    card.appendChild(timerEl);
+  }
+  const intervalId = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    updateTimerDisplay(genId, elapsed);
+  }, 1000);
+  state.timerIntervals.set(genId, intervalId);
+}
+
+function stopGenerationTimer(genId) {
+  const intervalId = state.timerIntervals.get(genId);
+  if (intervalId) {
+    clearInterval(intervalId);
+    state.timerIntervals.delete(genId);
+  }
+  const startTime = state.generationStartTimes.get(genId);
+  const endTime = Date.now();
+  const duration = startTime ? (endTime - startTime) / 1000 : 0;
+  const timerEl = document.getElementById(`gen-timer-${genId}`);
+  if (timerEl) {
+    timerEl.classList.remove('generating');
+    timerEl.classList.add('completed');
+  }
+  return { startTime, endTime, duration };
+}
+
+function updateTimerDisplay(genId, seconds) {
+  const valueEl = document.getElementById(`gen-timer-value-${genId}`);
+  if (valueEl) {
+    valueEl.textContent = formatDuration(seconds);
+  }
+}
+
+function updateTimerWithUsageData(genId, usageData) {
+  const timerEl = document.getElementById(`gen-timer-${genId}`);
+  if (!timerEl) return;
+  const responseTimeMs = usageData['response-time'] || usageData.responseTime;
+  const meterSource = usageData['meter-source'] || usageData.meterSource;
+  const model = usageData.model;
+  let html = '';
+  if (model) {
+    html += `
+      <div class="generation-timer-row">
+        <span class="generation-timer-label">${i18n.t('timerModelLabel')}</span>
+        <span class="generation-timer-value">${model}</span>
+      </div>
+    `;
+  }
+  if (responseTimeMs) {
+    html += `
+      <div class="generation-timer-row">
+        <span class="generation-timer-label">${i18n.t('timerTimeLabel')}</span>
+        <span class="generation-timer-value">${formatResponseTime(responseTimeMs)}</span>
+      </div>
+    `;
+  }
+  if (meterSource) {
+    const sourceClass = meterSource === 'tier' ? 'free' : 'paid';
+    const sourceLabel = formatMeterSource(meterSource);
+    html += `
+      <div class="generation-timer-row">
+        <span class="generation-timer-label">${i18n.t('timerCostLabel')}</span>
+        <span class="generation-timer-value ${sourceClass}">${sourceLabel}</span>
+      </div>
+    `;
+  }
+  if (html) {
+    timerEl.innerHTML = html;
+  }
+}
+
+function clearTimer(genId) {
+  const intervalId = state.timerIntervals.get(genId);
+  if (intervalId) {
+    clearInterval(intervalId);
+    state.timerIntervals.delete(genId);
+  }
+  state.generationStartTimes.delete(genId);
+  const timerEl = document.getElementById(`gen-timer-${genId}`);
+  if (timerEl) {
+    timerEl.remove();
+  }
+}
+
+// USAGE API
+// ============================================================================
+
+async function fetchUsageData(apiKey) {
+  try {
+    const response = await fetch('https://api.pollinations.ai/account/usage?format=json&limit=5', {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch usage data:', error);
+    return null;
+  }
+}
+
+function matchUsageRecord(usageData, genTimestamp, model, isVideo) {
+  if (!usageData || !Array.isArray(usageData.records)) {
+    return null;
+  }
+  const expectedType = isVideo ? 'generate.video' : 'generate.image';
+  const keyName = state.keyInfo?.name;
+  const toleranceMs = 10000;
+  for (const record of usageData.records) {
+    if (record.type !== expectedType) {
+      continue;
+    }
+    if (record.model !== model) {
+      continue;
+    }
+    if (keyName && record['key-name'] && record['key-name'] !== keyName) {
+      continue;
+    }
+    const recordTime = new Date(record.timestamp).getTime();
+    if (Math.abs(recordTime - genTimestamp) <= toleranceMs) {
+      return record;
+    }
+  }
+  return null;
+}
+
+async function fetchAndDisplayUsageStats(genId, model, isVideo, startTime) {
+  const hasUsagePermission =
+    state.keyInfo &&
+    state.keyInfo.permissions &&
+    state.keyInfo.permissions.account &&
+    state.keyInfo.permissions.account.includes('usage');
+  if (!hasUsagePermission || !state.apiKey) {
+    return;
+  }
+  try {
+    const usageData = await fetchUsageData(state.apiKey);
+    if (!usageData) return;
+    const matchedRecord = matchUsageRecord(usageData, startTime, model, isVideo);
+    if (matchedRecord) {
+      updateTimerWithUsageData(genId, matchedRecord);
+    }
+  } catch (error) {
+    console.error('Error fetching usage stats:', error);
+  }
+}
 
 // BALANCE DISPLAY
 // ============================================================================
@@ -1405,11 +1602,11 @@ async function processParallelJob(job, totalJobs, setId) {
   try {
     if (isVideoMode) {
       const response = await generateVideo(payload);
-      displayVideoResultInCard(genId, response);
+      displayVideoResultInCard(genId, response, payload);
       addToVideoHistory(response);
     } else {
       const response = await generateImage(payload);
-      displayResultInCard(genId, response);
+      displayResultInCard(genId, response, payload);
       addToImageHistory(response);
     }
     
@@ -1421,6 +1618,7 @@ async function processParallelJob(job, totalJobs, setId) {
     return { success: true, genId };
   } catch (error) {
     state.failedCount++;
+    clearTimer(genId);
     if (card && setId === state.currentSetId) {
       addParallelStatusBadge(card, 'error', index, totalJobs);
       const placeholder = card.querySelector('.noise-placeholder');
@@ -2063,22 +2261,31 @@ function createPlaceholderCard(genId) {
         </button>
     `;
     card.appendChild(overlay);
-    
+
+    // Start generation timer
+    startGenerationTimer(genId, card);
+
     return card;
 }
 
-function displayResultInCard(genId, data) {
+function displayResultInCard(genId, data, payload) {
     const card = document.getElementById(`gen-card-${genId}`);
     if (!card) return;
 
     const placeholder = card.querySelector('.noise-placeholder');
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
-    
+
     // Stop the firefly animation for this card
     const fireflyLayer = placeholder?.querySelector('.firefly-layer');
     if (fireflyLayer) {
       stopFireflyTickerForLayer(fireflyLayer);
+    }
+
+    // Stop generation timer and fetch usage stats
+    const timerInfo = stopGenerationTimer(genId);
+    if (payload && payload.model) {
+      fetchAndDisplayUsageStats(genId, payload.model, false, timerInfo.startTime);
     }
 
     const img = new Image();
@@ -2174,21 +2381,30 @@ function createVideoPlaceholderCard(genId) {
     `;
     card.appendChild(overlay);
 
+    // Start generation timer
+    startGenerationTimer(genId, card);
+
     return card;
 }
 
-function displayVideoResultInCard(genId, data) {
+function displayVideoResultInCard(genId, data, payload) {
     const card = document.getElementById(`gen-card-${genId}`);
     if (!card) return;
 
     const placeholder = card.querySelector('.noise-placeholder');
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
-    
+
     // Stop the firefly animation for this card
     const fireflyLayer = placeholder?.querySelector('.firefly-layer');
     if (fireflyLayer) {
       stopFireflyTickerForLayer(fireflyLayer);
+    }
+
+    // Stop generation timer and fetch usage stats
+    const timerInfo = stopGenerationTimer(genId);
+    if (payload && payload.model) {
+      fetchAndDisplayUsageStats(genId, payload.model, true, timerInfo.startTime);
     }
 
     const video = document.createElement('video');
@@ -2637,17 +2853,18 @@ function setupEventListeners() {
       try {
         if (isVideoMode) {
           const response = await generateVideo(payload);
-          displayVideoResultInCard(genId, response);
+          displayVideoResultInCard(genId, response, payload);
           addToVideoHistory(response);
         } else {
           const response = await generateImage(payload);
-          displayResultInCard(genId, response);
+          displayResultInCard(genId, response, payload);
           addToImageHistory(response);
         }
         if (state.apiKey) updateBalance(state.apiKey);
       } catch (error) {
         setStatus(error.message || i18n.t('statusError'), 'error');
         console.error(error);
+        clearTimer(genId);
         card.remove();
         if (galleryFeed.children.length === 0 && emptyState) emptyState.style.display = 'block';
       } finally {
