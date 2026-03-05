@@ -2102,18 +2102,9 @@ function updateTimerWithUsage(genId, usageRecord) {
     const source = usageRecord.meter_source ? formatMeterSource(usageRecord.meter_source) : '';
     
     timer.innerHTML = `
-        <div class="timer-row">
-            <span class="timer-label">${i18n.t('timerModelLabel')}:</span>
-            <span class="timer-value">${model}</span>
-        </div>
-        <div class="timer-row">
-            <span class="timer-label">${i18n.t('timerTimeLabel')}:</span>
-            <span class="timer-value">${duration}</span>
-        </div>
-        <div class="timer-row">
-            <span class="timer-label">${i18n.t('timerCostLabel')}:</span>
-            <span class="timer-value">${cost} P. (${source})</span>
-        </div>
+        <span class="timer-label">${i18n.t('timerModelLabel')}:</span> <span class="timer-value">${model}</span>, 
+        <span class="timer-label">${i18n.t('timerTimeLabel')}:</span> <span class="timer-value">${duration}</span>, 
+        <span class="timer-label">${i18n.t('timerCostLabel')}:</span> <span class="timer-value">${cost} P. (${source})</span>
     `;
     timer.classList.remove('generating');
     timer.classList.add('completed');
@@ -2147,9 +2138,8 @@ async function handleUsageIntegration(genId, model, isVideo) {
     
     // Match record by timestamp, type, api_key name, and model
     const matchingRecord = usageData.usage.find(r => {
-        const rTime = new Date(r.timestamp).getTime();
-        // Use a window to account for latency
-        const timeMatch = Math.abs(rTime - startTime) < 5000;
+        const rTime = new Date(r.timestamp.includes("Z") ? r.timestamp : r.timestamp.replace(" ", "T") + "Z").getTime();
+        const timeMatch = Math.abs(rTime - startTime) < 10000;
         const typeMatch = r.type === type;
         const nameMatch = r.api_key === keyName;
         const modelMatch = r.model === model;
@@ -2163,8 +2153,7 @@ async function handleUsageIntegration(genId, model, isVideo) {
         stopGenerationTimer(genId);
     }
 }
-    }
-}
+function createPlaceholderCard(genId) {
     const card = document.createElement('div');
     card.className = 'image-card';
     card.id = `gen-card-${genId}`;
@@ -2186,7 +2175,6 @@ async function handleUsageIntegration(genId, model, isVideo) {
     if (state.performanceMode || prefersReducedMotion) {
         placeholder.appendChild(createPerformanceLoader());
     } else {
-        // Create firefly animation (bounded to image area)
         const fireflyLayer = document.createElement('div');
         fireflyLayer.className = 'firefly-layer';
         placeholder.appendChild(fireflyLayer);
@@ -2198,27 +2186,21 @@ async function handleUsageIntegration(genId, model, isVideo) {
         for (let i = 0; i < fireflyCount; i++) {
             const firefly = document.createElement('div');
             firefly.className = 'firefly';
-
             const size = Math.random() * 4.5 + 2;
             firefly.style.width = size + 'px';
             firefly.style.height = size + 'px';
             firefly.dataset.size = size.toString();
-
             firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-
             const brightness = Math.random() * 0.55 + 0.45;
             firefly.style.filter = `brightness(${brightness})`;
-
             firefly.dataset.rx = Math.random().toString();
             firefly.dataset.ry = Math.random().toString();
-
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 45 + 18; // px/s
+            const speed = Math.random() * 45 + 18;
             const vx = Math.cos(angle) * speed;
             const vy = Math.sin(angle) * speed;
             firefly.dataset.vx = vx.toString();
             firefly.dataset.vy = vy.toString();
-
             firefly.style.animationDelay = Math.random() * 4 + 's';
             firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
             fireflyLayer.appendChild(firefly);
@@ -2237,10 +2219,10 @@ async function handleUsageIntegration(genId, model, isVideo) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
         </button>
     `;
-    // Add timer overlay
+    card.appendChild(overlay);
+    
     const timer = createTimerOverlay(genId);
     card.appendChild(timer);
-    card.appendChild(overlay);
     
     return card;
 }
@@ -2253,7 +2235,6 @@ function displayResultInCard(genId, data) {
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
     
-    // Stop the firefly animation for this card
     const fireflyLayer = placeholder?.querySelector('.firefly-layer');
     if (fireflyLayer) {
       stopFireflyTickerForLayer(fireflyLayer);
@@ -2281,7 +2262,6 @@ function createVideoPlaceholderCard(genId) {
     card.className = 'video-card';
     card.id = `gen-card-${genId}`;
 
-    // Use the selected aspect ratio for videos
     const w = Number(document.getElementById('width').value) || 1024;
     const h = Number(document.getElementById('height').value) || 576;
     const ratio = (h / w) * 100;
@@ -2299,7 +2279,6 @@ function createVideoPlaceholderCard(genId) {
     if (state.performanceMode || prefersReducedMotion) {
         placeholder.appendChild(createPerformanceLoader());
     } else {
-        // Create firefly animation (bounded to video area)
         const fireflyLayer = document.createElement('div');
         fireflyLayer.className = 'firefly-layer';
         placeholder.appendChild(fireflyLayer);
@@ -2311,27 +2290,21 @@ function createVideoPlaceholderCard(genId) {
         for (let i = 0; i < fireflyCount; i++) {
             const firefly = document.createElement('div');
             firefly.className = 'firefly';
-
             const size = Math.random() * 4.5 + 2;
             firefly.style.width = size + 'px';
             firefly.style.height = size + 'px';
             firefly.dataset.size = size.toString();
-
             firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-
             const brightness = Math.random() * 0.55 + 0.45;
             firefly.style.filter = `brightness(${brightness})`;
-
             firefly.dataset.rx = Math.random().toString();
             firefly.dataset.ry = Math.random().toString();
-
             const angle = Math.random() * Math.PI * 2;
             const speed = Math.random() * 45 + 18;
             const vx = Math.cos(angle) * speed;
             const vy = Math.sin(angle) * speed;
             firefly.dataset.vx = vx.toString();
             firefly.dataset.vy = vy.toString();
-
             firefly.style.animationDelay = Math.random() * 4 + 's';
             firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
             fireflyLayer.appendChild(firefly);
@@ -2352,9 +2325,9 @@ function createVideoPlaceholderCard(genId) {
     `;
     card.appendChild(overlay);
 
-    // Add timer overlay
     const timer = createTimerOverlay(genId);
     card.appendChild(timer);
+
     return card;
 }
 
