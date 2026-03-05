@@ -412,6 +412,65 @@
 
         .image-card-overlay { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease; transform: translateY(-6px); pointer-events: none; }
         .image-card:hover .image-card-overlay, .video-card:hover .image-card-overlay { opacity: 1; transform: translateY(0); }
+        
+        .generation-timer {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 15;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+            min-width: 60px;
+        }
+
+        .generation-timer.generating {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .generation-timer.completed {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        .image-card:hover .generation-timer.completed, .video-card:hover .generation-timer.completed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .timer-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            line-height: 1.4;
+        }
+
+        .timer-label {
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .timer-value {
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .timer-value.free { color: var(--success); }
+        .timer-value.paid { color: #FFD700; }
+
         .overlay-btn { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); color: white; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; pointer-events: auto; }
         .overlay-btn:hover { background: rgba(0, 0, 0, 0.7); border-color: rgba(255, 255, 255, 0.2); }
         .overlay-btn svg { width: 14px; height: 14px; }

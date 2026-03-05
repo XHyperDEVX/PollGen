@@ -70,6 +70,11 @@ const translations = {
     generatingVideoLabel: 'Generating video...',
     costLabel: 'Cost',
     pollenLabel: 'Pollen',
+    timerModelLabel: 'Model',
+    timerTimeLabel: 'Time',
+    timerCostLabel: 'Cost',
+    timerFreeLabel: 'free',
+    timerPaidLabel: 'paid',
 
     // Status Messages
     statusPromptMissing: 'Please enter a prompt',
@@ -207,6 +212,11 @@ const translations = {
     generatingVideoLabel: 'Video wird generiert...',
     costLabel: 'Kosten',
     pollenLabel: 'Pollen',
+    timerModelLabel: 'Modell',
+    timerTimeLabel: 'Zeit',
+    timerCostLabel: 'Kosten',
+    timerFreeLabel: 'kostenlos',
+    timerPaidLabel: 'bezahlt',
 
     // Status Messages
     statusPromptMissing: 'Bitte gib einen Prompt ein',

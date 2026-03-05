@@ -43,7 +43,9 @@ const state = {
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false, // Upload in progress flag
   isDeletingUpload: false, // Delete in progress flag
-  performanceMode: false // Performance mode flag
+  performanceMode: false, // Performance mode flag
+  generationStartTimes: new Map(), // Track start times by genId
+  timerIntervals: new Map() // Track active timer intervals
 };
 
 // ============================================================================
@@ -1229,6 +1231,166 @@ window.updateCurrentCostDisplay = function() {
 // ============================================================================
 // IMAGE GENERATION
 // ============================================================================
+// GENERATION TIMER & USAGE API
+// ============================================================================
+
+function formatDuration(seconds) {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+}
+
+function formatResponseTime(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+}
+
+function formatMeterSource(source) {
+  if (!source || source === 'tier') return i18n.t('timerFreeLabel');
+  return i18n.t('timerPaidLabel');
+}
+
+function createTimerOverlay(genId) {
+  const timer = document.createElement('div');
+  timer.className = 'generation-timer generating';
+  timer.id = \`timer-\${genId}\`;
+  timer.innerHTML = \`
+    <div class="timer-row">
+      <span class="timer-label">\${i18n.t('timerTimeLabel')}</span>
+      <span class="timer-value">0s</span>
+    </div>
+  \`;
+  return timer;
+}
+
+function startGenerationTimer(genId) {
+  state.generationStartTimes.set(genId, Date.now());
+  const interval = setInterval(() => {
+    const startTime = state.generationStartTimes.get(genId);
+    if (startTime) {
+      const seconds = Math.floor((Date.now() - startTime) / 1000);
+      updateTimerDisplay(genId, seconds);
+    }
+  }, 1000);
+  state.timerIntervals.set(genId, interval);
+}
+
+function stopGenerationTimer(genId) {
+  const interval = state.timerIntervals.get(genId);
+  if (interval) {
+    clearInterval(interval);
+    state.timerIntervals.delete(genId);
+  }
+  const startTime = state.generationStartTimes.get(genId);
+  const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+  state.generationStartTimes.delete(genId);
+  
+  const timerOverlay = document.getElementById(\`timer-\${genId}\`);
+  if (timerOverlay) {
+    timerOverlay.classList.remove('generating');
+    timerOverlay.classList.add('completed');
+    
+    // Update text to final duration
+    const timerValue = timerOverlay.querySelector('.timer-value');
+    if (timerValue) {
+      timerValue.textContent = formatDuration(duration);
+    }
+  }
+  
+  return duration;
+}
+
+function updateTimerDisplay(genId, seconds) {
+  const timerValue = document.querySelector(\`#timer-\${genId} .timer-value\`);
+  if (timerValue) {
+    timerValue.textContent = formatDuration(seconds);
+  }
+}
+
+async function fetchUsageData(apiKey) {
+  if (!apiKey) return null;
+  try {
+    const response = await fetch('https://gen.pollinations.ai/account/usage?format=json&limit=5', {
+      headers: { 'Authorization': \`Bearer \${apiKey}\` }
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+function matchUsageRecord(usageData, genTimestamp, model, isVideo) {
+  if (!usageData || !Array.isArray(usageData)) return null;
+  
+  // 10ms tolerance as requested in ticket
+  const tolerance = 10;
+  
+  return usageData.find(record => {
+    const recordTimestamp = new Date(record.timestamp).getTime();
+    const timeDiff = Math.abs(recordTimestamp - genTimestamp);
+    
+    // Both image and video use generate.image in usage records for now
+    const typeMatch = record.type === 'generate.image';
+    const modelMatch = record.model === model;
+    const keyMatch = state.keyInfo && state.keyInfo.name ? record.key_name === state.keyInfo.name : true;
+    
+    return timeDiff <= tolerance && modelMatch && keyMatch && typeMatch;
+  });
+}
+
+async function updateCardWithUsage(genId, genTimestamp, model, isVideo) {
+  if (!state.apiKey) return;
+  
+  // Check for 'usage' permission
+  const hasUsagePermission = state.keyInfo && 
+                             state.keyInfo.permissions && 
+                             state.keyInfo.permissions.account && 
+                             state.keyInfo.permissions.account.includes('usage');
+  
+  if (!hasUsagePermission) return;
+  
+  // Try several times as records might take a moment to appear
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+    
+    const usageData = await fetchUsageData(state.apiKey);
+    if (!usageData) continue;
+    
+    const record = matchUsageRecord(usageData, genTimestamp, model, isVideo);
+    if (record) {
+      const timerOverlay = document.getElementById(\`timer-\${genId}\`);
+      if (timerOverlay) {
+        const responseTime = formatResponseTime(record.response_time);
+        const cost = record.cost || 0;
+        const source = formatMeterSource(record.meter_source);
+        
+        timerOverlay.innerHTML = \`
+          <div class="timer-row">
+            <span class="timer-label">\${i18n.t('timerModelLabel')}</span>
+            <span class="timer-value">\${record.model}</span>
+          </div>
+          <div class="timer-row">
+            <span class="timer-label">\${i18n.t('timerTimeLabel')}</span>
+            <span class="timer-value">\${responseTime}</span>
+          </div>
+          <div class="timer-row">
+            <span class="timer-label">\${i18n.t('timerCostLabel')}</span>
+            <span class="timer-value \${record.meter_source === 'tier' ? 'free' : 'paid'}">\${cost} (\${source})</span>
+          </div>
+        \`;
+      }
+      return;
+    }
+  }
+}
+
+// ============================================================================
 
 async function generateImage(payload) {
   if (!state.apiKey) throw new Error(i18n.t('apiKeyMissing'));
@@ -1402,16 +1564,23 @@ async function processParallelJob(job, totalJobs, setId) {
 
   state.activeJobs.set(genId, { job, status: 'active', index, setId });
 
+  const startTime = Date.now();
+  startGenerationTimer(genId);
+
   try {
     if (isVideoMode) {
       const response = await generateVideo(payload);
+      stopGenerationTimer(genId);
       displayVideoResultInCard(genId, response);
       addToVideoHistory(response);
     } else {
       const response = await generateImage(payload);
+      stopGenerationTimer(genId);
       displayResultInCard(genId, response);
       addToImageHistory(response);
     }
+    
+    updateCardWithUsage(genId, startTime, payload.model, isVideoMode);
     
     state.completedCount++;
     if (card && setId === state.currentSetId) {
@@ -1420,6 +1589,7 @@ async function processParallelJob(job, totalJobs, setId) {
     state.activeJobs.set(genId, { job, status: 'completed', index, setId });
     return { success: true, genId };
   } catch (error) {
+    stopGenerationTimer(genId);
     state.failedCount++;
     if (card && setId === state.currentSetId) {
       addParallelStatusBadge(card, 'error', index, totalJobs);
@@ -2063,6 +2233,9 @@ function createPlaceholderCard(genId) {
         </button>
     `;
     card.appendChild(overlay);
+
+    // Add timer overlay
+    card.appendChild(createTimerOverlay(genId));
     
     return card;
 }
@@ -2173,6 +2346,9 @@ function createVideoPlaceholderCard(genId) {
         </button>
     `;
     card.appendChild(overlay);
+
+    // Add timer overlay
+    card.appendChild(createTimerOverlay(genId));
 
     return card;
 }
@@ -2631,27 +2807,35 @@ function setupEventListeners() {
           const scrollContainer = document.getElementById('canvas-workspace');
           if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }, 50);
-
       toggleLoading(true);
       setStatus('', '');
+      
+      const startTime = Date.now();
+      startGenerationTimer(genId);
+      
       try {
         if (isVideoMode) {
           const response = await generateVideo(payload);
+          stopGenerationTimer(genId);
           displayVideoResultInCard(genId, response);
           addToVideoHistory(response);
         } else {
           const response = await generateImage(payload);
+          stopGenerationTimer(genId);
           displayResultInCard(genId, response);
           addToImageHistory(response);
         }
+        updateCardWithUsage(genId, startTime, payload.model, isVideoMode);
         if (state.apiKey) updateBalance(state.apiKey);
       } catch (error) {
+        stopGenerationTimer(genId);
         setStatus(error.message || i18n.t('statusError'), 'error');
         console.error(error);
         card.remove();
         if (galleryFeed.children.length === 0 && emptyState) emptyState.style.display = 'block';
       } finally {
         toggleLoading(false);
+      }
       }
     });
   }
