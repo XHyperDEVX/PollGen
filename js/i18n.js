@@ -127,6 +127,13 @@ const translations = {
     copySuccess: 'Copied to clipboard',
     copyError: 'Failed to copy',
 
+    // Timer and Usage
+    timerModelLabel: 'Model',
+    timerTimeLabel: 'Time',
+    timerCostLabel: 'Cost',
+    timerFreeLabel: 'free',
+    timerPaidLabel: 'paid',
+
     // Upload Messages
     uploadSuccess: 'Image uploaded successfully',
     uploadDeleteSuccess: 'Uploaded image deleted',
@@ -263,6 +270,13 @@ const translations = {
     copyImage: 'Bild kopieren',
     copySuccess: 'In die Zwischenablage kopiert',
     copyError: 'Kopieren fehlgeschlagen',
+
+    // Timer and Usage
+    timerModelLabel: 'Modell',
+    timerTimeLabel: 'Zeit',
+    timerCostLabel: 'Kosten',
+    timerFreeLabel: 'kostenlos',
+    timerPaidLabel: 'bezahlt',
 
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',

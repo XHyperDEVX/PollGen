@@ -43,7 +43,9 @@ const state = {
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false, // Upload in progress flag
   isDeletingUpload: false, // Delete in progress flag
-  performanceMode: false // Performance mode flag
+  performanceMode: false, // Performance mode flag
+  generationStartTimes: new Map(),
+  timerIntervals: new Map()
 };
 
 // ============================================================================
@@ -1393,6 +1395,7 @@ function removeParallelStatusBadge(card) {
 }
 
 async function processParallelJob(job, totalJobs, setId) {
+  startGenerationTimer(job.genId);
   const { genId, payload, isVideoMode, index } = job;
   const card = document.getElementById(`gen-card-${genId}`);
   
@@ -1406,10 +1409,12 @@ async function processParallelJob(job, totalJobs, setId) {
     if (isVideoMode) {
       const response = await generateVideo(payload);
       displayVideoResultInCard(genId, response);
+      handleUsageIntegration(genId, payload.model, true);
       addToVideoHistory(response);
     } else {
       const response = await generateImage(payload);
       displayResultInCard(genId, response);
+      handleUsageIntegration(genId, payload.model, false);
       addToImageHistory(response);
     }
     
@@ -1989,6 +1994,174 @@ function createPerformanceLoader() {
     return loader;
 }
 
+
+function formatDuration(seconds) {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+}
+
+function createTimerOverlay(genId) {
+    const timer = document.createElement('div');
+    timer.className = 'generation-timer generating';
+    timer.id = `timer-${genId}`;
+    timer.innerHTML = `
+        <div class="timer-row">
+            <span class="timer-value">0s</span>
+        </div>
+    `;
+    return timer;
+}
+
+function startGenerationTimer(genId) {
+    state.generationStartTimes.set(genId, Date.now());
+    const interval = setInterval(() => {
+        updateTimerDisplay(genId);
+    }, 1000);
+    state.timerIntervals.set(genId, interval);
+}
+
+function stopGenerationTimer(genId) {
+    const interval = state.timerIntervals.get(genId);
+    if (interval) {
+        clearInterval(interval);
+        state.timerIntervals.delete(genId);
+    }
+    const startTime = state.generationStartTimes.get(genId);
+    if (!startTime) return 0;
+    const duration = Math.floor((Date.now() - startTime) / 1000);
+    
+    // Final update
+    updateTimerDisplay(genId, duration);
+    
+    const timer = document.getElementById(`timer-${genId}`);
+    if (timer) {
+        timer.classList.remove('generating');
+        timer.classList.add('completed');
+    }
+    
+    return duration;
+}
+
+function updateTimerDisplay(genId, finalDuration = null) {
+    const timer = document.getElementById(`timer-${genId}`);
+    if (!timer) return;
+    
+    const valueEl = timer.querySelector('.timer-value');
+    if (!valueEl) return;
+    
+    let duration;
+    if (finalDuration !== null) {
+        duration = finalDuration;
+    } else {
+        const startTime = state.generationStartTimes.get(genId);
+        if (!startTime) return;
+        duration = Math.floor((Date.now() - startTime) / 1000);
+    }
+    
+    valueEl.textContent = formatDuration(duration);
+}
+
+async function fetchUsageData(apiKey) {
+    if (!apiKey) return null;
+    try {
+        const response = await fetch('https://gen.pollinations.ai/account/usage?format=json&limit=5', {
+            headers: { 'Authorization': `Bearer ${apiKey.trim()}` }
+        });
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching usage:', error);
+        return null;
+    }
+}
+
+function formatMeterSource(source) {
+    return source === 'tier' ? i18n.t('timerFreeLabel') : i18n.t('timerPaidLabel');
+}
+
+function formatResponseTime(ms) {
+    if (!ms) return '';
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+}
+
+function updateTimerWithUsage(genId, usageRecord) {
+    const timer = document.getElementById(`timer-${genId}`);
+    if (!timer) return;
+    
+    const duration = usageRecord.response_time ? formatResponseTime(usageRecord.response_time) : formatDuration(stopGenerationTimer(genId));
+    const model = usageRecord.model || '';
+    const cost = usageRecord.amount !== undefined ? usageRecord.amount.toFixed(usageRecord.amount < 0.01 ? 5 : 3) : '';
+    const source = usageRecord.meter_source ? formatMeterSource(usageRecord.meter_source) : '';
+    
+    timer.innerHTML = `
+        <div class="timer-row">
+            <span class="timer-label">${i18n.t('timerModelLabel')}:</span>
+            <span class="timer-value">${model}</span>
+        </div>
+        <div class="timer-row">
+            <span class="timer-label">${i18n.t('timerTimeLabel')}:</span>
+            <span class="timer-value">${duration}</span>
+        </div>
+        <div class="timer-row">
+            <span class="timer-label">${i18n.t('timerCostLabel')}:</span>
+            <span class="timer-value">${cost} (${source})</span>
+        </div>
+    `;
+    timer.classList.remove('generating');
+    timer.classList.add('completed');
+}
+
+async function handleUsageIntegration(genId, model, isVideo) {
+    if (!state.apiKey || !state.keyInfo) {
+        stopGenerationTimer(genId);
+        return;
+    }
+    
+    // Check for usage permission
+    const hasUsagePermission = state.keyInfo.permissions?.account?.includes('usage');
+    if (!hasUsagePermission) {
+        stopGenerationTimer(genId);
+        return;
+    }
+    
+    // Give some time for usage record to be created
+    await new Promise(r => setTimeout(r, 2000));
+    
+    const usageData = await fetchUsageData(state.apiKey);
+    if (!usageData || !usageData.records) {
+        stopGenerationTimer(genId);
+        return;
+    }
+    
+    const startTime = state.generationStartTimes.get(genId);
+    const type = isVideo ? 'generate.video' : 'generate.image';
+    const keyName = state.keyInfo.name;
+    
+    // Match record by timestamp (10ms tolerance), type, key name, and model
+    const matchingRecord = usageData.records.find(r => {
+        const rTime = new Date(r.timestamp).getTime();
+        // 10ms tolerance or just close enough
+        const timeMatch = Math.abs(rTime - startTime) < 5000; // Increased tolerance for network latency
+        const typeMatch = r.type === type;
+        const nameMatch = r.api_key_name === keyName;
+        const modelMatch = r.model === model;
+        
+        return timeMatch && typeMatch && nameMatch && modelMatch;
+    });
+    
+    if (matchingRecord) {
+        updateTimerWithUsage(genId, matchingRecord);
+    } else {
+        stopGenerationTimer(genId);
+    }
+}
+
 function createPlaceholderCard(genId) {
     const card = document.createElement('div');
     card.className = 'image-card';
@@ -2062,6 +2235,9 @@ function createPlaceholderCard(genId) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
         </button>
     `;
+    // Add timer overlay
+    const timer = createTimerOverlay(genId);
+    card.appendChild(timer);
     card.appendChild(overlay);
     
     return card;
@@ -2174,6 +2350,9 @@ function createVideoPlaceholderCard(genId) {
     `;
     card.appendChild(overlay);
 
+    // Add timer overlay
+    const timer = createTimerOverlay(genId);
+    card.appendChild(timer);
     return card;
 }
 
@@ -2621,6 +2800,7 @@ function setupEventListeners() {
 
       // Single mode generation
       const genId = Date.now();
+      startGenerationTimer(genId);
       const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
 
       if (emptyState) emptyState.style.display = 'none';
@@ -2638,10 +2818,12 @@ function setupEventListeners() {
         if (isVideoMode) {
           const response = await generateVideo(payload);
           displayVideoResultInCard(genId, response);
+          handleUsageIntegration(genId, payload.model, true);
           addToVideoHistory(response);
         } else {
           const response = await generateImage(payload);
           displayResultInCard(genId, response);
+          handleUsageIntegration(genId, payload.model, false);
           addToImageHistory(response);
         }
         if (state.apiKey) updateBalance(state.apiKey);
