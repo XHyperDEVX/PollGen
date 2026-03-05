@@ -2078,7 +2078,9 @@ async function fetchUsageData(apiKey) {
 }
 
 function formatMeterSource(source) {
-    return source === 'tier' ? i18n.t('timerFreeLabel') : i18n.t('timerPaidLabel');
+    if (source === 'tier') return i18n.t('timerFreeLabel');
+    if (source === 'pack' || source === 'crypto' || source === 'cryto') return i18n.t('timerPaidLabel');
+    return source;
 }
 
 function formatResponseTime(ms) {
@@ -2094,9 +2096,9 @@ function updateTimerWithUsage(genId, usageRecord) {
     const timer = document.getElementById(`timer-${genId}`);
     if (!timer) return;
     
-    const duration = usageRecord.response_time ? formatResponseTime(usageRecord.response_time) : formatDuration(stopGenerationTimer(genId));
+    const duration = usageRecord.response_time_ms ? formatResponseTime(usageRecord.response_time_ms) : formatDuration(stopGenerationTimer(genId));
     const model = usageRecord.model || '';
-    const cost = usageRecord.amount !== undefined ? usageRecord.amount.toFixed(usageRecord.amount < 0.01 ? 5 : 3) : '';
+    const cost = usageRecord.cost_usd !== undefined ? usageRecord.cost_usd : '';
     const source = usageRecord.meter_source ? formatMeterSource(usageRecord.meter_source) : '';
     
     timer.innerHTML = `
@@ -2110,7 +2112,7 @@ function updateTimerWithUsage(genId, usageRecord) {
         </div>
         <div class="timer-row">
             <span class="timer-label">${i18n.t('timerCostLabel')}:</span>
-            <span class="timer-value">${cost} (${source})</span>
+            <span class="timer-value">${cost} P. (${source})</span>
         </div>
     `;
     timer.classList.remove('generating');
@@ -2134,7 +2136,7 @@ async function handleUsageIntegration(genId, model, isVideo) {
     await new Promise(r => setTimeout(r, 2000));
     
     const usageData = await fetchUsageData(state.apiKey);
-    if (!usageData || !usageData.records) {
+    if (!usageData || !usageData.usage) {
         stopGenerationTimer(genId);
         return;
     }
@@ -2143,16 +2145,16 @@ async function handleUsageIntegration(genId, model, isVideo) {
     const type = isVideo ? 'generate.video' : 'generate.image';
     const keyName = state.keyInfo.name;
     
-    // Match record by timestamp (10ms tolerance), type, key name, and model
-    const matchingRecord = usageData.records.find(r => {
+    // Match record by timestamp, type, api_key name, and model
+    const matchingRecord = usageData.usage.find(r => {
         const rTime = new Date(r.timestamp).getTime();
-        // 10ms tolerance or just close enough
-        const timeMatch = Math.abs(rTime - startTime) < 5000; // Increased tolerance for network latency
+        // Use a window to account for latency
+        const timeMatch = Math.abs(rTime - startTime) < 5000;
         const typeMatch = r.type === type;
-        const nameMatch = r.api_key_name === keyName;
+        const nameMatch = r.api_key === keyName;
         const modelMatch = r.model === model;
         
-        return timeMatch && typeMatch && nameMatch && modelMatch;
+        return typeMatch && nameMatch && modelMatch && timeMatch;
     });
     
     if (matchingRecord) {
@@ -2161,8 +2163,8 @@ async function handleUsageIntegration(genId, model, isVideo) {
         stopGenerationTimer(genId);
     }
 }
-
-function createPlaceholderCard(genId) {
+    }
+}
     const card = document.createElement('div');
     card.className = 'image-card';
     card.id = `gen-card-${genId}`;
