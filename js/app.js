@@ -43,7 +43,9 @@ const state = {
   uploadedImageFile: null, // Original file for thumbnail display
   isUploading: false, // Upload in progress flag
   isDeletingUpload: false, // Delete in progress flag
-  performanceMode: false // Performance mode flag
+  performanceMode: false, // Performance mode flag
+  generationStartTimes: new Map(),
+  timerIntervals: new Map()
 };
 
 // ============================================================================
@@ -556,7 +558,7 @@ function isApiKeyValidForGeneration() {
   );
 }
 
-async function updateBalance(apiKey) {
+async function updateBalance(apiKey, forceReload = false) {
   const apiKeyHint = document.getElementById('api-key-hint');
   if (!apiKeyHint) return;
 
@@ -581,8 +583,9 @@ async function updateBalance(apiKey) {
   }
 
   let keyInfo = state.keyInfo;
+  let isKeyChanged = !keyInfo || state.keyInfoApiKey !== trimmedKey;
 
-  if (!keyInfo || state.keyInfoApiKey !== trimmedKey) {
+  if (isKeyChanged) {
     keyInfo = await validateApiKeyInfo(trimmedKey);
 
     if (state.apiKey !== trimmedKey) return;
@@ -618,6 +621,7 @@ async function updateBalance(apiKey) {
   }
 
   setSidebarControlsEnabled(true);
+  if (isKeyChanged || forceReload) {
   await loadModels();
 
   // Check for profile permission and fetch profile
@@ -635,6 +639,7 @@ async function updateBalance(apiKey) {
   } else {
     state.profile = null;
     displayProfile(null);
+  }
   }
 
   const hasBalancePermission =
@@ -1393,42 +1398,52 @@ function removeParallelStatusBadge(card) {
 }
 
 async function processParallelJob(job, totalJobs, setId) {
+  startGenerationTimer(job.genId);
   const { genId, payload, isVideoMode, index } = job;
   const card = document.getElementById(`gen-card-${genId}`);
-  
+
   if (card && setId === state.currentSetId) {
-    addParallelStatusBadge(card, 'active', index, totalJobs);
+    addParallelStatusBadge(card, "active", index, totalJobs);
   }
 
-  state.activeJobs.set(genId, { job, status: 'active', index, setId });
+  state.activeJobs.set(genId, { job, status: "active", index, setId });
 
   try {
     if (isVideoMode) {
       const response = await generateVideo(payload);
+      stopGenerationTimer(genId);
       displayVideoResultInCard(genId, response);
+      handleUsageIntegration(genId, payload.model, true);
       addToVideoHistory(response);
     } else {
       const response = await generateImage(payload);
+      stopGenerationTimer(genId);
       displayResultInCard(genId, response);
+      handleUsageIntegration(genId, payload.model, false);
       addToImageHistory(response);
     }
-    
+
     state.completedCount++;
     if (card && setId === state.currentSetId) {
-      addParallelStatusBadge(card, 'completed', index, totalJobs);
+      addParallelStatusBadge(card, "completed", index, totalJobs);
     }
-    state.activeJobs.set(genId, { job, status: 'completed', index, setId });
+    state.activeJobs.set(genId, { job, status: "completed", index, setId });
+    
+    // Update balance after each successful parallel job
+    if (state.apiKey) updateBalance(state.apiKey);
+    
     return { success: true, genId };
   } catch (error) {
     state.failedCount++;
     if (card && setId === state.currentSetId) {
-      addParallelStatusBadge(card, 'error', index, totalJobs);
-      const placeholder = card.querySelector('.noise-placeholder');
+      addParallelStatusBadge(card, "error", index, totalJobs);
+      const placeholder = card.querySelector(".noise-placeholder");
       if (placeholder) {
-        placeholder.style.background = 'linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)';
+        placeholder.style.background =
+          "linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)";
       }
     }
-    state.activeJobs.set(genId, { job, status: 'error', index, setId, error });
+    state.activeJobs.set(genId, { job, status: "error", index, setId, error });
     console.error(`Parallel job ${genId} failed:`, error);
     return { success: false, genId, error };
   }
@@ -1980,71 +1995,230 @@ function scheduleImageCardResize() {
   });
 }
 
-function createPerformanceLoader() {
-    const loader = document.createElement('div');
-    loader.className = 'performance-loader';
-    const spinner = document.createElement('div');
-    spinner.className = 'performance-spinner';
-    loader.appendChild(spinner);
-    return loader;
+function formatDuration(seconds) {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
 }
 
-function createPlaceholderCard(genId) {
-    const card = document.createElement('div');
-    card.className = 'image-card';
-    card.id = `gen-card-${genId}`;
+function createTimerOverlay(genId) {
+    const timer = document.createElement('div');
+    timer.className = 'generation-timer generating';
+    timer.id = `timer-${genId}`;
+    timer.innerHTML = `<span class="timer-value">0s</span>`;
+    return timer;
+}
+
+function startGenerationTimer(genId) {
+    if (state.timerIntervals.has(genId)) {
+        clearInterval(state.timerIntervals.get(genId));
+    }
+    state.generationStartTimes.set(genId, Date.now());
+    const interval = setInterval(() => {
+        updateTimerDisplay(genId);
+    }, 1000);
+    state.timerIntervals.set(genId, interval);
+}
+
+function stopGenerationTimer(genId) {
+    const interval = state.timerIntervals.get(genId);
+    if (interval) {
+        clearInterval(interval);
+        state.timerIntervals.delete(genId);
+    }
+    const startTime = state.generationStartTimes.get(genId);
+    if (!startTime) return 0;
+    const duration = Math.floor((Date.now() - startTime) / 1000);
     
-    const w = Number(document.getElementById('width').value) || 1024;
-    const h = Number(document.getElementById('height').value) || 1024;
+    const timer = document.getElementById(`timer-${genId}`);
+    if (timer && !timer.classList.contains('completed')) {
+        const valueEl = timer.querySelector('.timer-value');
+        if (valueEl) valueEl.textContent = formatDuration(duration);
+        // Hide immediately by removing generating class
+        timer.classList.remove('generating');
+        // We will add 'completed' class once usage info is updated or retries exhausted
+    }
+    
+    return duration;
+}
+
+function updateTimerDisplay(genId, finalDuration = null) {
+    const timer = document.getElementById(`timer-${genId}`);
+    // If completed or updating, don't touch it
+    if (!timer || timer.classList.contains('completed') || timer.classList.contains('updating')) return;
+    
+    const valueEl = timer.querySelector('.timer-value');
+    if (!valueEl) return;
+    
+    const startTime = state.generationStartTimes.get(genId);
+    if (!startTime) return;
+    const duration = finalDuration !== null ? finalDuration : Math.floor((Date.now() - startTime) / 1000);
+    
+    valueEl.textContent = formatDuration(duration);
+}
+
+async function fetchUsageData(apiKey) {
+    if (!apiKey) return null;
+    try {
+        const response = await fetch('https://gen.pollinations.ai/account/usage?format=json&limit=5', {
+            headers: { 'Authorization': `Bearer ${apiKey.trim()}` }
+        });
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching usage:', error);
+        return null;
+    }
+}
+
+function formatMeterSource(source) {
+    if (source === 'tier') return 'free';
+    if (source === 'pack' || source === 'crypto' || source === 'cryto') return 'paid';
+    return source;
+}
+
+function formatResponseTime(ms) {
+    if (!ms) return '';
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+}
+
+function updateTimerWithUsage(genId, usageRecord) {
+    const timer = document.getElementById(`timer-${genId}`);
+    if (!timer) return;
+    
+    const duration = usageRecord.response_time_ms ? formatResponseTime(usageRecord.response_time_ms) : formatDuration(state.generationStartTimes.has(genId) ? Math.floor((Date.now() - state.generationStartTimes.get(genId)) / 1000) : 0);
+    const model = usageRecord.model || '';
+    const cost = usageRecord.cost_usd !== undefined ? usageRecord.cost_usd : '';
+    const source = formatMeterSource(usageRecord.meter_source);
+    
+    // Clear and update content
+    timer.innerHTML = `
+        <span class="timer-label">${i18n.t('timerModelLabel')}:</span> <span class="timer-final-value">${model}</span>, 
+        <span class="timer-label">${i18n.t('timerTimeLabel')}:</span> <span class="timer-final-value">${duration}</span>, 
+        <span class="timer-label">${i18n.t('timerCostLabel')}:</span> <span class="timer-final-value">${cost} P. (${source})</span>
+    `;
+    
+    // Ensure it's hidden before adding completed class
+    timer.classList.remove('generating');
+    timer.classList.remove('updating');
+    
+    // Use a tiny delay to ensure DOM update and avoid transition issues
+    requestAnimationFrame(() => {
+        timer.classList.add('completed');
+    });
+}
+
+async function handleUsageIntegration(genId, model, isVideo) {
+    const timer = document.getElementById(`timer-${genId}`);
+    if (timer) timer.classList.add('updating');
+
+    if (!state.apiKey || !state.keyInfo) {
+        stopGenerationTimer(genId);
+        if (timer) {
+            timer.classList.remove('updating');
+            timer.classList.add('completed');
+        }
+        return;
+    }
+    
+    const hasUsagePermission = state.keyInfo.permissions?.account?.includes('usage');
+    if (!hasUsagePermission) {
+        stopGenerationTimer(genId);
+        if (timer) {
+            timer.classList.remove('updating');
+            timer.classList.add('completed');
+        }
+        return;
+    }
+    
+    const startTime = state.generationStartTimes.get(genId);
+    const type = 'generate.image';
+    const keyName = state.keyInfo.name;
+
+    for (let i = 0; i < 5; i++) {
+        // Shorter initial delay, then increasing
+        await new Promise(r => setTimeout(r, 1000 + i * 1500));
+        
+        const usageData = await fetchUsageData(state.apiKey);
+        if (!usageData || !usageData.usage) continue;
+        
+        const matchingRecord = usageData.usage.find(r => {
+            const rTime = new Date(r.timestamp.includes("Z") ? r.timestamp : r.timestamp.replace(" ", "T") + "Z").getTime();
+            const timeMatch = Math.abs(rTime - startTime) < 60000;
+            const typeMatch = r.type === type;
+            const nameMatch = r.api_key === keyName;
+            const modelMatch = r.model === model;
+            
+
+            return typeMatch && nameMatch && modelMatch && timeMatch;
+        });
+        
+        if (matchingRecord) {
+            updateTimerWithUsage(genId, matchingRecord);
+            return;
+        }
+    }
+    
+    stopGenerationTimer(genId);
+    if (timer) {
+        timer.classList.remove('updating');
+        timer.classList.add('completed');
+    }
+}
+function createPlaceholderCard(genId) {
+    const card = document.createElement("div");
+    card.className = "image-card";
+    card.id = `gen-card-${genId}`;
+
+    const w = Number(document.getElementById("width").value) || 1024;
+    const h = Number(document.getElementById("height").value) || 1024;
     const ratio = (h / w) * 100;
 
     card.dataset.w = w.toString();
     card.dataset.h = h.toString();
     applyImageCardSizing(card);
 
-    const placeholder = document.createElement('div');
-    placeholder.className = 'noise-placeholder';
+    const placeholder = document.createElement("div");
+    placeholder.className = "noise-placeholder";
     placeholder.style.paddingBottom = `${ratio}%`;
 
-    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (state.performanceMode || prefersReducedMotion) {
         placeholder.appendChild(createPerformanceLoader());
     } else {
-        // Create firefly animation (bounded to image area)
-        const fireflyLayer = document.createElement('div');
-        fireflyLayer.className = 'firefly-layer';
+        const fireflyLayer = document.createElement("div");
+        fireflyLayer.className = "firefly-layer";
         placeholder.appendChild(fireflyLayer);
 
-        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+        const colors = ["#ff00ff", "#00ffff", "#ffff00", "#ff00aa", "#00ffaa"];
         const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
         const fireflyCount = baseCount;
 
         for (let i = 0; i < fireflyCount; i++) {
-            const firefly = document.createElement('div');
-            firefly.className = 'firefly';
-
+            const firefly = document.createElement("div");
+            firefly.className = "firefly";
             const size = Math.random() * 4.5 + 2;
-            firefly.style.width = size + 'px';
-            firefly.style.height = size + 'px';
+            firefly.style.width = size + "px";
+            firefly.style.height = size + "px";
             firefly.dataset.size = size.toString();
-
             firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-
             const brightness = Math.random() * 0.55 + 0.45;
             firefly.style.filter = `brightness(${brightness})`;
-
             firefly.dataset.rx = Math.random().toString();
             firefly.dataset.ry = Math.random().toString();
-
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 45 + 18; // px/s
+            const speed = Math.random() * 45 + 18;
             const vx = Math.cos(angle) * speed;
             const vy = Math.sin(angle) * speed;
             firefly.dataset.vx = vx.toString();
             firefly.dataset.vy = vy.toString();
-
-            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDelay = Math.random() * 4 + "s";
             firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
             fireflyLayer.appendChild(firefly);
         }
@@ -2055,15 +2229,18 @@ function createPlaceholderCard(genId) {
     }
 
     card.appendChild(placeholder);
-    const overlay = document.createElement('div');
-    overlay.className = 'image-card-overlay';
+    const overlay = document.createElement("div");
+    overlay.className = "image-card-overlay";
     overlay.innerHTML = `
         <button class="overlay-btn download-btn hidden" title="Download">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
         </button>
     `;
     card.appendChild(overlay);
-    
+
+    const timer = createTimerOverlay(genId);
+    card.appendChild(timer);
+
     return card;
 }
 
@@ -2075,7 +2252,6 @@ function displayResultInCard(genId, data) {
     const overlay = card.querySelector('.image-card-overlay');
     const downloadBtn = card.querySelector('.download-btn');
     
-    // Stop the firefly animation for this card
     const fireflyLayer = placeholder?.querySelector('.firefly-layer');
     if (fireflyLayer) {
       stopFireflyTickerForLayer(fireflyLayer);
@@ -2103,7 +2279,6 @@ function createVideoPlaceholderCard(genId) {
     card.className = 'video-card';
     card.id = `gen-card-${genId}`;
 
-    // Use the selected aspect ratio for videos
     const w = Number(document.getElementById('width').value) || 1024;
     const h = Number(document.getElementById('height').value) || 576;
     const ratio = (h / w) * 100;
@@ -2121,7 +2296,6 @@ function createVideoPlaceholderCard(genId) {
     if (state.performanceMode || prefersReducedMotion) {
         placeholder.appendChild(createPerformanceLoader());
     } else {
-        // Create firefly animation (bounded to video area)
         const fireflyLayer = document.createElement('div');
         fireflyLayer.className = 'firefly-layer';
         placeholder.appendChild(fireflyLayer);
@@ -2133,27 +2307,21 @@ function createVideoPlaceholderCard(genId) {
         for (let i = 0; i < fireflyCount; i++) {
             const firefly = document.createElement('div');
             firefly.className = 'firefly';
-
             const size = Math.random() * 4.5 + 2;
             firefly.style.width = size + 'px';
             firefly.style.height = size + 'px';
             firefly.dataset.size = size.toString();
-
             firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-
             const brightness = Math.random() * 0.55 + 0.45;
             firefly.style.filter = `brightness(${brightness})`;
-
             firefly.dataset.rx = Math.random().toString();
             firefly.dataset.ry = Math.random().toString();
-
             const angle = Math.random() * Math.PI * 2;
             const speed = Math.random() * 45 + 18;
             const vx = Math.cos(angle) * speed;
             const vy = Math.sin(angle) * speed;
             firefly.dataset.vx = vx.toString();
             firefly.dataset.vy = vy.toString();
-
             firefly.style.animationDelay = Math.random() * 4 + 's';
             firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
             fireflyLayer.appendChild(firefly);
@@ -2173,6 +2341,113 @@ function createVideoPlaceholderCard(genId) {
         </button>
     `;
     card.appendChild(overlay);
+
+    const timer = createTimerOverlay(genId);
+    card.appendChild(timer);
+
+    return card;
+}
+
+function displayResultInCard(genId, data) {
+    const card = document.getElementById(`gen-card-${genId}`);
+    if (!card) return;
+
+    const placeholder = card.querySelector('.noise-placeholder');
+    const overlay = card.querySelector('.image-card-overlay');
+    const downloadBtn = card.querySelector('.download-btn');
+    
+    const fireflyLayer = placeholder?.querySelector('.firefly-layer');
+    if (fireflyLayer) {
+      stopFireflyTickerForLayer(fireflyLayer);
+    }
+
+    const img = new Image();
+    img.src = data.imageData;
+    img.onclick = () => openLightbox(data.imageData);
+    img.onload = () => {
+        placeholder.remove();
+        card.insertBefore(img, overlay);
+        img.offsetHeight;
+        img.classList.add('loaded');
+        downloadBtn.classList.remove('hidden');
+        downloadBtn.onclick = (e) => {
+            e.stopPropagation();
+            downloadImage(data.imageData, `pollgen-${genId}.png`);
+        };
+        addThumbnailToMiniView(genId, data.imageData);
+    };
+}
+
+function createVideoPlaceholderCard(genId) {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.id = `gen-card-${genId}`;
+
+    const w = Number(document.getElementById('width').value) || 1024;
+    const h = Number(document.getElementById('height').value) || 576;
+    const ratio = (h / w) * 100;
+
+    card.dataset.w = w.toString();
+    card.dataset.h = h.toString();
+    applyImageCardSizing(card);
+
+    const placeholder = document.createElement('div');
+    placeholder.className = 'noise-placeholder';
+    placeholder.style.paddingBottom = `${ratio}%`;
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (state.performanceMode || prefersReducedMotion) {
+        placeholder.appendChild(createPerformanceLoader());
+    } else {
+        const fireflyLayer = document.createElement('div');
+        fireflyLayer.className = 'firefly-layer';
+        placeholder.appendChild(fireflyLayer);
+
+        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff00aa', '#00ffaa'];
+        const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+        const fireflyCount = baseCount;
+
+        for (let i = 0; i < fireflyCount; i++) {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
+            const size = Math.random() * 4.5 + 2;
+            firefly.style.width = size + 'px';
+            firefly.style.height = size + 'px';
+            firefly.dataset.size = size.toString();
+            firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const brightness = Math.random() * 0.55 + 0.45;
+            firefly.style.filter = `brightness(${brightness})`;
+            firefly.dataset.rx = Math.random().toString();
+            firefly.dataset.ry = Math.random().toString();
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 45 + 18;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            firefly.dataset.vx = vx.toString();
+            firefly.dataset.vy = vy.toString();
+            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+            fireflyLayer.appendChild(firefly);
+        }
+
+        if (fireflyCount > 0) {
+            requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+        }
+    }
+
+    card.appendChild(placeholder);
+    const overlay = document.createElement('div');
+    overlay.className = 'image-card-overlay';
+    overlay.innerHTML = `
+        <button class="overlay-btn download-btn hidden" title="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+        </button>
+    `;
+    card.appendChild(overlay);
+
+    const timer = createTimerOverlay(genId);
+    card.appendChild(timer);
 
     return card;
 }
@@ -2621,6 +2896,7 @@ function setupEventListeners() {
 
       // Single mode generation
       const genId = Date.now();
+      startGenerationTimer(genId);
       const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
 
       if (emptyState) emptyState.style.display = 'none';
@@ -2634,17 +2910,34 @@ function setupEventListeners() {
 
       toggleLoading(true);
       setStatus('', '');
+      toggleLoading(true);
+      setStatus('', '');
       try {
         if (isVideoMode) {
           const response = await generateVideo(payload);
+          stopGenerationTimer(genId);
           displayVideoResultInCard(genId, response);
+          
+          // Concurrent API calls
+          Promise.all([
+            handleUsageIntegration(genId, payload.model, true),
+            updateBalance(state.apiKey)
+          ]);
+          
           addToVideoHistory(response);
         } else {
           const response = await generateImage(payload);
+          stopGenerationTimer(genId);
           displayResultInCard(genId, response);
+          
+          // Concurrent API calls
+          Promise.all([
+            handleUsageIntegration(genId, payload.model, false),
+            updateBalance(state.apiKey)
+          ]);
+          
           addToImageHistory(response);
         }
-        if (state.apiKey) updateBalance(state.apiKey);
       } catch (error) {
         setStatus(error.message || i18n.t('statusError'), 'error');
         console.error(error);

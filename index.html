@@ -388,7 +388,7 @@
         .parallel-status-badge.error { color: var(--error); }
 
         /* Duration Slider */
-        .duration-value { font-size: 13px; color: var(--text-primary); font-weight: 500; margin-left: 8px; }
+        .duration-value { font-size: 13px; color: var(--text-primary); font-weight: 500; margin-right: 8px; }
 
         /* Beta Notice */
         .beta-notice { font-size: 11px; color: var(--text-muted); margin-top: 8px; font-style: italic; opacity: 0.7; }
@@ -415,6 +415,63 @@
         .overlay-btn { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); color: white; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; pointer-events: auto; }
         .overlay-btn:hover { background: rgba(0, 0, 0, 0.7); border-color: rgba(255, 255, 255, 0.2); }
         .overlay-btn svg { width: 14px; height: 14px; }
+
+        /* Timer and stats styles */
+        .generation-timer {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            border-radius: 4px;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 400;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            opacity: 0;
+            max-width: 90%;
+            transform: translateZ(0);
+            will-change: opacity;
+        }
+
+        .generation-timer.generating {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .generation-timer.completed {
+            opacity: 0;
+        }
+        .generation-timer.updating {
+            opacity: 0 !important;
+        }
+        .image-card:hover .generation-timer.completed, .video-card:hover .generation-timer.completed {
+            opacity: 1;
+        }
+
+        .video-card .generation-timer {
+            bottom: auto;
+            right: auto;
+            top: 8px;
+            left: 8px;
+        }
+
+        .timer-label {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .timer-value {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+
+
+
+
 
         .mini-view { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 10px; background: rgba(31, 31, 33, 0.8); backdrop-filter: blur(20px); border-radius: 16px; max-width: 70%; overflow-x: auto; z-index: 25; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.5); visibility: hidden; opacity: 0; transition: all 0.3s; }
         .mini-view.visible { visibility: visible; opacity: 1; }
