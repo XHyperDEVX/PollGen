@@ -275,8 +275,8 @@ const translations = {
     timerModelLabel: 'Modell',
     timerTimeLabel: 'Zeit',
     timerCostLabel: 'Kosten',
-    timerFreeLabel: 'kostenlos',
-    timerPaidLabel: 'bezahlt',
+    timerFreeLabel: 'free',
+    timerPaidLabel: 'paid',
 
     // Upload Messages
     uploadSuccess: 'Bild erfolgreich hochgeladen',

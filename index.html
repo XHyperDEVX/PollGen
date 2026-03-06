@@ -421,38 +421,43 @@
             position: absolute;
             bottom: 8px;
             right: 8px;
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(2px);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
             border-radius: 4px;
-            color: rgba(255, 255, 255, 0.4);
-            padding: 2px 5px;
-            font-size: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 3px 8px;
+            font-size: 10px;
             font-weight: 400;
             pointer-events: none;
             transition: all 0.3s ease;
             z-index: 10;
             display: flex;
             flex-wrap: wrap;
-            gap: 3px;
+            gap: 4px;
             opacity: 0;
             max-width: 90%;
         }
         .generation-timer.generating {
             opacity: 1;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.4);
         }
         .generation-timer.completed {
             opacity: 0;
         }
+        .generation-timer.updating {
+            opacity: 0 !important;
+        }
         .image-card:hover .generation-timer.completed, .video-card:hover .generation-timer.completed {
             opacity: 1;
         }
+
         .timer-label {
-            color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.4);
         }
         .timer-value {
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.8);
         }
+
 
 
 

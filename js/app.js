@@ -1408,11 +1408,13 @@ async function processParallelJob(job, totalJobs, setId) {
   try {
     if (isVideoMode) {
       const response = await generateVideo(payload);
+        stopGenerationTimer(genId);
       displayVideoResultInCard(genId, response);
       handleUsageIntegration(genId, payload.model, true);
       addToVideoHistory(response);
     } else {
       const response = await generateImage(payload);
+        stopGenerationTimer(genId);
       displayResultInCard(genId, response);
       handleUsageIntegration(genId, payload.model, false);
       addToImageHistory(response);
@@ -1993,8 +1995,6 @@ function createPerformanceLoader() {
     loader.appendChild(spinner);
     return loader;
 }
-
-
 function formatDuration(seconds) {
     if (seconds < 60) return `${seconds}s`;
     const mins = Math.floor(seconds / 60);
@@ -2007,9 +2007,7 @@ function createTimerOverlay(genId) {
     timer.className = 'generation-timer generating';
     timer.id = `timer-${genId}`;
     timer.innerHTML = `
-        <div class="timer-row">
-            <span class="timer-value">0s</span>
-        </div>
+        <span class="timer-value">0s</span>
     `;
     return timer;
 }
@@ -2046,7 +2044,7 @@ function stopGenerationTimer(genId) {
 
 function updateTimerDisplay(genId, finalDuration = null) {
     const timer = document.getElementById(`timer-${genId}`);
-    if (!timer) return;
+    if (!timer || timer.classList.contains('completed')) return;
     
     const valueEl = timer.querySelector('.timer-value');
     if (!valueEl) return;
@@ -2102,11 +2100,12 @@ function updateTimerWithUsage(genId, usageRecord) {
     const source = usageRecord.meter_source ? formatMeterSource(usageRecord.meter_source) : '';
     
     timer.innerHTML = `
-        <span class="timer-label">${i18n.t('timerModelLabel')}:</span> <span class="timer-value">${model}</span>, 
-        <span class="timer-label">${i18n.t('timerTimeLabel')}:</span> <span class="timer-value">${duration}</span>, 
-        <span class="timer-label">${i18n.t('timerCostLabel')}:</span> <span class="timer-value">${cost} P. (${source})</span>
+        <span class="timer-label">${i18n.t('timerModelLabel')}:</span> <span class="timer-final-value">${model}</span>, 
+        <span class="timer-label">${i18n.t('timerTimeLabel')}:</span> <span class="timer-final-value">${duration}</span>, 
+        <span class="timer-label">${i18n.t('timerCostLabel')}:</span> <span class="timer-final-value">${cost} P. (${source})</span>
     `;
     timer.classList.remove('generating');
+    timer.classList.remove('updating');
     timer.classList.add('completed');
 }
 
@@ -2116,15 +2115,17 @@ async function handleUsageIntegration(genId, model, isVideo) {
         return;
     }
     
-    // Check for usage permission
+    const timer = document.getElementById(`timer-${genId}`);
+    if (timer) timer.classList.add('updating');
+
     const hasUsagePermission = state.keyInfo.permissions?.account?.includes('usage');
     if (!hasUsagePermission) {
         stopGenerationTimer(genId);
+        if (timer) timer.classList.remove('updating');
         return;
     }
     
-    // Attempt multiple times as requested or just give it enough delay
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
         await new Promise(r => setTimeout(r, 2000 + i * 1000));
         
         const usageData = await fetchUsageData(state.apiKey);
@@ -2136,7 +2137,7 @@ async function handleUsageIntegration(genId, model, isVideo) {
         
         const matchingRecord = usageData.usage.find(r => {
             const rTime = new Date(r.timestamp.includes("Z") ? r.timestamp : r.timestamp.replace(" ", "T") + "Z").getTime();
-            const timeMatch = Math.abs(rTime - startTime) < 30000; // Even wider window
+            const timeMatch = Math.abs(rTime - startTime) < 45000;
             const typeMatch = r.type === type;
             const nameMatch = r.api_key === keyName;
             const modelMatch = r.model === model;
@@ -2151,6 +2152,7 @@ async function handleUsageIntegration(genId, model, isVideo) {
     }
     
     stopGenerationTimer(genId);
+    if (timer) timer.classList.remove('updating');
 }
 function createPlaceholderCard(genId) {
     const card = document.createElement("div");
@@ -2895,11 +2897,13 @@ function setupEventListeners() {
       try {
         if (isVideoMode) {
           const response = await generateVideo(payload);
+            stopGenerationTimer(genId);
           displayVideoResultInCard(genId, response);
           handleUsageIntegration(genId, payload.model, true);
           addToVideoHistory(response);
         } else {
           const response = await generateImage(payload);
+            stopGenerationTimer(genId);
           displayResultInCard(genId, response);
           handleUsageIntegration(genId, payload.model, false);
           addToImageHistory(response);
