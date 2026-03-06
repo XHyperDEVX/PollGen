@@ -2123,43 +2123,146 @@ async function handleUsageIntegration(genId, model, isVideo) {
         return;
     }
     
-    // Give some time for usage record to be created
-    await new Promise(r => setTimeout(r, 2000));
-    
-    const usageData = await fetchUsageData(state.apiKey);
-    if (!usageData || !usageData.usage) {
-        stopGenerationTimer(genId);
-        return;
-    }
-    
-    const startTime = state.generationStartTimes.get(genId);
-    const type = isVideo ? 'generate.video' : 'generate.image';
-    const keyName = state.keyInfo.name;
-    
-    // Match record by timestamp, type, api_key name, and model
-    const matchingRecord = usageData.usage.find(r => {
-        const rTime = new Date(r.timestamp.includes("Z") ? r.timestamp : r.timestamp.replace(" ", "T") + "Z").getTime();
-        const timeMatch = Math.abs(rTime - startTime) < 10000;
-        const typeMatch = r.type === type;
-        const nameMatch = r.api_key === keyName;
-        const modelMatch = r.model === model;
+    // Attempt multiple times as requested or just give it enough delay
+    for (let i = 0; i < 3; i++) {
+        await new Promise(r => setTimeout(r, 2000 + i * 1000));
         
-        return typeMatch && nameMatch && modelMatch && timeMatch;
-    });
-    
-    if (matchingRecord) {
-        updateTimerWithUsage(genId, matchingRecord);
-    } else {
-        stopGenerationTimer(genId);
+        const usageData = await fetchUsageData(state.apiKey);
+        if (!usageData || !usageData.usage) continue;
+        
+        const startTime = state.generationStartTimes.get(genId);
+        const type = isVideo ? 'generate.video' : 'generate.image';
+        const keyName = state.keyInfo.name;
+        
+        const matchingRecord = usageData.usage.find(r => {
+            const rTime = new Date(r.timestamp.includes("Z") ? r.timestamp : r.timestamp.replace(" ", "T") + "Z").getTime();
+            const timeMatch = Math.abs(rTime - startTime) < 30000; // Even wider window
+            const typeMatch = r.type === type;
+            const nameMatch = r.api_key === keyName;
+            const modelMatch = r.model === model;
+            
+            return typeMatch && nameMatch && modelMatch && timeMatch;
+        });
+        
+        if (matchingRecord) {
+            updateTimerWithUsage(genId, matchingRecord);
+            return;
+        }
     }
+    
+    stopGenerationTimer(genId);
 }
 function createPlaceholderCard(genId) {
-    const card = document.createElement('div');
-    card.className = 'image-card';
+    const card = document.createElement("div");
+    card.className = "image-card";
     card.id = `gen-card-${genId}`;
+
+    const w = Number(document.getElementById("width").value) || 1024;
+    const h = Number(document.getElementById("height").value) || 1024;
+    const ratio = (h / w) * 100;
+
+    card.dataset.w = w.toString();
+    card.dataset.h = h.toString();
+    applyImageCardSizing(card);
+
+    const placeholder = document.createElement("div");
+    placeholder.className = "noise-placeholder";
+    placeholder.style.paddingBottom = `${ratio}%`;
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (state.performanceMode || prefersReducedMotion) {
+        placeholder.appendChild(createPerformanceLoader());
+    } else {
+        const fireflyLayer = document.createElement("div");
+        fireflyLayer.className = "firefly-layer";
+        placeholder.appendChild(fireflyLayer);
+
+        const colors = ["#ff00ff", "#00ffff", "#ffff00", "#ff00aa", "#00ffaa"];
+        const baseCount = Math.min(55, Math.max(28, Math.round((w * h) / 55000)));
+        const fireflyCount = baseCount;
+
+        for (let i = 0; i < fireflyCount; i++) {
+            const firefly = document.createElement("div");
+            firefly.className = "firefly";
+            const size = Math.random() * 4.5 + 2;
+            firefly.style.width = size + "px";
+            firefly.style.height = size + "px";
+            firefly.dataset.size = size.toString();
+            firefly.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const brightness = Math.random() * 0.55 + 0.45;
+            firefly.style.filter = `brightness(${brightness})`;
+            firefly.dataset.rx = Math.random().toString();
+            firefly.dataset.ry = Math.random().toString();
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 45 + 18;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            firefly.dataset.vx = vx.toString();
+            firefly.dataset.vy = vy.toString();
+            firefly.style.animationDelay = Math.random() * 4 + "s";
+            firefly.style.animationDuration = `${Math.random() * 2 + 3.5}s`;
+            fireflyLayer.appendChild(firefly);
+        }
+
+        if (fireflyCount > 0) {
+            requestAnimationFrame(() => startFireflyTicker(fireflyLayer));
+        }
+    }
+
+    card.appendChild(placeholder);
+    const overlay = document.createElement("div");
+    overlay.className = "image-card-overlay";
+    overlay.innerHTML = `
+        <button class="overlay-btn download-btn hidden" title="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+        </button>
+    `;
+    card.appendChild(overlay);
+
+    const timer = createTimerOverlay(genId);
+    card.appendChild(timer);
+
+    return card;
+}
+
+function displayResultInCard(genId, data) {
+    const card = document.getElementById(`gen-card-${genId}`);
+    if (!card) return;
+
+    const placeholder = card.querySelector('.noise-placeholder');
+    const overlay = card.querySelector('.image-card-overlay');
+    const downloadBtn = card.querySelector('.download-btn');
     
+    const fireflyLayer = placeholder?.querySelector('.firefly-layer');
+    if (fireflyLayer) {
+      stopFireflyTickerForLayer(fireflyLayer);
+    }
+
+    const img = new Image();
+    img.src = data.imageData;
+    img.onclick = () => openLightbox(data.imageData);
+    img.onload = () => {
+        placeholder.remove();
+        card.insertBefore(img, overlay);
+        img.offsetHeight;
+        img.classList.add('loaded');
+        downloadBtn.classList.remove('hidden');
+        downloadBtn.onclick = (e) => {
+            e.stopPropagation();
+            downloadImage(data.imageData, `pollgen-${genId}.png`);
+        };
+        addThumbnailToMiniView(genId, data.imageData);
+    };
+}
+
+function createVideoPlaceholderCard(genId) {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.id = `gen-card-${genId}`;
+
     const w = Number(document.getElementById('width').value) || 1024;
-    const h = Number(document.getElementById('height').value) || 1024;
+    const h = Number(document.getElementById('height').value) || 576;
     const ratio = (h / w) * 100;
 
     card.dataset.w = w.toString();
@@ -2220,10 +2323,10 @@ function createPlaceholderCard(genId) {
         </button>
     `;
     card.appendChild(overlay);
-    
+
     const timer = createTimerOverlay(genId);
     card.appendChild(timer);
-    
+
     return card;
 }
 
