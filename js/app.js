@@ -2137,7 +2137,7 @@ async function handleUsageIntegration(genId, model, isVideo) {
     }
     
     const startTime = state.generationStartTimes.get(genId);
-    const type = isVideo ? 'generate.video' : 'generate.image';
+    const type = 'generate.image';
     const keyName = state.keyInfo.name;
 
     for (let i = 0; i < 5; i++) {
