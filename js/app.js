@@ -2031,7 +2031,6 @@ function stopGenerationTimer(genId) {
     if (!startTime) return 0;
     const duration = Math.floor((Date.now() - startTime) / 1000);
     
-    // Final update of the simple timer
     const timer = document.getElementById(`timer-${genId}`);
     if (timer && !timer.classList.contains('completed')) {
         const valueEl = timer.querySelector('.timer-value');
