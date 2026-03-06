@@ -2006,13 +2006,14 @@ function createTimerOverlay(genId) {
     const timer = document.createElement('div');
     timer.className = 'generation-timer generating';
     timer.id = `timer-${genId}`;
-    timer.innerHTML = `
-        <span class="timer-value">0s</span>
-    `;
+    timer.innerHTML = `<span class="timer-value">0s</span>`;
     return timer;
 }
 
 function startGenerationTimer(genId) {
+    if (state.timerIntervals.has(genId)) {
+        clearInterval(state.timerIntervals.get(genId));
+    }
     state.generationStartTimes.set(genId, Date.now());
     const interval = setInterval(() => {
         updateTimerDisplay(genId);
@@ -2030,11 +2031,11 @@ function stopGenerationTimer(genId) {
     if (!startTime) return 0;
     const duration = Math.floor((Date.now() - startTime) / 1000);
     
-    // Final update
-    updateTimerDisplay(genId, duration);
-    
+    // Final update of the simple timer
     const timer = document.getElementById(`timer-${genId}`);
-    if (timer) {
+    if (timer && !timer.classList.contains('completed')) {
+        const valueEl = timer.querySelector('.timer-value');
+        if (valueEl) valueEl.textContent = formatDuration(duration);
         timer.classList.remove('generating');
         timer.classList.add('completed');
     }
@@ -2044,19 +2045,14 @@ function stopGenerationTimer(genId) {
 
 function updateTimerDisplay(genId, finalDuration = null) {
     const timer = document.getElementById(`timer-${genId}`);
-    if (!timer || timer.classList.contains('completed')) return;
+    if (!timer || timer.classList.contains('completed') || timer.classList.contains('updating')) return;
     
     const valueEl = timer.querySelector('.timer-value');
     if (!valueEl) return;
     
-    let duration;
-    if (finalDuration !== null) {
-        duration = finalDuration;
-    } else {
-        const startTime = state.generationStartTimes.get(genId);
-        if (!startTime) return;
-        duration = Math.floor((Date.now() - startTime) / 1000);
-    }
+    const startTime = state.generationStartTimes.get(genId);
+    if (!startTime) return;
+    const duration = finalDuration !== null ? finalDuration : Math.floor((Date.now() - startTime) / 1000);
     
     valueEl.textContent = formatDuration(duration);
 }
@@ -2076,8 +2072,8 @@ async function fetchUsageData(apiKey) {
 }
 
 function formatMeterSource(source) {
-    if (source === 'tier') return i18n.t('timerFreeLabel');
-    if (source === 'pack' || source === 'crypto' || source === 'cryto') return i18n.t('timerPaidLabel');
+    if (source === 'tier') return 'free';
+    if (source === 'pack' || source === 'crypto' || source === 'cryto') return 'paid';
     return source;
 }
 
@@ -2094,10 +2090,10 @@ function updateTimerWithUsage(genId, usageRecord) {
     const timer = document.getElementById(`timer-${genId}`);
     if (!timer) return;
     
-    const duration = usageRecord.response_time_ms ? formatResponseTime(usageRecord.response_time_ms) : formatDuration(stopGenerationTimer(genId));
+    const duration = usageRecord.response_time_ms ? formatResponseTime(usageRecord.response_time_ms) : formatDuration(state.generationStartTimes.has(genId) ? Math.floor((Date.now() - state.generationStartTimes.get(genId)) / 1000) : 0);
     const model = usageRecord.model || '';
     const cost = usageRecord.cost_usd !== undefined ? usageRecord.cost_usd : '';
-    const source = usageRecord.meter_source ? formatMeterSource(usageRecord.meter_source) : '';
+    const source = formatMeterSource(usageRecord.meter_source);
     
     timer.innerHTML = `
         <span class="timer-label">${i18n.t('timerModelLabel')}:</span> <span class="timer-final-value">${model}</span>, 
@@ -2110,14 +2106,15 @@ function updateTimerWithUsage(genId, usageRecord) {
 }
 
 async function handleUsageIntegration(genId, model, isVideo) {
-    if (!state.apiKey || !state.keyInfo) {
-        stopGenerationTimer(genId);
-        return;
-    }
-    
     const timer = document.getElementById(`timer-${genId}`);
     if (timer) timer.classList.add('updating');
 
+    if (!state.apiKey || !state.keyInfo) {
+        stopGenerationTimer(genId);
+        if (timer) timer.classList.remove('updating');
+        return;
+    }
+    
     const hasUsagePermission = state.keyInfo.permissions?.account?.includes('usage');
     if (!hasUsagePermission) {
         stopGenerationTimer(genId);
@@ -2125,7 +2122,7 @@ async function handleUsageIntegration(genId, model, isVideo) {
         return;
     }
     
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         await new Promise(r => setTimeout(r, 2000 + i * 1000));
         
         const usageData = await fetchUsageData(state.apiKey);
@@ -2137,7 +2134,7 @@ async function handleUsageIntegration(genId, model, isVideo) {
         
         const matchingRecord = usageData.usage.find(r => {
             const rTime = new Date(r.timestamp.includes("Z") ? r.timestamp : r.timestamp.replace(" ", "T") + "Z").getTime();
-            const timeMatch = Math.abs(rTime - startTime) < 45000;
+            const timeMatch = Math.abs(rTime - startTime) < 60000;
             const typeMatch = r.type === type;
             const nameMatch = r.api_key === keyName;
             const modelMatch = r.model === model;
