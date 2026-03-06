@@ -558,7 +558,7 @@ function isApiKeyValidForGeneration() {
   );
 }
 
-async function updateBalance(apiKey) {
+async function updateBalance(apiKey, forceReload = false) {
   const apiKeyHint = document.getElementById('api-key-hint');
   if (!apiKeyHint) return;
 
@@ -583,8 +583,9 @@ async function updateBalance(apiKey) {
   }
 
   let keyInfo = state.keyInfo;
+  let isKeyChanged = !keyInfo || state.keyInfoApiKey !== trimmedKey;
 
-  if (!keyInfo || state.keyInfoApiKey !== trimmedKey) {
+  if (isKeyChanged) {
     keyInfo = await validateApiKeyInfo(trimmedKey);
 
     if (state.apiKey !== trimmedKey) return;
@@ -620,6 +621,7 @@ async function updateBalance(apiKey) {
   }
 
   setSidebarControlsEnabled(true);
+  if (isKeyChanged || forceReload) {
   await loadModels();
 
   // Check for profile permission and fetch profile
@@ -637,6 +639,7 @@ async function updateBalance(apiKey) {
   } else {
     state.profile = null;
     displayProfile(null);
+  }
   }
 
   const hasBalancePermission =
@@ -1398,44 +1401,49 @@ async function processParallelJob(job, totalJobs, setId) {
   startGenerationTimer(job.genId);
   const { genId, payload, isVideoMode, index } = job;
   const card = document.getElementById(`gen-card-${genId}`);
-  
+
   if (card && setId === state.currentSetId) {
-    addParallelStatusBadge(card, 'active', index, totalJobs);
+    addParallelStatusBadge(card, "active", index, totalJobs);
   }
 
-  state.activeJobs.set(genId, { job, status: 'active', index, setId });
+  state.activeJobs.set(genId, { job, status: "active", index, setId });
 
   try {
     if (isVideoMode) {
       const response = await generateVideo(payload);
-        stopGenerationTimer(genId);
+      stopGenerationTimer(genId);
       displayVideoResultInCard(genId, response);
       handleUsageIntegration(genId, payload.model, true);
       addToVideoHistory(response);
     } else {
       const response = await generateImage(payload);
-        stopGenerationTimer(genId);
+      stopGenerationTimer(genId);
       displayResultInCard(genId, response);
       handleUsageIntegration(genId, payload.model, false);
       addToImageHistory(response);
     }
-    
+
     state.completedCount++;
     if (card && setId === state.currentSetId) {
-      addParallelStatusBadge(card, 'completed', index, totalJobs);
+      addParallelStatusBadge(card, "completed", index, totalJobs);
     }
-    state.activeJobs.set(genId, { job, status: 'completed', index, setId });
+    state.activeJobs.set(genId, { job, status: "completed", index, setId });
+    
+    // Update balance after each successful parallel job
+    if (state.apiKey) updateBalance(state.apiKey);
+    
     return { success: true, genId };
   } catch (error) {
     state.failedCount++;
     if (card && setId === state.currentSetId) {
-      addParallelStatusBadge(card, 'error', index, totalJobs);
-      const placeholder = card.querySelector('.noise-placeholder');
+      addParallelStatusBadge(card, "error", index, totalJobs);
+      const placeholder = card.querySelector(".noise-placeholder");
       if (placeholder) {
-        placeholder.style.background = 'linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)';
+        placeholder.style.background =
+          "linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)";
       }
     }
-    state.activeJobs.set(genId, { job, status: 'error', index, setId, error });
+    state.activeJobs.set(genId, { job, status: "error", index, setId, error });
     console.error(`Parallel job ${genId} failed:`, error);
     return { success: false, genId, error };
   }
@@ -1987,14 +1995,6 @@ function scheduleImageCardResize() {
   });
 }
 
-function createPerformanceLoader() {
-    const loader = document.createElement('div');
-    loader.className = 'performance-loader';
-    const spinner = document.createElement('div');
-    spinner.className = 'performance-spinner';
-    loader.appendChild(spinner);
-    return loader;
-}
 function formatDuration(seconds) {
     if (seconds < 60) return `${seconds}s`;
     const mins = Math.floor(seconds / 60);
@@ -2035,8 +2035,9 @@ function stopGenerationTimer(genId) {
     if (timer && !timer.classList.contains('completed')) {
         const valueEl = timer.querySelector('.timer-value');
         if (valueEl) valueEl.textContent = formatDuration(duration);
+        // Hide immediately by removing generating class
         timer.classList.remove('generating');
-        timer.classList.add('completed');
+        // We will add 'completed' class once usage info is updated or retries exhausted
     }
     
     return duration;
@@ -2044,6 +2045,7 @@ function stopGenerationTimer(genId) {
 
 function updateTimerDisplay(genId, finalDuration = null) {
     const timer = document.getElementById(`timer-${genId}`);
+    // If completed or updating, don't touch it
     if (!timer || timer.classList.contains('completed') || timer.classList.contains('updating')) return;
     
     const valueEl = timer.querySelector('.timer-value');
@@ -2094,14 +2096,21 @@ function updateTimerWithUsage(genId, usageRecord) {
     const cost = usageRecord.cost_usd !== undefined ? usageRecord.cost_usd : '';
     const source = formatMeterSource(usageRecord.meter_source);
     
+    // Clear and update content
     timer.innerHTML = `
         <span class="timer-label">${i18n.t('timerModelLabel')}:</span> <span class="timer-final-value">${model}</span>, 
         <span class="timer-label">${i18n.t('timerTimeLabel')}:</span> <span class="timer-final-value">${duration}</span>, 
         <span class="timer-label">${i18n.t('timerCostLabel')}:</span> <span class="timer-final-value">${cost} P. (${source})</span>
     `;
+    
+    // Ensure it's hidden before adding completed class
     timer.classList.remove('generating');
     timer.classList.remove('updating');
-    timer.classList.add('completed');
+    
+    // Use a tiny delay to ensure DOM update and avoid transition issues
+    requestAnimationFrame(() => {
+        timer.classList.add('completed');
+    });
 }
 
 async function handleUsageIntegration(genId, model, isVideo) {
@@ -2110,26 +2119,33 @@ async function handleUsageIntegration(genId, model, isVideo) {
 
     if (!state.apiKey || !state.keyInfo) {
         stopGenerationTimer(genId);
-        if (timer) timer.classList.remove('updating');
+        if (timer) {
+            timer.classList.remove('updating');
+            timer.classList.add('completed');
+        }
         return;
     }
     
     const hasUsagePermission = state.keyInfo.permissions?.account?.includes('usage');
     if (!hasUsagePermission) {
         stopGenerationTimer(genId);
-        if (timer) timer.classList.remove('updating');
+        if (timer) {
+            timer.classList.remove('updating');
+            timer.classList.add('completed');
+        }
         return;
     }
     
+    const startTime = state.generationStartTimes.get(genId);
+    const type = isVideo ? 'generate.video' : 'generate.image';
+    const keyName = state.keyInfo.name;
+
     for (let i = 0; i < 5; i++) {
-        await new Promise(r => setTimeout(r, 2000 + i * 1000));
+        // Shorter initial delay, then increasing
+        await new Promise(r => setTimeout(r, 1000 + i * 1500));
         
         const usageData = await fetchUsageData(state.apiKey);
         if (!usageData || !usageData.usage) continue;
-        
-        const startTime = state.generationStartTimes.get(genId);
-        const type = isVideo ? 'generate.video' : 'generate.image';
-        const keyName = state.keyInfo.name;
         
         const matchingRecord = usageData.usage.find(r => {
             const rTime = new Date(r.timestamp.includes("Z") ? r.timestamp : r.timestamp.replace(" ", "T") + "Z").getTime();
@@ -2138,6 +2154,7 @@ async function handleUsageIntegration(genId, model, isVideo) {
             const nameMatch = r.api_key === keyName;
             const modelMatch = r.model === model;
             
+
             return typeMatch && nameMatch && modelMatch && timeMatch;
         });
         
@@ -2148,7 +2165,10 @@ async function handleUsageIntegration(genId, model, isVideo) {
     }
     
     stopGenerationTimer(genId);
-    if (timer) timer.classList.remove('updating');
+    if (timer) {
+        timer.classList.remove('updating');
+        timer.classList.add('completed');
+    }
 }
 function createPlaceholderCard(genId) {
     const card = document.createElement("div");
@@ -2890,21 +2910,34 @@ function setupEventListeners() {
 
       toggleLoading(true);
       setStatus('', '');
+      toggleLoading(true);
+      setStatus('', '');
       try {
         if (isVideoMode) {
           const response = await generateVideo(payload);
-            stopGenerationTimer(genId);
+          stopGenerationTimer(genId);
           displayVideoResultInCard(genId, response);
-          handleUsageIntegration(genId, payload.model, true);
+          
+          // Concurrent API calls
+          Promise.all([
+            handleUsageIntegration(genId, payload.model, true),
+            updateBalance(state.apiKey)
+          ]);
+          
           addToVideoHistory(response);
         } else {
           const response = await generateImage(payload);
-            stopGenerationTimer(genId);
+          stopGenerationTimer(genId);
           displayResultInCard(genId, response);
-          handleUsageIntegration(genId, payload.model, false);
+          
+          // Concurrent API calls
+          Promise.all([
+            handleUsageIntegration(genId, payload.model, false),
+            updateBalance(state.apiKey)
+          ]);
+          
           addToImageHistory(response);
         }
-        if (state.apiKey) updateBalance(state.apiKey);
       } catch (error) {
         setStatus(error.message || i18n.t('statusError'), 'error');
         console.error(error);
