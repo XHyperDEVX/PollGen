@@ -126,6 +126,7 @@ const translations = {
     copyImage: 'Copy Image',
     copySuccess: 'Copied to clipboard',
     copyError: 'Failed to copy',
+    useAsReferenceImage: 'Use as reference image',
 
     // Timer and Usage
     timerModelLabel: 'Model',
@@ -270,6 +271,7 @@ const translations = {
     copyImage: 'Bild kopieren',
     copySuccess: 'In die Zwischenablage kopiert',
     copyError: 'Kopieren fehlgeschlagen',
+    useAsReferenceImage: 'Als Referenzbild verwenden',
 
     // Timer and Usage
     timerModelLabel: 'Modell',

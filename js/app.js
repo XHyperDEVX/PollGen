@@ -2988,6 +2988,7 @@ function setupContextMenu() {
   const contextMenu = document.getElementById('context-menu');
   const downloadItem = document.getElementById('context-download');
   const copyItem = document.getElementById('context-copy');
+  const referenceItem = document.getElementById('context-use-as-reference');
 
   if (!contextMenu) return;
 
@@ -3065,6 +3066,55 @@ function setupContextMenu() {
       await copyImageToClipboard(url);
     });
   }
+
+  if (referenceItem) {
+    referenceItem.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      contextMenu.classList.remove('visible');
+
+      let url = null;
+
+      if (contextMenuImageUrl) {
+        url = contextMenuImageUrl;
+      } else if (contextMenuTarget) {
+        const img = contextMenuTarget.querySelector('img');
+        if (img) url = img.src;
+      }
+
+      if (!url) return;
+
+      if (!state.apiKey) {
+        setStatus(i18n.t('uploadErrorAuth'), 'error');
+        return;
+      }
+
+      if (!isImageUploadSupported()) {
+        setStatus(i18n.t('uploadErrorGeneric'), 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('Failed to fetch image');
+        }
+        const blob = await response.blob();
+        const genId = contextMenuTarget?.id?.replace('gen-card-', '') || Date.now();
+        const file = new File([blob], `reference-${genId}.png`, { type: blob.type || 'image/png' });
+
+        if (!state.uploadConsent) {
+          showUploadConsentPopup(() => {
+            handleImageUpload(file);
+          });
+        } else {
+          await handleImageUpload(file);
+        }
+      } catch (error) {
+        console.error('Failed to use image as reference:', error);
+        setStatus(i18n.t('uploadErrorNetwork'), 'error');
+      }
+    });
+  }
 }
 
 async function copyImageToClipboard(url) {
@@ -3108,6 +3158,7 @@ async function convertBlobToPng(blob) {
 function updateContextMenuLabels(isVideo) {
   const downloadSpan = document.querySelector('#context-download [data-i18n]');
   const copyItem = document.getElementById('context-copy');
+  const referenceItem = document.getElementById('context-use-as-reference');
   if (downloadSpan) {
     const key = isVideo ? 'downloadVideo' : 'downloadImage';
     downloadSpan.setAttribute('data-i18n', key);
@@ -3115,6 +3166,9 @@ function updateContextMenuLabels(isVideo) {
   }
   if (copyItem) {
     copyItem.style.display = isVideo ? 'none' : '';
+  }
+  if (referenceItem) {
+    referenceItem.style.display = isVideo ? 'none' : '';
   }
 }
 
