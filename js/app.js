@@ -3168,7 +3168,8 @@ function updateContextMenuLabels(isVideo) {
     copyItem.style.display = isVideo ? 'none' : '';
   }
   if (referenceItem) {
-    referenceItem.style.display = isVideo ? 'none' : '';
+    const isSupported = isImageUploadSupported();
+    referenceItem.style.display = (isVideo || !isSupported) ? 'none' : '';
   }
 }
 
