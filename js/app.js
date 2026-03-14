@@ -2956,10 +2956,10 @@ function setupEventListeners() {
   if (promptInput) {
     promptInput.addEventListener('input', adjustPromptHeight);
     promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.ctrlKey) {
+        if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
             e.preventDefault();
             generateBtn.click();
-        } else if (e.key === 'Enter' && e.ctrlKey) {
+        } else if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey)) {
             e.preventDefault();
             const start = promptInput.selectionStart;
             const end = promptInput.selectionEnd;
