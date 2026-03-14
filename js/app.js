@@ -2770,25 +2770,28 @@ function addToVideoHistory(historyItem) {
 function adjustPromptHeight() {
     const prompt = document.getElementById('prompt');
     if (!prompt) return;
-    
+
     // Store scroll position if textarea has overflow
     const wasScrolled = prompt.scrollTop > 0;
-    const scrollTop = prompt.scrollTop;
     const scrollBottom = prompt.scrollHeight - prompt.scrollTop - prompt.clientHeight;
-    
+
+    // Reset height to auto to get natural scrollHeight
     prompt.style.height = 'auto';
+
+    // Calculate new height, capped at max-height (200px)
     const newHeight = Math.min(prompt.scrollHeight, 200);
     prompt.style.height = newHeight + 'px';
-    
-    // Restore scroll position if needed
-    if (wasScrolled) {
-        prompt.scrollTop = prompt.scrollHeight - newHeight - scrollBottom;
+
+    // Restore scroll position if needed (keep view at bottom when typing)
+    if (wasScrolled && newHeight >= 200) {
+        prompt.scrollTop = prompt.scrollHeight - prompt.clientHeight;
     }
-    
-    // Adjust mini view position
+
+    // Adjust mini view position based on prompt bar height
     const miniView = document.getElementById('mini-view');
-    if (miniView) {
-        const barHeight = document.querySelector('.prompt-bar').offsetHeight;
+    const promptBar = document.querySelector('.prompt-bar');
+    if (miniView && promptBar) {
+        const barHeight = promptBar.offsetHeight;
         miniView.style.bottom = (barHeight + 20) + 'px';
     }
 }
