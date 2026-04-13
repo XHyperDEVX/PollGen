@@ -1430,7 +1430,7 @@ async function processParallelJob(job, totalJobs, setId) {
     state.activeJobs.set(genId, { job, status: "completed", index, setId });
     
     // Update balance after each successful parallel job
-    if (state.apiKey) updateBalance(state.apiKey);
+    if (state.apiKey) updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
     
     return { success: true, genId };
   } catch (error) {
@@ -1485,7 +1485,7 @@ async function startParallelProcessor(setId, totalJobs) {
     
     // Update balance after all jobs complete
     if (state.apiKey) {
-      await updateBalance(state.apiKey);
+      await updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
     }
 
     // Show summary if there were failures
@@ -2831,7 +2831,7 @@ function setupEventListeners() {
   if (apiKeyInput) {
     apiKeyInput.addEventListener('blur', async () => {
       validateApiKey();
-      await updateBalance(state.apiKey);
+      await updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
     });
 
     // Avoid rate limits: do not call /account/key while typing
@@ -2973,7 +2973,7 @@ function setupEventListeners() {
   window.addEventListener('languageChanged', () => {
       const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
       renderModelOptions(modelsToRender);
-      updateBalance(state.apiKey);
+      updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
   });
   
   // Setup parallel count handlers
@@ -3306,7 +3306,7 @@ function init() {
     if (state.apiKey) {
       const apiKeyInput = document.getElementById('api-key');
       if (apiKeyInput) apiKeyInput.value = state.apiKey;
-      updateBalance(state.apiKey);
+      updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
     } else {
       updateBalance(null);
     }
