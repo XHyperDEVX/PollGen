@@ -25,7 +25,7 @@ const translations = {
     // Profile
     welcomeMessage: 'Hello %s!',
     profileSubtitle: 'What would you like to generate today?',
-    funFactAccountAge: 'Fun fact: You created your Pollinations account %s ago',
+    funFactAccountAge: 'Fun fact: You created your Pollinations Account %s ago',
     timeAgoMinute: '1 minute',
     timeAgoMinutes: '%s minutes',
     timeAgoHour: '1 hour',
