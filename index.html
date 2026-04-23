@@ -161,6 +161,8 @@
         .checkbox-group { display: flex; flex-direction: column; gap: 12px; }
         .checkbox-item { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none; }
         .checkbox-item input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+        .checkbox-item.disabled { opacity: 0.45; cursor: not-allowed; }
+        .checkbox-item.disabled input { cursor: not-allowed; }
 
         /* Premium filter - smaller and less conspicuous */
         .premium-filter {
@@ -943,6 +945,7 @@
             <div class="panel-content">
                 <div class="checkbox-group">
                     <label class="checkbox-item"><input type="checkbox" id="parallel-checkbox" onchange="switchParallelMode(this.checked)"><span data-i18n="parallelModeLabel">Parallel Generation</span></label>
+                    <label class="checkbox-item disabled" id="transparent-option" title="gpt models only."><input type="checkbox" id="transparent" name="transparent" disabled><span data-i18n="transparentBackgroundLabel">Transparent Background</span></label>
                     <label class="checkbox-item"><input type="checkbox" id="performance-mode" name="performance-mode"><span data-i18n="performanceModeLabel">Performance Mode</span></label>
                     <label class="checkbox-item"><input type="checkbox" id="enhance" name="enhance"><span data-i18n="enhanceLabel">Enhance Prompt</span></label>
                     <label class="checkbox-item"><input type="checkbox" id="private" name="private" checked><span data-i18n="privateLabel">Private Mode</span></label>

@@ -547,6 +547,8 @@ function setSidebarControlsEnabled(enabled) {
   customSelects.forEach(select => {
     select.classList.toggle('disabled', !enabled);
   });
+
+  updateTransparentOptionAvailability();
 }
 
 function isApiKeyValidForGeneration() {
@@ -987,6 +989,32 @@ function formatModelPrice(model) {
   return { price: priceStr, currency, textTokenPrice, hasTextTokens: !!textTokenPrice, isVideoModel };
 }
 
+function isTransparentOptionModelSupported(modelName) {
+  return typeof modelName === 'string' && modelName.toLowerCase().startsWith('gpt.');
+}
+
+function updateTransparentOptionAvailability() {
+  const transparentOption = document.getElementById('transparent-option');
+  const transparentCheckbox = document.getElementById('transparent');
+  const modelSelect = document.getElementById('model');
+
+  if (!transparentOption || !transparentCheckbox) return;
+
+  const selectedModel = modelSelect ? modelSelect.value : '';
+  const modelSupported = isTransparentOptionModelSupported(selectedModel);
+  const controlsEnabled = modelSelect ? !modelSelect.disabled : true;
+  const transparentEnabled = modelSupported && controlsEnabled;
+
+  transparentCheckbox.disabled = !transparentEnabled;
+  transparentOption.classList.toggle('disabled', !transparentEnabled);
+
+  if (!transparentEnabled) {
+    transparentCheckbox.checked = false;
+  }
+
+  transparentOption.title = modelSupported ? '' : i18n.t('gptModelsOnlyTooltip');
+}
+
 function renderModelOptions(models, forceReset = false) {
   const select = document.getElementById('model');
   const modelPopover = document.getElementById('model-popover');
@@ -1024,6 +1052,7 @@ function renderModelOptions(models, forceReset = false) {
     select.value = '';
     const costText = document.getElementById('cost-text');
     if (costText) costText.textContent = '0';
+    updateTransparentOptionAvailability();
     return;
   }
   
@@ -1119,6 +1148,7 @@ function renderModelOptions(models, forceReset = false) {
       updateCostDisplay(model);
       modelPopover.classList.remove('visible');
       updateUploadUI();
+      updateTransparentOptionAvailability();
     };
     modelPopover.appendChild(item);
   });
@@ -1151,6 +1181,8 @@ function renderModelOptions(models, forceReset = false) {
     updateCostDisplay(sortedModels[0]);
     modelPopover.querySelector('.popover-item')?.classList.add('selected');
   }
+
+  updateTransparentOptionAvailability();
 }
 
 function stringToColor(str) {
@@ -1250,6 +1282,7 @@ async function generateImage(payload) {
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
+  if (payload.transparent) params.append('transparent', 'true');
   if (payload.image) params.append('image', payload.image);
   
   const url = `${endpoint}?${params.toString()}`;
@@ -1291,6 +1324,7 @@ async function generateVideo(payload) {
   if (payload.nologo) params.append('nologo', 'true');
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
+  if (payload.transparent) params.append('transparent', 'true');
   if (payload.image) params.append('image', payload.image);
 
   const url = `${endpoint}?${params.toString()}`;
@@ -1706,7 +1740,7 @@ function collectPayload() {
   }
 
   // Boolean flags
-  ['enhance', 'private', 'nologo', 'nofeed', 'safe'].forEach(flag => {
+  ['enhance', 'private', 'nologo', 'nofeed', 'safe', 'transparent'].forEach(flag => {
     const checkbox = document.getElementById(flag);
     if (checkbox && checkbox.checked) payload[flag] = true;
   });
@@ -3314,6 +3348,7 @@ function init() {
   setupEventListeners();
   setupImageUploadHandlers();
   updateUploadUI();
+  updateTransparentOptionAvailability();
   adjustPromptHeight();
 
   window.addEventListener('resize', scheduleImageCardResize);
