@@ -990,7 +990,7 @@ function formatModelPrice(model) {
 }
 
 function isTransparentOptionModelSupported(modelName) {
-  return typeof modelName === 'string' && modelName.toLowerCase().startsWith('gpt.');
+  return typeof modelName === 'string' && modelName.toLowerCase().startsWith('gpt');
 }
 
 function updateTransparentOptionAvailability() {
