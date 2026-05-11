@@ -39,12 +39,15 @@ const state = {
   currentSetId: null, // ID of current parallel set
   currentSetJobs: 0, // Number of jobs in current set
   // Image upload state
-  uploadedImageUrl: null, // URL of uploaded image
-  uploadedImageId: null, // Media server ID for uploaded image
-  uploadedImageFile: null, // Original file for thumbnail display
-  isUploading: false, // Upload in progress flag
-  isDeletingUpload: false, // Delete in progress flag
+  uploadSlots: Array.from({ length: 2 }, () => ({
+    uploadedImageUrl: null,
+    uploadedImageId: null,
+    uploadedImageFile: null,
+    isUploading: false,
+    isDeletingUpload: false
+  })),
   performanceMode: false, // Performance mode flag
+  activeLoadingScopes: 0,
   generationStartTimes: new Map(),
   timerIntervals: new Map()
 };
@@ -73,56 +76,92 @@ function isImageUploadSupported() {
   return inputModalities.includes('image');
 }
 
+const UPLOAD_SLOT_COUNT = state.uploadSlots.length;
+
+function getUploadSlotState(slotIndex = 0) {
+  if (slotIndex < 0 || slotIndex >= state.uploadSlots.length) return null;
+  return state.uploadSlots[slotIndex];
+}
+
+function getUploadSlotSuffix(slotIndex = 0) {
+  return slotIndex === 0 ? '' : `-${slotIndex + 1}`;
+}
+
+function getUploadElement(baseId, slotIndex = 0) {
+  return document.getElementById(`${baseId}${getUploadSlotSuffix(slotIndex)}`);
+}
+
+function forEachUploadSlot(callback) {
+  for (let slotIndex = 0; slotIndex < UPLOAD_SLOT_COUNT; slotIndex += 1) {
+    callback(slotIndex, getUploadSlotState(slotIndex));
+  }
+}
+
+function getUploadedImageUrls() {
+  return state.uploadSlots
+    .map(slot => slot?.uploadedImageUrl)
+    .filter(Boolean);
+}
+
+function getNextAvailableUploadSlotIndex() {
+  const emptyIndex = state.uploadSlots.findIndex(slot =>
+    slot && !slot.uploadedImageUrl && !slot.isUploading && !slot.isDeletingUpload
+  );
+  return emptyIndex >= 0 ? emptyIndex : 0;
+}
+
 function updateUploadUI() {
-  const uploadIcon = document.getElementById('upload-icon');
-  const uploadIconContainer = document.getElementById('upload-icon-container');
-  const thumbnailWrapper = document.getElementById('upload-thumbnail-wrapper');
-  
-  if (!uploadIcon || !uploadIconContainer) return;
-  
   const supported = isImageUploadSupported();
   const hasValidKey = isApiKeyValidForGeneration();
 
-  if (!supported) {
-    if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
-    uploadIconContainer.style.display = 'none';
-    return;
-  }
-  
-  if (state.isUploading || state.uploadedImageUrl) {
-    if (thumbnailWrapper) thumbnailWrapper.classList.add('visible');
-    uploadIconContainer.style.display = 'none';
-  } else {
-    if (thumbnailWrapper) thumbnailWrapper.classList.remove('visible');
-    uploadIconContainer.style.display = 'flex';
-    
-    if (hasValidKey) {
-      uploadIcon.classList.remove('disabled');
-      uploadIcon.style.cursor = 'pointer';
-    } else {
-      uploadIcon.classList.add('disabled');
-      uploadIcon.style.cursor = 'not-allowed';
+  forEachUploadSlot((slotIndex, slot) => {
+    const uploadIcon = getUploadElement('upload-icon', slotIndex);
+    const uploadIconContainer = getUploadElement('upload-icon-container', slotIndex);
+    const thumbnailWrapper = getUploadElement('upload-thumbnail-wrapper', slotIndex);
+
+    if (!uploadIcon || !uploadIconContainer || !thumbnailWrapper || !slot) return;
+
+    if (!supported) {
+      thumbnailWrapper.classList.remove('visible');
+      uploadIconContainer.style.display = 'none';
+      return;
     }
-  }
+
+    if (slot.isUploading || slot.uploadedImageUrl) {
+      thumbnailWrapper.classList.add('visible');
+      uploadIconContainer.style.display = 'none';
+    } else {
+      thumbnailWrapper.classList.remove('visible');
+      uploadIconContainer.style.display = 'flex';
+
+      if (hasValidKey) {
+        uploadIcon.classList.remove('disabled');
+        uploadIcon.style.cursor = 'pointer';
+      } else {
+        uploadIcon.classList.add('disabled');
+        uploadIcon.style.cursor = 'not-allowed';
+      }
+    }
+  });
 }
 
-function showUploadProgress(show) {
-  const progressEl = document.getElementById('upload-progress');
+function showUploadProgress(show, slotIndex = 0) {
+  const progressEl = getUploadElement('upload-progress', slotIndex);
   if (progressEl) {
     progressEl.style.display = show ? 'flex' : 'none';
   }
 }
 
-function showDeleteProgress(show) {
-  const progressEl = document.getElementById('upload-delete-progress');
+function showDeleteProgress(show, slotIndex = 0) {
+  const progressEl = getUploadElement('upload-delete-progress', slotIndex);
   if (progressEl) {
     progressEl.style.display = show ? 'flex' : 'none';
   }
 }
 
-function setUploadThumbnailFromUrl(url) {
-  const thumbnail = document.getElementById('upload-thumbnail');
-  const preview = document.getElementById('upload-thumbnail-preview');
+function setUploadThumbnailFromUrl(url, slotIndex = 0) {
+  const thumbnail = getUploadElement('upload-thumbnail', slotIndex);
+  const preview = getUploadElement('upload-thumbnail-preview', slotIndex);
   const src = url || '';
   const hasSrc = Boolean(url);
 
@@ -136,39 +175,55 @@ function setUploadThumbnailFromUrl(url) {
   }
 }
 
-function clearUploadedImage() {
-  state.uploadedImageUrl = null;
-  state.uploadedImageId = null;
-  state.uploadedImageFile = null;
-  state.isUploading = false;
-  state.isDeletingUpload = false;
+function resetUploadSlot(slotIndex = 0) {
+  const slot = getUploadSlotState(slotIndex);
+  if (!slot) return;
 
-  setUploadThumbnailFromUrl('');
-  showUploadProgress(false);
-  showDeleteProgress(false);
-  
-  const fileInput = document.getElementById('image-upload-input');
+  slot.uploadedImageUrl = null;
+  slot.uploadedImageId = null;
+  slot.uploadedImageFile = null;
+  slot.isUploading = false;
+  slot.isDeletingUpload = false;
+
+  setUploadThumbnailFromUrl('', slotIndex);
+  showUploadProgress(false, slotIndex);
+  showDeleteProgress(false, slotIndex);
+
+  const fileInput = getUploadElement('image-upload-input', slotIndex);
   if (fileInput) fileInput.value = '';
-  
+}
+
+function clearUploadedImage(slotIndex = null) {
+  if (slotIndex === null || slotIndex === undefined) {
+    forEachUploadSlot((index) => {
+      resetUploadSlot(index);
+    });
+  } else {
+    resetUploadSlot(slotIndex);
+  }
+
   updateUploadUI();
 }
 
-async function deleteUploadedImage() {
-  const uploadId = state.uploadedImageId;
+async function deleteUploadedImage(slotIndex = 0) {
+  const slot = getUploadSlotState(slotIndex);
+  if (!slot) return;
+
+  const uploadId = slot.uploadedImageId;
 
   if (!uploadId) {
-    clearUploadedImage();
+    clearUploadedImage(slotIndex);
     return;
   }
 
   if (!state.apiKey) {
     setStatus(i18n.t('uploadErrorAuth'), 'error');
-    clearUploadedImage();
+    clearUploadedImage(slotIndex);
     return;
   }
 
-  state.isDeletingUpload = true;
-  showDeleteProgress(true);
+  slot.isDeletingUpload = true;
+  showDeleteProgress(true, slotIndex);
 
   try {
     const response = await fetch(`https://media.pollinations.ai/${encodeURIComponent(uploadId)}`, {
@@ -191,7 +246,7 @@ async function deleteUploadedImage() {
     console.error('Delete upload error:', error);
     setStatus(i18n.t('uploadErrorNetwork'), 'error');
   } finally {
-    clearUploadedImage();
+    clearUploadedImage(slotIndex);
   }
 }
 
@@ -199,15 +254,15 @@ function validateImageFile(file) {
   if (!file) {
     return { valid: false, error: i18n.t('uploadErrorGeneric') };
   }
-  
+
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     return { valid: false, error: i18n.t('uploadErrorFileType') };
   }
-  
+
   if (file.size > MAX_FILE_SIZE) {
     return { valid: false, error: i18n.t('uploadErrorFileSize') };
   }
-  
+
   return { valid: true };
 }
 
@@ -243,29 +298,36 @@ function getUploadIdFromResponse(data) {
   return null;
 }
 
-async function uploadImageToPollinationsMedia(file) {
+function generateRandomFilename() {
+  return `pollgen-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function uploadImageToPollinationsMedia(file, slotIndex = 0) {
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
     return null;
   }
-  
+
   if (!state.apiKey) {
     setStatus(i18n.t('uploadErrorAuth'), 'error');
     return null;
   }
-  
-  state.isUploading = true;
-  showUploadProgress(true);
+
+  const slot = getUploadSlotState(slotIndex);
+  if (!slot) return null;
+
+  slot.isUploading = true;
+  showUploadProgress(true, slotIndex);
   updateUploadUI();
-  
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-    
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     const formData = new FormData();
     formData.append('file', file, file.name || `${generateRandomFilename()}.jpg`);
-    
+
     const response = await fetch('https://media.pollinations.ai/upload', {
       method: 'POST',
       headers: {
@@ -274,9 +336,9 @@ async function uploadImageToPollinationsMedia(file) {
       body: formData,
       signal: controller.signal
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       console.error('Upload failed:', response.status);
       if (response.status === 401 || response.status === 403) {
@@ -288,117 +350,121 @@ async function uploadImageToPollinationsMedia(file) {
       }
       return null;
     }
-    
+
     let data = null;
     try {
       data = await response.json();
     } catch (error) {
       console.warn('Upload response did not include JSON:', error);
     }
-    
-    state.uploadedImageId = getUploadIdFromResponse(data);
-    
+
+    slot.uploadedImageId = getUploadIdFromResponse(data);
+
     const uploadUrl = getUploadUrlFromResponse(data);
     if (uploadUrl) {
       return uploadUrl;
     }
-    
+
     console.error('Upload succeeded but could not determine file URL');
     setStatus(i18n.t('uploadErrorServer'), 'error');
     return null;
   } catch (error) {
     console.error('Upload error:', error);
-    
+
     if (error.name === 'AbortError' || error.name === 'TypeError') {
       setStatus(i18n.t('uploadErrorNetwork'), 'error');
     } else {
       setStatus(i18n.t('uploadErrorGeneric'), 'error');
     }
-    
+
     return null;
   } finally {
-    state.isUploading = false;
-    showUploadProgress(false);
+    slot.isUploading = false;
+    showUploadProgress(false, slotIndex);
     updateUploadUI();
   }
 }
 
-async function handleImageUpload(file) {
+async function handleImageUpload(file, slotIndex = 0) {
   if (!isImageUploadSupported()) {
     setStatus(i18n.t('uploadErrorGeneric'), 'error');
     return;
   }
-  
+
   if (!state.apiKey) {
     setStatus(i18n.t('uploadErrorAuth'), 'error');
     return;
   }
-  
+
   const validation = validateImageFile(file);
   if (!validation.valid) {
     setStatus(validation.error, 'error');
     return;
   }
 
-  state.uploadedImageUrl = null;
-  state.uploadedImageId = null;
-  state.uploadedImageFile = null;
-  setUploadThumbnailFromUrl('');
+  const slot = getUploadSlotState(slotIndex);
+  if (!slot) return;
+
+  slot.uploadedImageUrl = null;
+  slot.uploadedImageId = null;
+  slot.uploadedImageFile = null;
+  setUploadThumbnailFromUrl('', slotIndex);
   updateUploadUI();
-  
-  const url = await uploadImageToPollinationsMedia(file);
-  
+
+  const url = await uploadImageToPollinationsMedia(file, slotIndex);
+
   if (url) {
-    state.uploadedImageUrl = url;
-    state.uploadedImageFile = null;
-    setUploadThumbnailFromUrl(url);
+    slot.uploadedImageUrl = url;
+    slot.uploadedImageFile = null;
+    setUploadThumbnailFromUrl(url, slotIndex);
     setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
     updateUploadUI();
   } else {
-    clearUploadedImage();
+    clearUploadedImage(slotIndex);
   }
 }
 
 function setupImageUploadHandlers() {
-  const uploadIcon = document.getElementById('upload-icon');
-  const uploadIconContainer = document.getElementById('upload-icon-container');
-  const fileInput = document.getElementById('image-upload-input');
-  const deleteBtn = document.getElementById('upload-thumbnail-delete');
-  
-  if (uploadIconContainer) {
-    uploadIconContainer.addEventListener('click', () => {
-      if (!state.apiKey) {
-        setStatus(i18n.t('uploadErrorAuth'), 'error');
-        return;
-      }
-      if (isImageUploadSupported() && !state.isUploading) {
-        // Check if user has consented to external upload
-        if (!state.uploadConsent) {
-          showUploadConsentPopup(() => {
-            fileInput?.click();
-          });
-        } else {
-          fileInput?.click();
+  forEachUploadSlot((slotIndex, slot) => {
+    const uploadIconContainer = getUploadElement('upload-icon-container', slotIndex);
+    const fileInput = getUploadElement('image-upload-input', slotIndex);
+    const deleteBtn = getUploadElement('upload-thumbnail-delete', slotIndex);
+
+    if (uploadIconContainer) {
+      uploadIconContainer.addEventListener('click', () => {
+        if (!state.apiKey) {
+          setStatus(i18n.t('uploadErrorAuth'), 'error');
+          return;
         }
-      }
-    });
-  }
-  
-  if (fileInput) {
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        handleImageUpload(file);
-      }
-    });
-  }
-  
-  if (deleteBtn) {
-    deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteUploadedImage();
-    });
-  }
+
+        if (isImageUploadSupported() && slot && !slot.isUploading) {
+          if (!state.uploadConsent) {
+            showUploadConsentPopup(() => {
+              fileInput?.click();
+            });
+          } else {
+            fileInput?.click();
+          }
+        }
+      });
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          handleImageUpload(file, slotIndex);
+        }
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteUploadedImage(slotIndex);
+      });
+    }
+  });
 }
 
 function showUploadConsentPopup(onConfirm) {
@@ -552,9 +618,12 @@ function refreshGenerateButtonState() {
   const hasPrompt = hasPromptForGeneration();
   const canGenerate = hasValidKey && hasModels && hasModel && hasPrompt;
   const hasParallelJobs = hasParallelJobsInFlight();
-  const allowQueueAdd = state.parallelMode && hasParallelJobs && canGenerate;
+  const allowQueueAdd = canGenerate && (
+    (state.parallelMode && hasParallelJobs) ||
+    (!state.parallelMode && state.isGenerating)
+  );
 
-  generateBtn.disabled = !canGenerate || (state.isGenerating && !allowQueueAdd);
+  generateBtn.disabled = !canGenerate || (state.parallelMode && state.isGenerating && !allowQueueAdd);
 
   const noun = i18n.t(isVideoMode ? 'videosLabel' : 'imagesLabel');
 
@@ -975,7 +1044,10 @@ function updateModeAvailability() {
   setModeButtonAvailability('video', videoAvailable);
 
   if (!imageAvailable && !videoAvailable) {
+    const fallbackActiveMode = state.currentMode || 'image';
     document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+    const activeButton = document.getElementById(`mode-${fallbackActiveMode}`) || document.getElementById('mode-image');
+    if (activeButton) activeButton.classList.add('active');
   }
 
   const currentAvailable = hasSelectableModelsForMode(state.currentMode);
@@ -1398,9 +1470,7 @@ function updateCostDisplay(model) {
   costText.textContent = formatCostValue(totalCost);
 
   if (costMeta) {
-    if (state.parallelMode && generationCount > 1) {
-      costMeta.textContent = i18n.t('costMetaParallel', [generationCount, generationUnit]);
-    } else if (isVideoMode && priceInfo.isVideoModel) {
+    if (isVideoMode && priceInfo.isVideoModel) {
       costMeta.textContent = i18n.t('costMetaVideo', [duration]);
     } else {
       costMeta.textContent = i18n.t('costMetaImage');
@@ -1446,7 +1516,11 @@ async function generateImage(payload) {
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
   if (payload.transparent) params.append('transparent', 'true');
-  if (payload.image) params.append('image', payload.image);
+  if (Array.isArray(payload.images) && payload.images.length > 0) {
+    payload.images.forEach(imageUrl => params.append('image', imageUrl));
+  } else if (payload.image) {
+    params.append('image', payload.image);
+  }
   
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
@@ -1488,7 +1562,11 @@ async function generateVideo(payload) {
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
   if (payload.transparent) params.append('transparent', 'true');
-  if (payload.image) params.append('image', payload.image);
+  if (Array.isArray(payload.images) && payload.images.length > 0) {
+    payload.images.forEach(imageUrl => params.append('image', imageUrl));
+  } else if (payload.image) {
+    params.append('image', payload.image);
+  }
 
   const url = `${endpoint}?${params.toString()}`;
   const response = await fetch(url, {
@@ -1884,9 +1962,14 @@ function collectPayload() {
   if (negativePromptInput && negativePromptInput.value.trim()) {
       payload.negative_prompt = negativePromptInput.value.trim();
   }
-  // Include uploaded image URL for image-to-image generation
-  if (state.uploadedImageUrl && mode === 'image' && isImageUploadSupported()) {
-    payload.image = state.uploadedImageUrl;
+  // Include uploaded image URLs for image-to-image generation
+  if (mode === 'image' && isImageUploadSupported()) {
+    const uploadedImageUrls = getUploadedImageUrls();
+    if (uploadedImageUrls.length === 1) {
+      payload.image = uploadedImageUrls[0];
+    } else if (uploadedImageUrls.length > 1) {
+      payload.images = uploadedImageUrls;
+    }
   }
 
   // Boolean flags
@@ -2104,9 +2187,15 @@ function stopFireflyTicker() {
 }
 
 function toggleLoading(isLoading) {
-  state.isGenerating = isLoading;
+  if (isLoading) {
+    state.activeLoadingScopes += 1;
+  } else {
+    state.activeLoadingScopes = Math.max(0, state.activeLoadingScopes - 1);
+  }
 
-  if (!isLoading) {
+  state.isGenerating = state.activeLoadingScopes > 0;
+
+  if (!state.isGenerating) {
     stopAllFireflyTickers();
   }
 
@@ -2930,23 +3019,18 @@ function adjustPromptHeight() {
     const prompt = document.getElementById('prompt');
     if (!prompt) return;
 
-    // Store scroll position if textarea has overflow
     const wasScrolled = prompt.scrollTop > 0;
-    const scrollBottom = prompt.scrollHeight - prompt.scrollTop - prompt.clientHeight;
+    const minPromptHeight = 48;
 
-    // Reset height to auto to get natural scrollHeight
     prompt.style.height = 'auto';
 
-    // Calculate new height, capped at max-height (200px)
-    const newHeight = Math.min(prompt.scrollHeight, 200);
+    const newHeight = Math.max(minPromptHeight, Math.min(prompt.scrollHeight, 200));
     prompt.style.height = newHeight + 'px';
 
-    // Restore scroll position if needed (keep view at bottom when typing)
     if (wasScrolled && newHeight >= 200) {
         prompt.scrollTop = prompt.scrollHeight - prompt.clientHeight;
     }
 
-    // Adjust mini view position based on prompt bar height
     const miniView = document.getElementById('mini-view');
     const promptBar = document.querySelector('.prompt-bar');
     if (miniView && promptBar) {
@@ -3070,8 +3154,6 @@ function setupEventListeners() {
           if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }, 50);
 
-      toggleLoading(true);
-      setStatus('', '');
       toggleLoading(true);
       setStatus('', '');
       try {
@@ -3266,13 +3348,14 @@ function setupContextMenu() {
         const blob = await response.blob();
         const genId = contextMenuTarget?.id?.replace('gen-card-', '') || Date.now();
         const file = new File([blob], `reference-${genId}.png`, { type: blob.type || 'image/png' });
+        const targetSlotIndex = getNextAvailableUploadSlotIndex();
 
         if (!state.uploadConsent) {
           showUploadConsentPopup(() => {
-            handleImageUpload(file);
+            handleImageUpload(file, targetSlotIndex);
           });
         } else {
-          await handleImageUpload(file);
+          await handleImageUpload(file, targetSlotIndex);
         }
       } catch (error) {
         console.error('Failed to use image as reference:', error);
@@ -3433,6 +3516,14 @@ function init() {
   if (activeBtn) activeBtn.classList.add('active');
 
   pinApiKeyFooter();
+
+  if (typeof window.switchMode === 'function') {
+    window.switchMode('image');
+  } else {
+    state.currentMode = 'image';
+    const modeInput = document.getElementById('mode');
+    if (modeInput) modeInput.value = 'image';
+  }
 
   // Default disabled until validated
   setGenerateButtonEnabled(false);
