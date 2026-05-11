@@ -14,6 +14,7 @@ const state = {
   currentMode: 'image', // 'image' or 'video'
   currentImage: null,
   isGenerating: false,
+  generateEnabled: false,
   imageHistory: [],
   videoHistory: [],
   allowedModels: null, // For filtering models based on API key permissions
@@ -501,37 +502,115 @@ async function validateApiKeyInfo(apiKey) {
   }
 }
 
-async function fetchBalance(apiKey) {
-  try {
-    const response = await fetch('https://gen.pollinations.ai/account/balance', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey.trim()}`
-      }
-    });
+function hasPromptForGeneration() {
+  const promptInput = document.getElementById('prompt');
+  return Boolean(promptInput && promptInput.value.trim());
+}
 
-    if (!response.ok) {
-      return null;
+function hasSelectedModelForGeneration() {
+  const modelInput = document.getElementById('model');
+  return Boolean(modelInput && modelInput.value);
+}
+
+function filterModelsByPermissions(models) {
+  if (!Array.isArray(models)) return [];
+
+  if (state.allowedModels === null || state.allowedModels === undefined) {
+    return models;
+  }
+
+  if (Array.isArray(state.allowedModels)) {
+    if (state.allowedModels.length === 0) return [];
+    return models.filter(model => state.allowedModels.includes(model.name));
+  }
+
+  return models;
+}
+
+function hasSelectableModelsForMode(mode = state.currentMode) {
+  const models = mode === 'video' ? state.videoModels : state.models;
+  return filterModelsByPermissions(models).length > 0;
+}
+
+function hasParallelJobsInFlight() {
+  return state.parallelQueue.length > 0 || state.activeJobs.size > 0;
+}
+
+function refreshGenerateButtonState() {
+  const generateBtn = document.getElementById('generate-btn');
+  if (!generateBtn) return;
+
+  const modeInput = document.getElementById('mode');
+  const isVideoMode = modeInput && modeInput.value === 'video';
+  const btnText = document.getElementById('generate-btn-text');
+  const btnSubtext = document.getElementById('generate-btn-subtext');
+  const btnStatus = document.getElementById('generate-btn-status');
+
+  const hasValidKey = state.generateEnabled && isApiKeyValidForGeneration();
+  const hasModels = hasSelectableModelsForMode(state.currentMode);
+  const hasModel = hasSelectedModelForGeneration();
+  const hasPrompt = hasPromptForGeneration();
+  const canGenerate = hasValidKey && hasModels && hasModel && hasPrompt;
+  const hasParallelJobs = hasParallelJobsInFlight();
+  const allowQueueAdd = state.parallelMode && hasParallelJobs && canGenerate;
+
+  generateBtn.disabled = !canGenerate || (state.isGenerating && !allowQueueAdd);
+
+  const noun = i18n.t(isVideoMode ? 'videosLabel' : 'imagesLabel');
+
+  if (btnText) {
+    if (state.isGenerating && !allowQueueAdd) {
+      btnText.textContent = isVideoMode ? i18n.t('generatingVideoLabel') : i18n.t('generatingLabel');
+    } else if (allowQueueAdd) {
+      btnText.textContent = i18n.t('queueAddLabel');
+    } else if (state.parallelMode && state.parallelCount > 1) {
+      btnText.textContent = i18n.t('generateBatchBtn', [state.parallelCount, noun]);
+    } else {
+      btnText.textContent = isVideoMode ? i18n.t('generateVideoBtn') : i18n.t('generateBtn');
     }
+  }
 
-    const data = await response.json();
-    return data.balance;
-  } catch (error) {
-    console.log('Balance API call failed:', error.message);
-    return null;
+  if (btnSubtext) {
+    if (!hasValidKey) {
+      btnSubtext.textContent = i18n.t('generateStateMissingKey');
+    } else if (!hasModels) {
+      btnSubtext.textContent = i18n.t('generateStateNoModels');
+    } else if (!hasModel) {
+      btnSubtext.textContent = i18n.t('statusModelMissing');
+    } else if (!hasPrompt) {
+      btnSubtext.textContent = i18n.t('generateStateAddPrompt');
+    } else if (state.parallelMode && hasParallelJobs) {
+      btnSubtext.textContent = i18n.t('queueStatus', [state.activeJobs.size, state.parallelQueue.length]);
+    } else if (state.parallelMode && state.parallelCount > 1) {
+      btnSubtext.textContent = i18n.t('parallelReady', [state.parallelCount, noun]);
+    } else {
+      btnSubtext.textContent = i18n.t('generateReady');
+    }
+  }
+
+  if (btnStatus) {
+    if (state.parallelMode && hasParallelJobs) {
+      btnStatus.textContent = `${state.activeJobs.size + state.parallelQueue.length}`;
+      btnStatus.classList.add('visible');
+    } else if (state.parallelMode && state.parallelCount > 1) {
+      btnStatus.textContent = `×${state.parallelCount}`;
+      btnStatus.classList.add('visible');
+    } else {
+      btnStatus.textContent = '';
+      btnStatus.classList.remove('visible');
+    }
+  }
+
+  if (state.isGenerating || (state.parallelMode && hasParallelJobs)) {
+    generateBtn.classList.add('loading');
+  } else {
+    generateBtn.classList.remove('loading');
   }
 }
 
 function setGenerateButtonEnabled(enabled) {
-  const generateBtn = document.getElementById('generate-btn');
-  if (!generateBtn) return;
-
-  if (state.isGenerating) {
-    generateBtn.disabled = true;
-    return;
-  }
-
-  generateBtn.disabled = !enabled;
+  state.generateEnabled = Boolean(enabled);
+  refreshGenerateButtonState();
 }
 
 function setSidebarControlsEnabled(enabled) {
@@ -549,6 +628,8 @@ function setSidebarControlsEnabled(enabled) {
   });
 
   updateTransparentOptionAvailability();
+  updateModeAvailability();
+  refreshGenerateButtonState();
 }
 
 function isApiKeyValidForGeneration() {
@@ -616,7 +697,7 @@ async function updateBalance(apiKey, forceReload = false) {
   setGenerateButtonEnabled(true);
   updateLoginButtonState(true);
 
-  if (keyInfo.permissions && keyInfo.permissions.models) {
+  if (Object.prototype.hasOwnProperty.call(keyInfo.permissions || {}, 'models')) {
     state.allowedModels = keyInfo.permissions.models;
   } else {
     state.allowedModels = null;
@@ -624,54 +705,46 @@ async function updateBalance(apiKey, forceReload = false) {
 
   setSidebarControlsEnabled(true);
   if (isKeyChanged || forceReload) {
-  await loadModels();
+    await loadModels();
 
-  // Check for profile permission and fetch profile
-  const hasProfilePermission =
-    keyInfo.permissions &&
-    keyInfo.permissions.account &&
-    keyInfo.permissions.account.includes('profile');
+    const hasProfilePermission =
+      keyInfo.permissions &&
+      keyInfo.permissions.account &&
+      keyInfo.permissions.account.includes('profile');
 
-  if (hasProfilePermission) {
-    const profile = await fetchProfile(trimmedKey);
-    if (state.apiKey === trimmedKey && profile) {
-      state.profile = profile;
-      displayProfile(profile);
+    if (hasProfilePermission) {
+      const profile = await fetchProfile(trimmedKey);
+      if (state.apiKey === trimmedKey && profile) {
+        state.profile = profile;
+        displayProfile(profile);
+      }
+    } else {
+      state.profile = null;
+      displayProfile(null);
     }
-  } else {
-    state.profile = null;
-    displayProfile(null);
   }
-  }
-
-  const hasBalancePermission =
-    keyInfo.permissions &&
-    keyInfo.permissions.account &&
-    keyInfo.permissions.account.includes('balance');
-
-  if (!hasBalancePermission) {
-    apiKeyHint.textContent = i18n.t('balancePermissionError');
-    updateUploadUI();
-    return;
-  }
-
-  const balance = await fetchBalance(trimmedKey);
 
   if (state.apiKey !== trimmedKey) return;
 
-  if (typeof balance === 'number' && !isNaN(balance)) {
-    const formattedBalance = formatBalanceDisplay(balance);
-    let displayText = `${formattedBalance} ${i18n.t('balanceRemaining')}`;
+  let displayText = i18n.t('balanceUnavailable');
+  const budget = keyInfo.pollenBudget;
 
-    if (keyInfo.expiresIn !== null && keyInfo.expiresIn !== undefined) {
-      displayText += ` • ${formatExpirationTime(keyInfo.expiresIn)}`;
-    }
-
-    apiKeyHint.textContent = displayText;
+  if (budget === null) {
+    displayText = i18n.t('balanceUnlimited');
   } else {
-    apiKeyHint.textContent = i18n.t('balancePermissionError');
+    const numericBudget = Number(budget);
+    if (Number.isFinite(numericBudget)) {
+      displayText = `${formatBalanceDisplay(numericBudget)} ${i18n.t('balanceRemaining')}`;
+    }
   }
+
+  if (keyInfo.expiresIn !== null && keyInfo.expiresIn !== undefined) {
+    displayText += ` • ${formatExpirationTime(keyInfo.expiresIn)}`;
+  }
+
+  apiKeyHint.textContent = displayText;
   updateUploadUI();
+  refreshGenerateButtonState();
 }
 
 // ============================================================================
@@ -866,6 +939,58 @@ function getCachedModels() {
   }
 }
 
+function setModelSelectEnabled(enabled) {
+  const modelSelect = document.getElementById('model');
+  const modelButton = document.getElementById('model-select-btn');
+
+  if (modelSelect) {
+    modelSelect.disabled = !enabled;
+  }
+
+  if (modelButton) {
+    modelButton.classList.toggle('disabled', !enabled);
+  }
+}
+
+function setModeButtonAvailability(mode, isAvailable) {
+  const button = document.getElementById(`mode-${mode}`);
+  if (!button) return;
+
+  const shouldDisable = !isAvailable || !state.generateEnabled;
+  button.disabled = shouldDisable;
+  button.classList.toggle('disabled', shouldDisable);
+
+  if (!isAvailable) {
+    button.title = i18n.t('modeUnavailableHint');
+  } else {
+    button.removeAttribute('title');
+  }
+}
+
+function updateModeAvailability() {
+  const imageAvailable = hasSelectableModelsForMode('image');
+  const videoAvailable = hasSelectableModelsForMode('video');
+
+  setModeButtonAvailability('image', imageAvailable);
+  setModeButtonAvailability('video', videoAvailable);
+
+  if (!imageAvailable && !videoAvailable) {
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+  }
+
+  const currentAvailable = hasSelectableModelsForMode(state.currentMode);
+  if (!currentAvailable) {
+    const fallbackMode = imageAvailable ? 'image' : (videoAvailable ? 'video' : null);
+
+    if (fallbackMode && fallbackMode !== state.currentMode && typeof window.switchMode === 'function') {
+      window.switchMode(fallbackMode);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function clearModels() {
   state.models = [];
   state.videoModels = [];
@@ -873,6 +998,7 @@ function clearModels() {
   state.allVideoModels = [];
   state.restrictedModels = [];
   state.restrictedVideoModels = [];
+  updateModeAvailability();
   renderModelOptions([]);
   updateUploadUI();
 }
@@ -882,8 +1008,13 @@ function applyActiveModels(forceReset = false) {
   state.models = useAllModels ? state.allModels : state.restrictedModels;
   state.videoModels = useAllModels ? state.allVideoModels : state.restrictedVideoModels;
 
-  const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
-  renderModelOptions(modelsToRender, forceReset);
+  const modeSwitched = updateModeAvailability();
+  if (!modeSwitched) {
+    const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+    renderModelOptions(modelsToRender, forceReset);
+  }
+
+  refreshGenerateButtonState();
   updateUploadUI();
 }
 
@@ -902,10 +1033,13 @@ async function loadModels() {
     publicModels = await fetchModelsFromAPI();
   } catch (error) {
     const cached = getCachedModels();
-    if (cached && cached.imageModels && cached.imageModels.length > 0) {
+    const cachedCount = (cached?.imageModels?.length || 0) + (cached?.videoModels?.length || 0);
+    if (cached && cachedCount > 0) {
       publicModels = cached;
     } else {
       setStatus(i18n.t('modelLoadError'), 'error');
+      clearModels();
+      refreshGenerateButtonState();
       return;
     }
   }
@@ -1025,11 +1159,7 @@ function renderModelOptions(models, forceReset = false) {
   select.innerHTML = '';
   modelPopover.innerHTML = '';
 
-  // Filter models by permissions if allowedModels is set
-  let filteredModels = models;
-  if (state.allowedModels && Array.isArray(state.allowedModels)) {
-    filteredModels = models.filter(model => state.allowedModels.includes(model.name));
-  }
+  const filteredModels = filterModelsByPermissions(models);
 
   const sortedModels = [...filteredModels].sort((a, b) => {
     const isVideoA = a.output_modalities && a.output_modalities.includes('video');
@@ -1049,12 +1179,16 @@ function renderModelOptions(models, forceReset = false) {
     if (currentModelName) {
       currentModelName.textContent = i18n.t('modelPlaceholder');
     }
+    setModelSelectEnabled(false);
     select.value = '';
-    const costText = document.getElementById('cost-text');
-    if (costText) costText.textContent = '0';
+    updateCostDisplay(null);
     updateTransparentOptionAvailability();
+    updateModeAvailability();
+    refreshGenerateButtonState();
     return;
   }
+
+  setModelSelectEnabled(true);
   
   // Calculate max width needed for descriptions
   let maxWidth = 280; // Default minimum width
@@ -1183,6 +1317,8 @@ function renderModelOptions(models, forceReset = false) {
   }
 
   updateTransparentOptionAvailability();
+  updateModeAvailability();
+  refreshGenerateButtonState();
 }
 
 function stringToColor(str) {
@@ -1202,66 +1338,93 @@ window.updateModelOptionsForMode = function(mode) {
   renderModelOptions(modelsToRender, true);
 };
 
+function formatCostValue(value) {
+  if (!Number.isFinite(value) || value <= 0) return '0';
+
+  if (value < 0.01) {
+    return value.toFixed(8).replace(/\.?0+$/, '');
+  }
+  if (value < 1) {
+    return value.toFixed(4).replace(/\.?0+$/, '');
+  }
+  return value.toFixed(2).replace(/\.?0+$/, '');
+}
+
 // Function to update cost display based on currently selected model (exposed to window)
 window.updateCurrentCostDisplay = function() {
   const select = document.getElementById('model');
-  if (!select) return;
+  if (!select) {
+    updateCostDisplay(null);
+    return;
+  }
+
   const currentModelName = select.value;
   const models = state.currentMode === 'video' ? state.videoModels : state.models;
-  const model = models.find(m => m.name === currentModelName);
-  if (model) {
-    updateCostDisplay(model);
-  }
+  const model = models.find(m => m.name === currentModelName) || null;
+  updateCostDisplay(model);
 };
 
 function updateCostDisplay(model) {
   const costText = document.getElementById('cost-text');
-  if (costText) {
-    const priceInfo = formatModelPrice(model);
-    const durationInput = document.getElementById('duration');
-    const modeInput = document.getElementById('mode');
-    const isVideoMode = modeInput && modeInput.value === 'video';
+  const costMeta = document.getElementById('cost-meta');
+  const costBreakdown = document.getElementById('cost-breakdown');
 
-    let price = parseFloat(priceInfo.price) || 0;
+  if (!costText) {
+    refreshGenerateButtonState();
+    return;
+  }
 
-    // For video models, multiply by duration
-    if (isVideoMode && priceInfo.isVideoModel && durationInput) {
-      const duration = parseInt(durationInput.value, 10) || 5;
-      price = price * duration;
-    }
+  const modeInput = document.getElementById('mode');
+  const isVideoMode = modeInput && modeInput.value === 'video';
+  const durationInput = document.getElementById('duration');
+  const duration = Math.max(1, parseInt(durationInput?.value, 10) || 5);
+  const generationCount = state.parallelMode && state.parallelCount > 1 ? state.parallelCount : 1;
+  const generationUnit = i18n.t(isVideoMode ? 'videosLabel' : 'imagesLabel');
 
-    // In parallel mode, multiply by count
-    if (state.parallelMode && state.parallelCount > 1) {
-      price = price * state.parallelCount;
-    }
+  if (!model) {
+    costText.textContent = '0';
+    if (costMeta) costMeta.textContent = i18n.t('costMetaNoModel');
+    if (costBreakdown) costBreakdown.textContent = i18n.t('costBreakdownNoModel');
+    refreshGenerateButtonState();
+    return;
+  }
 
-    // Format the price as decimal (not exponential)
-    let priceStr;
-    if (price === 0) priceStr = '0';
-    else if (price < 0.01) {
-      // For small values, use up to 8 decimal places
-      priceStr = price.toFixed(8).replace(/\.?0+$/, '');
-    } else if (price < 1) {
-      priceStr = price.toFixed(4).replace(/\.?0+$/, '');
+  const priceInfo = formatModelPrice(model);
+  let baseCost = parseFloat(priceInfo.price);
+  if (!Number.isFinite(baseCost)) baseCost = 0;
+
+  const durationMultiplier = isVideoMode && priceInfo.isVideoModel ? duration : 1;
+  const totalCost = baseCost * durationMultiplier * generationCount;
+  costText.textContent = formatCostValue(totalCost);
+
+  if (costMeta) {
+    if (state.parallelMode && generationCount > 1) {
+      costMeta.textContent = i18n.t('costMetaParallel', [generationCount, generationUnit]);
+    } else if (isVideoMode && priceInfo.isVideoModel) {
+      costMeta.textContent = i18n.t('costMetaVideo', [duration]);
     } else {
-      priceStr = price.toFixed(2).replace(/\.?0+$/, '');
+      costMeta.textContent = i18n.t('costMetaImage');
     }
-
-    costText.textContent = priceStr;
   }
+
+  if (costBreakdown) {
+    if (baseCost <= 0) {
+      costBreakdown.textContent = i18n.t('costBreakdownFree');
+    } else {
+      const unitLabel = isVideoMode && priceInfo.isVideoModel ? i18n.t('perSecond') : i18n.t('perImage');
+      let breakdown = `${formatCostValue(baseCost)} ${i18n.t('pollenLabel').toLowerCase()} ${unitLabel}`;
+      if (durationMultiplier > 1) {
+        breakdown += ` × ${duration}s`;
+      }
+      if (generationCount > 1) {
+        breakdown += ` × ${generationCount} ${generationUnit}`;
+      }
+      costBreakdown.textContent = breakdown;
+    }
+  }
+
+  refreshGenerateButtonState();
 }
-
-// Update cost display when model changes (exposed to window)
-window.updateCurrentCostDisplay = function() {
-  const select = document.getElementById('model');
-  if (!select) return;
-  const currentModelName = select.value;
-  const models = state.currentMode === 'video' ? state.videoModels : state.models;
-  const model = models.find(m => m.name === currentModelName);
-  if (model) {
-    updateCostDisplay(model);
-  }
-};
 
 // ============================================================================
 // IMAGE GENERATION
@@ -1381,21 +1544,7 @@ function parseErrorMessage(text, status) {
 // ============================================================================
 
 function updateParallelProgress() {
-  const generateBtn = document.getElementById('generate-btn');
-  const btnText = generateBtn?.querySelector('#generate-btn-text');
-  if (!btnText) return;
-
-  // Only show progress during active parallel generation
-  if (state.parallelMode && state.currentSetJobs > 0) {
-    const activeCount = state.activeJobs.size;
-    const queueCount = state.parallelQueue.length;
-    const total = state.currentSetJobs;
-    const completed = state.completedCount;
-    
-    if (total > 1) {
-      btnText.textContent = i18n.t('generatingProgress', [completed + 1, total]);
-    }
-  }
+  refreshGenerateButtonState();
 }
 
 function addParallelStatusBadge(card, status, jobIndex, totalJobs) {
@@ -1640,6 +1789,7 @@ function updateCountUnitLabel() {
 
 // Expose updateCountUnitLabel to window for inline mode switch
 window.updateCountUnitLabel = updateCountUnitLabel;
+window.refreshGenerateButtonState = refreshGenerateButtonState;
 
 function updateParallelCount(delta) {
   const countEl = document.getElementById('parallel-count');
@@ -1955,37 +2105,12 @@ function stopFireflyTicker() {
 
 function toggleLoading(isLoading) {
   state.isGenerating = isLoading;
-  const generateBtn = document.getElementById('generate-btn');
-  const modeInput = document.getElementById('mode');
-  const isVideoMode = modeInput && modeInput.value === 'video';
 
   if (!isLoading) {
     stopAllFireflyTickers();
   }
 
-  if (generateBtn) {
-    // In parallel mode, keep the button enabled but show loading state
-    if (state.parallelMode && (state.parallelQueue.length > 0 || state.activeJobs.size > 0)) {
-      generateBtn.disabled = false; // Allow clicking to add more jobs
-    } else {
-      generateBtn.disabled = isLoading || !isApiKeyValidForGeneration();
-    }
-
-    const btnText = generateBtn.querySelector('#generate-btn-text');
-    if (btnText) {
-      const hasJobs = state.parallelQueue.length > 0 || state.activeJobs.size > 0;
-      if (isLoading || (state.parallelMode && hasJobs)) {
-        btnText.textContent = isVideoMode ? i18n.t('generatingVideoLabel') : i18n.t('generatingLabel');
-      } else {
-        btnText.textContent = isVideoMode ? i18n.t('generateVideoBtn') : i18n.t('generateBtn');
-      }
-    }
-    if (isLoading || (state.parallelMode && (state.parallelQueue.length > 0 || state.activeJobs.size > 0))) {
-      generateBtn.classList.add('loading');
-    } else {
-      generateBtn.classList.remove('loading');
-    }
-  }
+  refreshGenerateButtonState();
 }
 
 let imageCardResizeRaf = null;
@@ -2988,7 +3113,10 @@ function setupEventListeners() {
 
   const promptInput = document.getElementById('prompt');
   if (promptInput) {
-    promptInput.addEventListener('input', adjustPromptHeight);
+    promptInput.addEventListener('input', () => {
+      adjustPromptHeight();
+      refreshGenerateButtonState();
+    });
     promptInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
             e.preventDefault();
@@ -3367,7 +3495,7 @@ if (document.readyState === 'loading') {
 
 function initiateOAuthLogin() {
   const redirectUrl = window.location.href.split('#')[0]; // Remove any existing hash
-  const authUrl = `https://enter.pollinations.ai/authorize?redirect_url=${encodeURIComponent(redirectUrl)}&client_id=pk_ZWDXoNBfRRBS7AEN&scope=profile,balance&expiry=3&budget=1`;
+  const authUrl = `https://enter.pollinations.ai/authorize?redirect_url=${encodeURIComponent(redirectUrl)}&client_id=pk_ZWDXoNBfRRBS7AEN&scope=profile,usage&expiry=3&budget=1`;
   
   // Redirect in the same tab instead of popup
   window.location.href = authUrl;

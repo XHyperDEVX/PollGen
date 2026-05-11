@@ -361,8 +361,10 @@
         /* Mode Toggle */
         .mode-toggle { display: flex; background: var(--input-bg); border-radius: 8px; padding: 4px; margin-bottom: 16px; border: 1px solid var(--border-subtle); }
         .mode-btn { flex: 1; padding: 10px 12px; border: none; background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer; border-radius: 6px; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .mode-btn:hover { color: var(--text-primary); }
+        .mode-btn:hover:not(:disabled) { color: var(--text-primary); }
         .mode-btn.active { background: var(--accent); color: white; }
+        .mode-btn.disabled,
+        .mode-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
         .mode-btn svg { width: 16px; height: 16px; }
 
         /* Parallel Mode - Count display matching cost display style */
@@ -536,7 +538,7 @@
         .prompt-bar { min-height: 80px; height: auto; max-height: 300px; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: flex-start; gap: 20px; z-index: 60; position: fixed; bottom: 0; left: 360px; right: 0; }
         .prompt-bar:hover, .prompt-bar:focus-within { z-index: 200000; }
         .prompt-input-wrapper { flex: 1; min-height: 52px; max-height: 200px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-start; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; overflow: visible; }
-        .prompt-actions { display: flex; gap: 12px; align-items: center; margin-top: auto; align-self: flex-end; flex-shrink: 0; }
+        .prompt-actions { display: flex; gap: 12px; align-items: stretch; margin-top: auto; align-self: flex-end; flex-shrink: 0; }
         .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
 
         #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: auto; display: block; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; height: auto; min-height: 24px; }
@@ -713,20 +715,91 @@
             to { transform: rotate(360deg); }
         }
 
-        .cost-display { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: var(--text-muted); white-space: nowrap; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 12px; align-self: center; text-align: center; min-width: 70px; }
-        .cost-display .cost-label { font-size: 9px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
-        .cost-display .cost-value { font-size: 12px; font-weight: 600; color: var(--text-secondary); min-width: 40px; text-align: right; font-family: 'SF Mono', 'Monaco', 'Consolas', monospace; }
-        .cost-display .cost-unit { font-size: 9px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .cost-display {
+            min-width: 220px;
+            max-width: 280px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(155deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-self: stretch;
+            justify-content: center;
+        }
+        .cost-display .cost-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .cost-display .cost-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.7); font-weight: 600; }
+        .cost-display .cost-meta { font-size: 11px; color: var(--text-muted); text-align: right; }
+        .cost-display .cost-main { display: flex; align-items: baseline; gap: 8px; }
+        .cost-display .cost-value { font-size: 20px; line-height: 1; font-weight: 700; font-family: 'SF Mono', 'Monaco', 'Consolas', monospace; color: #fff; }
+        .cost-display .cost-unit { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
+        .cost-display .cost-breakdown { font-size: 11px; color: var(--text-muted); line-height: 1.3; min-height: 14px; }
 
-        .generate-btn { height: 52px; padding: 0 32px; background: linear-gradient(135deg, var(--accent) 0%, #1D4ED8 100%); color: white; border: none; border-radius: 26px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 8px 20px rgba(37,99,235,0.3); white-space: nowrap; align-self: center; }
-        .generate-btn svg { flex-shrink: 0; transition: opacity 0.3s ease; }
-        .generate-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 24px rgba(37,99,235,0.4); filter: brightness(1.1); }
-        .generate-btn:disabled { opacity: 0.85; cursor: not-allowed; filter: grayscale(0.5); transform: none !important; }
-        .generate-btn:disabled svg { opacity: 0.7; }
-        .generate-btn .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+        .generate-btn {
+            min-height: 56px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--accent) 0%, #1d4ed8 55%, #4338ca 100%);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            min-width: 280px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.35);
+        }
+        .generate-btn-main { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+        .generate-btn-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, 0.17);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .generate-btn-icon svg { width: 18px; height: 18px; transition: opacity 0.2s ease; }
+        .generate-btn .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            position: absolute;
+            inset: 0;
+            margin: auto;
+        }
+        .generate-btn-text-wrap { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+        .generate-btn-title { font-size: 15px; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .generate-btn-subtext { font-size: 11px; opacity: 0.85; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+        .generate-btn-status {
+            display: none;
+            min-width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            background: rgba(8, 15, 34, 0.35);
+            border: 1px solid rgba(255,255,255,0.25);
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 0 8px;
+            flex-shrink: 0;
+        }
+        .generate-btn-status.visible { display: inline-flex; }
+        .generate-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(37,99,235,0.45); filter: brightness(1.05); }
+        .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; filter: grayscale(0.35); transform: none !important; }
         .generate-btn.loading .spinner { display: block; }
-        .generate-btn.loading svg { display: none; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .generate-btn.loading .generate-btn-icon svg { opacity: 0; }
 
         .popover { position: fixed; background-color: #252526; border-radius: 12px; padding: 10px; box-shadow: 0 12px 48px rgba(0,0,0,0.7); display: none; z-index: 100; width: 280px; border: 1px solid rgba(255,255,255,0.1); max-height: 400px; overflow-y: auto; }
         .popover.visible { display: block; }
@@ -1025,29 +1098,43 @@
             </div>
             <div class="prompt-actions">
                <div class="cost-display">
-                   <div class="cost-label" data-i18n="costLabel">Costs:</div>
-                   <div class="cost-value" id="cost-text">0.002</div>
-                   <div class="cost-unit" data-i18n="pollenLabel">Pollen</div>
+                   <div class="cost-header">
+                       <div class="cost-label" data-i18n="costLabel">Cost</div>
+                       <div class="cost-meta" id="cost-meta" data-i18n="costMetaNoModel">No model selected</div>
+                   </div>
+                   <div class="cost-main">
+                       <div class="cost-value" id="cost-text">0</div>
+                       <div class="cost-unit" data-i18n="pollenLabel">Pollen</div>
+                   </div>
+                   <div class="cost-breakdown" id="cost-breakdown" data-i18n="costBreakdownNoModel">Select a model to estimate cost</div>
                </div>
                <div class="parallel-count-display" id="parallel-count-display">
                    <div class="count-label" data-i18n="generateLabel">Generate</div>
                    <div class="count-value" id="parallel-count">2</div>
                    <div class="count-unit" id="count-unit" data-i18n="imagesLabel">Images</div>
                </div>
-               <button class="generate-btn" id="generate-btn">
-                   <svg viewBox="0 0 64 64" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                       <path d="M32 6c-8 6-14 24-14 36v8l10-5v9l4 8 4-8v-9l10 5v-8c0-12-6-30-14-36Z"></path>
-                       <path d="M20 42 12 50"></path>
-                       <path d="M44 42 52 50"></path>
-                       <circle cx="32" cy="26" r="5"></circle>
-                       <path d="M28 50h8"></path>
-                       <path d="M24 58c2-4 6-6 8-6s6 2 8 6" stroke-width="1.5"></path>
-                       <path d="M32 56v6" stroke-width="1.5"></path>
-                       <path d="M27 60 28 56"></path>
-                       <path d="M37 60 36 56"></path>
-                   </svg>
-                   <div class="spinner"></div>
-                   <span id="generate-btn-text" data-i18n="generateBtn">Generate Image</span>
+               <button class="generate-btn" id="generate-btn" type="button">
+                   <span class="generate-btn-main">
+                       <span class="generate-btn-icon">
+                           <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                               <path d="M32 6c-8 6-14 24-14 36v8l10-5v9l4 8 4-8v-9l10 5v-8c0-12-6-30-14-36Z"></path>
+                               <path d="M20 42 12 50"></path>
+                               <path d="M44 42 52 50"></path>
+                               <circle cx="32" cy="26" r="5"></circle>
+                               <path d="M28 50h8"></path>
+                               <path d="M24 58c2-4 6-6 8-6s6 2 8 6" stroke-width="1.5"></path>
+                               <path d="M32 56v6" stroke-width="1.5"></path>
+                               <path d="M27 60 28 56"></path>
+                               <path d="M37 60 36 56"></path>
+                           </svg>
+                           <div class="spinner"></div>
+                       </span>
+                       <span class="generate-btn-text-wrap">
+                           <span id="generate-btn-text" class="generate-btn-title" data-i18n="generateBtn">Generate Image</span>
+                           <span id="generate-btn-subtext" class="generate-btn-subtext" data-i18n="generateStateMissingKey">Add a valid API key</span>
+                       </span>
+                   </span>
+                   <span class="generate-btn-status" id="generate-btn-status"></span>
                </button>
             </div>
         </div>
@@ -1119,23 +1206,24 @@
         const VIDEO_ASPECT_RATIOS = ['16:9', '9:16', '2:3', '3:2', '1:1'];
 
         function switchMode(mode) {
+            const targetModeButton = document.getElementById(`mode-${mode}`);
+            if (targetModeButton && targetModeButton.disabled) {
+                return;
+            }
+
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`mode-${mode}`).classList.add('active');
+            if (targetModeButton) targetModeButton.classList.add('active');
             document.getElementById('mode').value = mode;
 
             const aspectGroup = document.getElementById('aspect-ratio-group');
             const durationGroup = document.getElementById('duration-group');
-            const generateBtnText = document.getElementById('generate-btn-text');
             const prompt = document.getElementById('prompt');
 
             if (mode === 'video') {
-                // Show aspect ratio for video mode with filtered options
                 aspectGroup.classList.remove('hidden');
                 durationGroup.classList.remove('hidden');
-                if (generateBtnText) generateBtnText.textContent = i18n.t('generateVideoBtn') || 'Generate Video';
                 if (prompt) prompt.placeholder = i18n.t('videoPromptPlaceholder') || 'Describe the video you want to generate';
 
-                // Filter aspect ratio options for video mode
                 const items = document.querySelectorAll('#aspect-ratio-popover .popover-item');
                 let hasSelectedVideoRatio = false;
                 const selectedItem = document.querySelector('#aspect-ratio-popover .popover-item.selected');
@@ -1152,7 +1240,6 @@
                     }
                 });
 
-                // Auto-select 16:9 if current ratio is not supported for video
                 if (!hasSelectedVideoRatio) {
                     const defaultVideoItem = document.querySelector('#aspect-ratio-popover .popover-item[data-ratio="16:9"]');
                     if (defaultVideoItem) {
@@ -1172,33 +1259,31 @@
             } else {
                 aspectGroup.classList.remove('hidden');
                 durationGroup.classList.add('hidden');
-                if (generateBtnText) generateBtnText.textContent = i18n.t('generateBtn');
                 if (prompt) prompt.placeholder = i18n.t('promptPlaceholder');
 
-                // Show all aspect ratio options for images
                 document.querySelectorAll('#aspect-ratio-popover .popover-item').forEach(item => {
                     item.classList.remove('hidden');
                 });
             }
 
-            // Update model options based on mode
             if (window.updateModelOptionsForMode) {
                 window.updateModelOptionsForMode(mode);
             }
 
-            // Update cost display for new mode
             if (window.updateCurrentCostDisplay) {
                 window.updateCurrentCostDisplay();
             }
-            
-            // Update parallel count unit label (Images/Videos)
+
             if (window.updateCountUnitLabel) {
                 window.updateCountUnitLabel();
             }
-            // Update upload UI visibility based on mode
+
             if (typeof updateUploadUI === 'function') {
                 updateUploadUI();
-                window.updateCountUnitLabel();
+            }
+
+            if (typeof window.refreshGenerateButtonState === 'function') {
+                window.refreshGenerateButtonState();
             }
         }
 
@@ -1255,7 +1340,16 @@
         }
 
         aspectBtn.onclick = (e) => { e.stopPropagation(); const isVisible = aspectPopover.classList.contains('visible'); document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); if (!isVisible) { aspectPopover.classList.add('visible'); positionPopover(aspectBtn, aspectPopover); } };
-        modelBtn.onclick = (e) => { e.stopPropagation(); const isVisible = modelPopover.classList.contains('visible'); document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); if (!isVisible) { modelPopover.classList.add('visible'); positionPopover(modelBtn, modelPopover); } };
+        modelBtn.onclick = (e) => {
+            if (modelBtn.classList.contains('disabled')) return;
+            e.stopPropagation();
+            const isVisible = modelPopover.classList.contains('visible');
+            document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
+            if (!isVisible) {
+                modelPopover.classList.add('visible');
+                positionPopover(modelBtn, modelPopover);
+            }
+        };
         document.onclick = () => { document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); };
 
         aspectPopover.querySelectorAll('.popover-item').forEach(item => {

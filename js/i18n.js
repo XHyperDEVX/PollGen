@@ -5,22 +5,26 @@
 
 const translations = {
   en: {
-    // Page
+    // Meta
     pageTitle: 'PollGen',
-    pageDescription: 'Create high-quality images with AI',
 
-    // API Key
-    apiKeyLabel: 'API Key',
+    // Authentication & account
     apiKeyPlaceholder: 'Enter your Pollinations API key',
     apiKeyHint: 'Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
     apiKeyStored: 'API key saved',
     apiKeyMissing: 'Please enter your API key',
-
-    // Login
+    invalidApiKey: 'Please enter a valid API key.',
     loginWithPollinations: 'Login with Pollinations',
     loggedIn: 'Logged in',
-    loginPopupBlocked: 'Popup blocked. Please allow popups for this site.',
     orLabel: 'or',
+
+    // Balance & key lifetime
+    balanceRemaining: 'pollen remaining',
+    balanceUnlimited: 'Unlimited pollen budget',
+    balanceUnavailable: 'Pollen budget unavailable',
+    keyValidFor: 'Key valid for ',
+    hoursShort: 'h ',
+    minutesShort: 'm',
 
     // Profile
     welcomeMessage: 'Hello %s!',
@@ -37,93 +41,85 @@ const translations = {
     timeAgoMonth: '1 month',
     timeAgoMonths: '%s months',
 
-    // Form Fields
-    promptLabel: 'Prompt',
+    // Generation controls
     promptPlaceholder: 'Describe the image you want to generate',
     videoPromptPlaceholder: 'Describe the video you want to generate',
     startScreenTitle: 'Generate Images Now',
     startScreenIntro: 'Describe your vision and bring it to life',
     modelLabel: 'Model',
+    modelPlaceholder: 'Select a model...',
     aspectRatioLabel: 'Aspect Ratio',
     imageModeLabel: 'Image',
     videoModeLabel: 'Video',
+    modeUnavailableHint: 'No selectable models available in this mode',
     durationLabel: 'Duration',
-    parametersLabel: 'Parameters',
     seedLabel: 'Seed',
     seedPlaceholder: 'Random',
     refinementLabel: 'Refinement',
     negativePromptLabel: 'Negative Prompt',
     negativePromptPlaceholder: 'What to exclude from the image',
     advancedLabel: 'Advanced Options',
+    parallelModeLabel: 'Parallel Generation',
+    transparentBackgroundLabel: 'Transparent Background',
+    gptModelsOnlyTooltip: 'gpt models only.',
+    performanceModeLabel: 'Performance Mode',
     enhanceLabel: 'Enhance Prompt',
     privateLabel: 'Private Mode',
     nologoLabel: 'No Watermark',
     nofeedLabel: 'No Public Feed',
     safeLabel: 'Safety Filter',
+    showPremiumModelsLabel: 'Also show premium models',
+    modelLoading: 'Loading models...',
+    modelLoadError: 'Failed to load models.',
 
-    // Buttons
+    // Cost panel
+    costLabel: 'Cost',
+    pollenLabel: 'Pollen',
+    costMetaNoModel: 'No model selected',
+    costMetaImage: 'Estimated total per image',
+    costMetaVideo: 'Estimated total for %ss video',
+    costMetaParallel: 'Estimated total for %d %s',
+    costBreakdownNoModel: 'Select a model to estimate cost',
+    costBreakdownFree: 'Free generation',
+    perImage: 'per image',
+    perSecond: 'per second',
+    tokensPerMillion: '/million tokens',
+
+    // Generate button & parallel flow
+    generateLabel: 'Generate',
+    imagesLabel: 'Images',
+    videosLabel: 'Videos',
     generateBtn: 'Generate Image',
     generateVideoBtn: 'Generate Video',
     videoDownloadBtn: 'Download Video',
-
-    // Common
+    generateBatchBtn: 'Generate %d %s',
+    queueAddLabel: 'Add to queue',
+    generateReady: 'Ready to generate',
+    generateStateMissingKey: 'Add a valid API key',
+    generateStateNoModels: 'No available models in this mode',
+    generateStateAddPrompt: 'Add a prompt to enable generation',
+    queueStatus: '%d active • %d queued',
+    parallelReady: 'Parallel mode: %d %s per click',
+    seedParallelPlaceholder: 'Always random in parallel mode',
     generatingLabel: 'Generating...',
     generatingVideoLabel: 'Generating video...',
-    costLabel: 'Cost',
-    pollenLabel: 'Pollen',
+    parallelComplete: '%d completed, %d failed',
 
-    // Status Messages
+    // Status & errors
     statusPromptMissing: 'Please enter a prompt',
     statusModelMissing: 'Please select a model',
-    statusGenerating: 'Generating image...',
-    statusGeneratingVideo: 'Generating video...',
-    statusSuccess: 'Image generated successfully',
-    statusVideoSuccess: 'Video generated successfully',
     statusError: 'An error occurred',
     videoError: 'Failed to generate video',
-    betaNotice: 'Video generation is in beta. Some models may ignore certain parameters.',
-
-    // Model Loading
-    modelLoading: 'Loading models...',
-    modelLoadError: 'Failed to load models.',
-    modelPlaceholder: 'Select a model...',
-
-    // Balance
-    balanceRemaining: 'pollen remaining',
-    costsLabel: 'Costs: %s Pollen',
-    deleteConfirm: 'Delete this image?',
-    balancePermissionError: 'Please activate the balance permission for the API key',
-    invalidApiKey: 'Please enter a valid API key.',
-    keyValidFor: 'Key valid for ',
-    hoursShort: 'h ',
-    minutesShort: 'm',
     errorGeneration: 'Generation error',
     paidOnlyLabel: 'Paid only',
     paidOnlyError: 'This model requires paid pollen',
     img2imgSupported: 'Supports image-to-image generation',
-    tokensPerMillion: '/million tokens',
-    perImage: 'per image',
-    perSecond: 'per second',
 
-    // Premium Filter
-    showPremiumModelsLabel: 'Also show premium models',
-
-    // Resolution Warning
+    // UI misc
+    betaNotice: 'Video generation is in beta. Some models may ignore certain parameters.',
     resolutionWarning: 'For optimal use, a resolution of at least 1080p is recommended.',
-    // Parallel Mode
-    parallelModeLabel: 'Parallel Generation',
-    transparentBackgroundLabel: 'Transparent Background',
-    gptModelsOnlyTooltip: 'gpt models only.',
-    performanceModeLabel: 'Performance Mode',
-    generateLabel: 'Generate',
-    imagesLabel: 'Images',
-    videosLabel: 'Videos',
-    seedParallelPlaceholder: 'Always random in parallel mode',
-    generatingProgress: 'Generating %d of %d...',
-    parallelComplete: '%d completed, %d failed',
-    parallelJobError: 'Job failed',
 
-    // Context Menu
+    // Context menu & clipboard
     downloadImage: 'Download Image',
     downloadVideo: 'Download Video',
     copyImage: 'Copy Image',
@@ -131,14 +127,12 @@ const translations = {
     copyError: 'Failed to copy',
     useAsReferenceImage: 'Use as reference image',
 
-    // Timer and Usage
+    // Timer overlay
     timerModelLabel: 'Model',
     timerTimeLabel: 'Time',
     timerCostLabel: 'Cost',
-    timerFreeLabel: 'free',
-    timerPaidLabel: 'paid',
 
-    // Upload Messages
+    // Upload
     uploadSuccess: 'Image uploaded successfully',
     uploadDeleteSuccess: 'Uploaded image deleted',
     uploadConsentTitle: 'External Upload',
@@ -149,25 +143,30 @@ const translations = {
     uploadErrorFileSize: 'File too large. Please choose a smaller image.',
     uploadErrorFileType: 'Invalid file type. Please upload an image file.',
     uploadErrorGeneric: 'Upload failed. Please try again.',
-    uploadErrorAuth: 'Upload requires a valid API key.',
+    uploadErrorAuth: 'Upload requires a valid API key.'
   },
-  de: {
-    // Page
-    pageTitle: 'PollGen',
-    pageDescription: 'Erstelle hochwertige Bilder mit KI',
 
-    // API Key
-    apiKeyLabel: 'API-Schlüssel',
+  de: {
+    // Meta
+    pageTitle: 'PollGen',
+
+    // Authentication & account
     apiKeyPlaceholder: 'Gib deinen Pollinations-API-Schlüssel ein',
     apiKeyHint: 'Hol dir einen API-Schlüssel von <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
     apiKeyStored: 'API-Schlüssel gespeichert',
     apiKeyMissing: 'Bitte gib deinen API-Schlüssel ein',
-
-    // Login
+    invalidApiKey: 'Bitte gib einen gültigen API-Schlüssel ein.',
     loginWithPollinations: 'Mit Pollinations anmelden',
     loggedIn: 'Angemeldet',
-    loginPopupBlocked: 'Popup blockiert. Bitte erlaube Popups für diese Seite.',
     orLabel: 'oder',
+
+    // Balance & key lifetime
+    balanceRemaining: 'Pollen verbleibend',
+    balanceUnlimited: 'Unbegrenztes Pollen-Budget',
+    balanceUnavailable: 'Pollen-Budget nicht verfügbar',
+    keyValidFor: 'Key gültig für ',
+    hoursShort: 'h ',
+    minutesShort: 'm',
 
     // Profile
     welcomeMessage: 'Hallo %s!',
@@ -184,94 +183,85 @@ const translations = {
     timeAgoMonth: '1 Monat',
     timeAgoMonths: '%s Monaten',
 
-    // Form Fields
-    promptLabel: 'Prompt',
+    // Generation controls
     promptPlaceholder: 'Beschreibe das Bild, das du generieren möchtest',
     videoPromptPlaceholder: 'Beschreibe das Video, das du generieren möchtest',
     startScreenTitle: 'Bilder jetzt generieren',
     startScreenIntro: 'Beschreibe deine Vision und bring sie zum Leben',
-    uploadTooltip: 'Bald verfügbar!',
     modelLabel: 'Modell',
+    modelPlaceholder: 'Wähle ein Modell...',
     aspectRatioLabel: 'Seitenverhältnis',
     imageModeLabel: 'Bild',
     videoModeLabel: 'Video',
+    modeUnavailableHint: 'In diesem Modus sind keine auswählbaren Modelle verfügbar',
     durationLabel: 'Dauer',
-    parametersLabel: 'Parameter',
     seedLabel: 'Seed',
     seedPlaceholder: 'Zufällig',
     refinementLabel: 'Verfeinerung',
     negativePromptLabel: 'Negativer Prompt',
     negativePromptPlaceholder: 'Was aus dem Bild ausgeschlossen werden soll',
     advancedLabel: 'Erweiterte Optionen',
+    parallelModeLabel: 'Parallele Generierung',
+    transparentBackgroundLabel: 'Transparenter Hintergrund',
+    gptModelsOnlyTooltip: 'Nur für gpt-Modelle.',
+    performanceModeLabel: 'Performance-Modus',
     enhanceLabel: 'Prompt verbessern',
     privateLabel: 'Privater Modus',
     nologoLabel: 'Kein Wasserzeichen',
     nofeedLabel: 'Kein öffentlicher Feed',
     safeLabel: 'Sicherheitsfilter',
+    showPremiumModelsLabel: 'Auch Premium-Modelle anzeigen',
+    modelLoading: 'Modelle werden geladen...',
+    modelLoadError: 'Fehler beim Laden der Modelle.',
 
-    // Buttons
+    // Cost panel
+    costLabel: 'Kosten',
+    pollenLabel: 'Pollen',
+    costMetaNoModel: 'Kein Modell ausgewählt',
+    costMetaImage: 'Geschätzte Gesamtkosten pro Bild',
+    costMetaVideo: 'Geschätzte Gesamtkosten für %ss Video',
+    costMetaParallel: 'Geschätzte Gesamtkosten für %d %s',
+    costBreakdownNoModel: 'Wähle ein Modell, um die Kosten zu sehen',
+    costBreakdownFree: 'Kostenlose Generierung',
+    perImage: 'pro Bild',
+    perSecond: 'pro Sekunde',
+    tokensPerMillion: '/Million Token',
+
+    // Generate button & parallel flow
+    generateLabel: 'Generiere',
+    imagesLabel: 'Bilder',
+    videosLabel: 'Videos',
     generateBtn: 'Bild generieren',
     generateVideoBtn: 'Video generieren',
     videoDownloadBtn: 'Video herunterladen',
-
-    // Common
+    generateBatchBtn: 'Generiere %d %s',
+    queueAddLabel: 'Zur Warteschlange hinzufügen',
+    generateReady: 'Bereit zur Generierung',
+    generateStateMissingKey: 'Gültigen API-Schlüssel hinzufügen',
+    generateStateNoModels: 'Keine verfügbaren Modelle in diesem Modus',
+    generateStateAddPrompt: 'Füge einen Prompt hinzu, um zu starten',
+    queueStatus: '%d aktiv • %d in Warteschlange',
+    parallelReady: 'Parallelmodus: %d %s pro Klick',
+    seedParallelPlaceholder: 'Immer zufällig im Parallelmodus',
     generatingLabel: 'Generiere...',
     generatingVideoLabel: 'Video wird generiert...',
-    costLabel: 'Kosten',
-    pollenLabel: 'Pollen',
+    parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
 
-    // Status Messages
+    // Status & errors
     statusPromptMissing: 'Bitte gib einen Prompt ein',
     statusModelMissing: 'Bitte wähle ein Modell',
-    statusGenerating: 'Bild wird generiert...',
-    statusGeneratingVideo: 'Video wird generiert...',
-    statusSuccess: 'Bild erfolgreich generiert',
-    statusVideoSuccess: 'Video erfolgreich generiert',
     statusError: 'Ein Fehler ist aufgetreten',
     videoError: 'Fehler bei der Videogenerierung',
-    betaNotice: 'Die Videogenerierung befindet sich in der Beta-Phase. Einige Modelle ignorieren möglicherweise bestimmte Parameter.',
-
-    // Model Loading
-    modelLoading: 'Modelle werden geladen...',
-    modelLoadError: 'Fehler beim Laden der Modelle.',
-    modelPlaceholder: 'Wähle ein Modell...',
-
-    // Balance
-    balanceRemaining: 'Pollen verbleibend',
-    costsLabel: 'Kostet: %s Pollen',
-    deleteConfirm: 'Bild löschen?',
-    balancePermissionError: 'Bitte aktiviere die Balance-Berechtigung für den API-Key',
-    invalidApiKey: 'Bitte gib einen gültigen API-Schlüssel ein.',
-    keyValidFor: 'Key gültig für ',
-    hoursShort: 'h ',
-    minutesShort: 'm',
     errorGeneration: 'Generierungsfehler',
     paidOnlyLabel: 'Paid only',
     paidOnlyError: 'Dieses Modell erfordert bezahltes Pollen',
     img2imgSupported: 'Unterstützt Bild-zu-Bild-Generierung',
-    tokensPerMillion: '/Million Token',
-    perImage: 'pro Bild',
-    perSecond: 'pro Sekunde',
 
-    // Premium Filter
-    showPremiumModelsLabel: 'Auch Premium-Modelle anzeigen',
-
-    // Resolution Warning
+    // UI misc
+    betaNotice: 'Die Videogenerierung befindet sich in der Beta-Phase. Einige Modelle ignorieren möglicherweise bestimmte Parameter.',
     resolutionWarning: 'Für die optimale Nutzung wird eine Auflösung von mindestens 1080p empfohlen.',
-    // Parallel Mode
-    parallelModeLabel: 'Parallele Generierung',
-    transparentBackgroundLabel: 'Transparenter Hintergrund',
-    gptModelsOnlyTooltip: 'Nur für gpt-Modelle.',
-    performanceModeLabel: 'Performance-Modus',
-    generateLabel: 'Generiere',
-    imagesLabel: 'Bilder',
-    videosLabel: 'Videos',
-    seedParallelPlaceholder: 'Immer zufällig im Parallelmodus',
-    generatingProgress: 'Generiere %d von %d...',
-    parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
-    parallelJobError: 'Aufgabe fehlgeschlagen',
 
-    // Context Menu
+    // Context menu & clipboard
     downloadImage: 'Bild herunterladen',
     downloadVideo: 'Video herunterladen',
     copyImage: 'Bild kopieren',
@@ -279,14 +269,12 @@ const translations = {
     copyError: 'Kopieren fehlgeschlagen',
     useAsReferenceImage: 'Als Referenzbild verwenden',
 
-    // Timer and Usage
+    // Timer overlay
     timerModelLabel: 'Modell',
     timerTimeLabel: 'Zeit',
     timerCostLabel: 'Kosten',
-    timerFreeLabel: 'free',
-    timerPaidLabel: 'paid',
 
-    // Upload Messages
+    // Upload
     uploadSuccess: 'Bild erfolgreich hochgeladen',
     uploadDeleteSuccess: 'Hochgeladenes Bild gelöscht',
     uploadConsentTitle: 'Externer Upload',
@@ -297,7 +285,7 @@ const translations = {
     uploadErrorFileSize: 'Datei zu groß. Bitte wählen Sie ein kleineres Bild.',
     uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
     uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
-    uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
+    uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.'
   }
 };
 
@@ -312,7 +300,6 @@ class I18n {
       this.currentLanguage = lang;
       localStorage.setItem('pollgen_lang', lang);
       this.updatePageLanguage();
-      // Trigger a custom event so app.js can respond if needed
       window.dispatchEvent(new CustomEvent('languageChanged', { detail: lang }));
     }
   }
@@ -323,34 +310,39 @@ class I18n {
       console.warn(`Translation missing for key: ${key}`);
       return key;
     }
+
     if (replacement !== null) {
       if (Array.isArray(replacement)) {
-        replacement.forEach((r, i) => {
+        replacement.forEach(r => {
           translation = translation.replace(/%[sd]/, r);
         });
       } else {
         translation = translation.replace('%s', replacement);
       }
     }
+
     return translation;
   }
 
   updatePageLanguage() {
     document.documentElement.lang = this.currentLanguage;
+
     document.querySelectorAll('[data-i18n]').forEach(element => {
       const key = element.getAttribute('data-i18n');
-      if (key) {
-          if (key === 'apiKeyHint') {
-              element.innerHTML = this.t(key);
-          } else {
-              element.textContent = this.t(key);
-          }
+      if (!key) return;
+
+      if (key === 'apiKeyHint') {
+        element.innerHTML = this.t(key);
+      } else {
+        element.textContent = this.t(key);
       }
     });
+
     document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
       const key = element.getAttribute('data-i18n-placeholder');
       if (key) element.placeholder = this.t(key);
     });
+
     document.title = this.t('pageTitle');
   }
 
