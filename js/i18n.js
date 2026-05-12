@@ -151,7 +151,7 @@ const translations = {
     uploadErrorAuth: 'Upload requires a valid API key.',
 
     // Workshop Prompt
-    workshopPanelLabel: 'Workshop Prompt',
+    workshopPanelLabel: 'Prompt Workshop',
     workshopEnableLabel: 'Enable Workshop',
     workshopModelLabel: 'Text Model',
     workshopSystemPromptLabel: 'System Prompt Override',
@@ -309,7 +309,7 @@ const translations = {
     uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
 
     // Workshop Prompt
-    workshopPanelLabel: 'Workshop Prompt',
+    workshopPanelLabel: 'Prompt Workshop',
     workshopEnableLabel: 'Workshop aktivieren',
     workshopModelLabel: 'Text-Modell',
     workshopSystemPromptLabel: 'System-Prompt-Überschreibung',
