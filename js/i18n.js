@@ -9,20 +9,25 @@ const translations = {
     pageTitle: 'PollGen',
 
     // Authentication & account
-    apiKeyPlaceholder: 'Enter your Pollinations API key',
+    apiKeyPlaceholder: 'API key (managed by Pollinations login)',
     apiKeyHint: 'Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
     apiKeyStored: 'API key saved',
-    apiKeyMissing: 'Please enter your API key',
+    apiKeyMissing: 'Please log in with Pollinations',
     invalidApiKey: 'Please enter a valid API key.',
     loginWithPollinations: 'Login with Pollinations',
     loggedIn: 'Logged in',
-    orLabel: 'or',
+    logoutLabel: 'Logout',
+    welcomePopupTitle: 'Welcome to Pollgen',
+    welcomePopupText: 'Create AI images and videos with Pollinations. Please log in to continue.',
+    copyApiKeySuccess: 'API key copied',
+    copyApiKeyError: 'Could not copy API key',
 
     // Balance & key lifetime
     balanceRemaining: 'pollen remaining',
     balanceUnlimited: 'Unlimited pollen budget',
     balanceUnavailable: 'Pollen budget unavailable',
     keyValidFor: 'Key valid for ',
+    daysShort: 'd ',
     hoursShort: 'h ',
     minutesShort: 'm',
 
@@ -151,20 +156,25 @@ const translations = {
     pageTitle: 'PollGen',
 
     // Authentication & account
-    apiKeyPlaceholder: 'Gib deinen Pollinations-API-Schlüssel ein',
+    apiKeyPlaceholder: 'API-Schlüssel (über Pollinations-Login verwaltet)',
     apiKeyHint: 'Hol dir einen API-Schlüssel von <a href="https://pollinations.ai" target="_blank">Pollinations</a>',
     apiKeyStored: 'API-Schlüssel gespeichert',
-    apiKeyMissing: 'Bitte gib deinen API-Schlüssel ein',
+    apiKeyMissing: 'Bitte melde dich mit Pollinations an',
     invalidApiKey: 'Bitte gib einen gültigen API-Schlüssel ein.',
     loginWithPollinations: 'Mit Pollinations anmelden',
     loggedIn: 'Angemeldet',
-    orLabel: 'oder',
+    logoutLabel: 'Abmelden',
+    welcomePopupTitle: 'Willkommen bei Pollgen',
+    welcomePopupText: 'Erstelle KI-Bilder und Videos mit Pollinations. Bitte melde dich an, um fortzufahren.',
+    copyApiKeySuccess: 'API-Schlüssel kopiert',
+    copyApiKeyError: 'API-Schlüssel konnte nicht kopiert werden',
 
     // Balance & key lifetime
     balanceRemaining: 'Pollen verbleibend',
     balanceUnlimited: 'Unbegrenztes Pollen-Budget',
     balanceUnavailable: 'Pollen-Budget nicht verfügbar',
     keyValidFor: 'Key gültig für ',
+    daysShort: 'T ',
     hoursShort: 'h ',
     minutesShort: 'm',
 
