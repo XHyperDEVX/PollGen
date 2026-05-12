@@ -161,7 +161,7 @@
         .checkbox-group { display: flex; flex-direction: column; gap: 12px; }
         .checkbox-item { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none; }
         .checkbox-item input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
-        .checkbox-item.disabled { opacity: 0.45; cursor: not-allowed; }
+        .checkbox-item.disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
         .checkbox-item.disabled input { cursor: not-allowed; }
 
         /* Premium filter - smaller and less conspicuous */
@@ -192,6 +192,40 @@
             border-top: 1px solid var(--border-subtle);
             border-right: 1px solid var(--border-subtle);
         }
+
+        .image-editing-section {
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+        .image-editing-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 12px;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .image-editing-section .upload-slots {
+            flex-direction: row;
+            justify-content: center;
+            gap: 32px;
+            margin-right: 0;
+        }
+        .image-editing-section .upload-slot {
+            flex-direction: column;
+            min-height: auto;
+        }
+        .image-editing-section .upload-icon {
+            width: 48px;
+            height: 48px;
+        }
+        .image-editing-section .upload-thumbnail {
+            width: 56px;
+            height: 56px;
+        }
+
         .api-key-hint { font-size: 11px; margin-top: 8px; color: var(--text-muted); text-align: center; }
         .api-key-hint a { color: var(--accent); text-decoration: none; }
         .api-key-hint a:hover { text-decoration: underline; }
@@ -1194,6 +1228,72 @@
     </aside>
 
     <div class="api-key-container">
+        <div class="image-editing-section">
+            <div class="image-editing-title">Image Editing</div>
+            <div class="upload-slots">
+                <div class="upload-slot">
+                    <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
+                        <img class="upload-thumbnail-preview" id="upload-thumbnail-preview" src="" alt="Preview">
+                        <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
+                        <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </div>
+                        <div class="upload-progress" id="upload-progress" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                            </svg>
+                        </div>
+                        <div class="upload-delete-progress" id="upload-delete-progress" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="upload-icon-container" id="upload-icon-container" title="">
+                        <svg class="upload-icon" id="upload-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17,8 12,3 7,8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
+                </div>
+
+                <div class="upload-slot">
+                    <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper-2">
+                        <img class="upload-thumbnail-preview" id="upload-thumbnail-preview-2" src="" alt="Preview">
+                        <img class="upload-thumbnail" id="upload-thumbnail-2" src="" alt="Uploaded image 2">
+                        <div class="upload-thumbnail-delete" id="upload-thumbnail-delete-2" title="Remove image">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </div>
+                        <div class="upload-progress" id="upload-progress-2" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                            </svg>
+                        </div>
+                        <div class="upload-delete-progress" id="upload-delete-progress-2" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="upload-icon-container" id="upload-icon-container-2" title="">
+                        <svg class="upload-icon" id="upload-icon-2" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17,8 12,3 7,8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <input type="file" id="image-upload-input-2" accept="image/*" style="display: none;">
+                </div>
+            </div>
+        </div>
         <div class="login-btn-wrapper">
             <button class="login-btn" id="login-btn" type="button">
                 <span class="login-icon">
@@ -1215,8 +1315,6 @@
         <div id="resolution-warning" class="resolution-warning" data-i18n="resolutionWarning">For optimal use, a resolution of at least 1080p is recommended.</div>
     </div>
 
-    <button class="logout-btn hidden" id="logout-btn" type="button" data-i18n="logoutLabel">Logout</button>
-
     <main class="canvas">
         <div class="canvas-workspace" id="canvas-workspace">
             <div class="empty-state" id="placeholder">
@@ -1237,69 +1335,6 @@
 
         <div class="prompt-bar">
             <div class="prompt-input-wrapper">
-                <div class="upload-slots">
-                    <div class="upload-slot">
-                        <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
-                            <img class="upload-thumbnail-preview" id="upload-thumbnail-preview" src="" alt="Preview">
-                            <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
-                            <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </div>
-                            <div class="upload-progress" id="upload-progress" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                                </svg>
-                            </div>
-                            <div class="upload-delete-progress" id="upload-delete-progress" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="upload-icon-container" id="upload-icon-container" title="">
-                            <svg class="upload-icon" id="upload-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17,8 12,3 7,8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                        </div>
-                        <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
-                    </div>
-
-                    <div class="upload-slot">
-                        <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper-2">
-                            <img class="upload-thumbnail-preview" id="upload-thumbnail-preview-2" src="" alt="Preview">
-                            <img class="upload-thumbnail" id="upload-thumbnail-2" src="" alt="Uploaded image 2">
-                            <div class="upload-thumbnail-delete" id="upload-thumbnail-delete-2" title="Remove image">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </div>
-                            <div class="upload-progress" id="upload-progress-2" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                                </svg>
-                            </div>
-                            <div class="upload-delete-progress" id="upload-delete-progress-2" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="upload-icon-container" id="upload-icon-container-2" title="">
-                            <svg class="upload-icon" id="upload-icon-2" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17,8 12,3 7,8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                        </div>
-                        <input type="file" id="image-upload-input-2" accept="image/*" style="display: none;">
-                    </div>
-                </div>
                 <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="2"></textarea>
             </div>
             <div class="prompt-actions">

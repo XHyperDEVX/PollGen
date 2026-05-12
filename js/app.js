@@ -794,16 +794,31 @@ async function updateBalance(apiKey, forceReload = false) {
 
   if (state.apiKey !== trimmedKey) return false;
 
-  let displayText = i18n.t('balanceUnavailable');
+  let displayText = "";
   const budget = keyInfo.pollenBudget;
+  let balance = null;
 
-  if (budget === null) {
-    displayText = i18n.t('balanceUnlimited');
-  } else {
-    const numericBudget = Number(budget);
-    if (Number.isFinite(numericBudget)) {
-      displayText = `${formatBalanceDisplay(numericBudget)} ${i18n.t('balanceRemaining')}`;
+  try {
+    const balanceResponse = await fetch("https://gen.pollinations.ai/account/balance", {
+      headers: { "Authorization": `Bearer ${trimmedKey}` }
+    });
+    if (balanceResponse.ok) {
+      const balanceData = await balanceResponse.json();
+      balance = balanceData.balance;
     }
+  } catch (e) {
+    console.error("Failed to fetch balance:", e);
+  }
+
+  if (budget !== null) {
+    displayText = `${formatBalanceDisplay(Number(budget))} ${i18n.t("balanceRemaining")}`;
+    if (balance !== null) {
+      displayText += ` (${formatBalanceDisplay(balance)} Total)`;
+    }
+  } else if (balance !== null) {
+    displayText = `${formatBalanceDisplay(balance)} ${i18n.t("balanceRemaining")}`;
+  } else {
+    displayText = i18n.t("balanceUnlimited");
   }
 
   if (keyInfo.expiresIn !== null && keyInfo.expiresIn !== undefined) {
@@ -942,7 +957,7 @@ function deleteCookie(name) {
 function syncApiKeyInputMask() {
   const apiKeyInput = document.getElementById('api-key');
   if (!apiKeyInput) return;
-  apiKeyInput.value = state.apiKey ? '***' : '';
+  apiKeyInput.value = state.apiKey ? '...................................' : '';
 }
 
 function setAuthLocked(locked) {
@@ -1427,23 +1442,20 @@ function formatModelPrice(model) {
   currency = currency.charAt(0).toUpperCase() + currency.slice(1);
 
   // Check for text token pricing
-  let textTokenPrice = null;
+  // Check for text token pricing
   const promptTextTokens = pricing.promptTextTokens || pricing.prompt_text || 0;
-  const promptImageTokens = pricing.promptImageTokens || pricing.prompt_image || 0;
+  const completionTextTokens = pricing.completionTextTokens || pricing.completion_text || 0;
 
-  // Use promptTextTokens if available, otherwise fall back to promptImageTokens
-  const textTokenValue = promptTextTokens || promptImageTokens;
+  const formatTPM = (val) => {
+    if (!val) return null;
+    const tpm = val * 1000000;
+    return tpm < 0.01 ? tpm.toExponential(2) : tpm.toFixed(2).replace(/\.0+$/, "").replace(/(\.[0-9]*[1-9])0+$/, "$1");
+  };
 
-  if (textTokenValue && textTokenValue !== 0) {
-    const tokensPerMillion = textTokenValue * 1000000;
-    if (tokensPerMillion < 0.01) {
-      textTokenPrice = tokensPerMillion.toExponential(2);
-    } else {
-      textTokenPrice = tokensPerMillion.toString().replace(/\.?0+$/, '');
-    }
-  }
+  const inputPrice = formatTPM(promptTextTokens);
+  const outputPrice = formatTPM(completionTextTokens);
 
-  return { price: priceStr, currency, textTokenPrice, hasTextTokens: !!textTokenPrice, isVideoModel };
+  return { price: priceStr, currency, inputPrice, outputPrice, hasTextTokens: !!(inputPrice || outputPrice), isVideoModel };
 }
 
 function isTransparentOptionModelSupported(modelName) {
@@ -1580,16 +1592,20 @@ function renderModelOptions(models, forceReset = false) {
         const priceWidth = ctx.measureText(priceDisplay).width + 50;
         maxWidth = Math.max(maxWidth, priceWidth);
       }
-    } else if (priceInfo.textTokenPrice) {
-      // Only text token pricing available
-      const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
-      displayHTML += `<div class="model-price text-token-price">${textPriceStr}</div>`;
-      // Measure text token price line width
       const textTokenWidth = ctx.measureText(textPriceStr).width + 50;
-      maxWidth = Math.max(maxWidth, textTokenWidth);
-    }
-    
     displayHTML += '</div>';
+    } else if (priceInfo.inputPrice || priceInfo.outputPrice) {
+      if (priceInfo.inputPrice) {
+        const inputStr = `Input: ${priceInfo.inputPrice} ${priceInfo.currency.toLowerCase()}${i18n.t("tokensPerMillion")}`;
+        displayHTML += `<div class="model-price text-token-price">${inputStr}</div>`;
+        maxWidth = Math.max(maxWidth, ctx.measureText(inputStr).width + 50);
+      }
+      if (priceInfo.outputPrice) {
+        const outputStr = `Output: ${priceInfo.outputPrice} ${priceInfo.currency.toLowerCase()}${i18n.t("tokensPerMillion")}`;
+        displayHTML += `<div class="model-price text-token-price">${outputStr}</div>`;
+        maxWidth = Math.max(maxWidth, ctx.measureText(outputStr).width + 50);
+      }
+    }
     item.innerHTML = displayHTML;
     
     item.onclick = (e) => {
@@ -2085,6 +2101,12 @@ async function addParallelJobs(payload, isVideoMode, count) {
 }
 
 function switchParallelMode(enabled) {
+  const workshopParallelOption = document.getElementById("workshop-parallel-option");
+  const workshopParallelInput = document.getElementById("workshop-parallel-per-image");
+  if (workshopParallelOption && workshopParallelInput) {
+    workshopParallelInput.disabled = !enabled;
+    workshopParallelOption.classList.toggle("disabled", !enabled);
+  }
   state.parallelMode = enabled;
   
   // Update checkbox state if called programmatically
@@ -3530,7 +3552,11 @@ function setupEventListeners() {
     if (!btn) return;
     btn.addEventListener('click', () => {
       if (!btn.disabled) {
-        initiateOAuthLogin();
+        if (state.apiKey && btn.id === "login-btn") {
+          logoutUser(true);
+        } else {
+          initiateOAuthLogin();
+        }
       }
     });
   });
@@ -4092,7 +4118,7 @@ async function init() {
   window.addEventListener('resize', scheduleImageCardResize);
   scheduleImageCardResize();
 
-  showAuthGate();
+  
 
   const oauthApiKey = handleOAuthCallback();
   if (oauthApiKey) {
@@ -4290,8 +4316,8 @@ function updateLoginButtonState(isLoggedIn) {
 
   if (loginBtn && loginBtnText) {
     if (isLoggedIn) {
-      loginBtnText.textContent = i18n.t('loggedIn');
-      loginBtn.disabled = true;
+      loginBtnText.textContent = i18n.t('logoutLabel');
+      loginBtn.disabled = false;
       loginBtn.classList.add('active');
     } else {
       loginBtnText.textContent = i18n.t('loginWithPollinations');
@@ -4358,6 +4384,7 @@ function renderWorkshopModelOptions(models) {
     let displayHTML = `<div class="model-badge" style="background-color: ${stringToColor(name)}"></div>`;
     displayHTML += '<div class="model-info">';
     
+    displayHTML += '</div>';
     if (description && description !== name) {
       displayHTML += `<div class="model-name-desc">${name}</div>`;
       displayHTML += `<div class="model-description">${description}</div>`;
@@ -4367,13 +4394,18 @@ function renderWorkshopModelOptions(models) {
       maxWidth = Math.max(maxWidth, ctx.measureText(name).width + 120);
     }
     
-    if (priceInfo.textTokenPrice) {
-      const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
-      displayHTML += `<div class="model-price">${textPriceStr}</div>`;
-      maxWidth = Math.max(maxWidth, ctx.measureText(textPriceStr).width + 50);
+    if (priceInfo.inputPrice || priceInfo.outputPrice) {
+      if (priceInfo.inputPrice) {
+        const inputStr = `Input: ${priceInfo.inputPrice} ${priceInfo.currency.toLowerCase()}${i18n.t("tokensPerMillion")}`;
+        displayHTML += `<div class="model-price">${inputStr}</div>`;
+        maxWidth = Math.max(maxWidth, ctx.measureText(inputStr).width + 50);
+      }
+      if (priceInfo.outputPrice) {
+        const outputStr = `Output: ${priceInfo.outputPrice} ${priceInfo.currency.toLowerCase()}${i18n.t("tokensPerMillion")}`;
+        displayHTML += `<div class="model-price">${outputStr}</div>`;
+        maxWidth = Math.max(maxWidth, ctx.measureText(outputStr).width + 50);
+      }
     }
-    
-    displayHTML += '</div>';
     item.innerHTML = displayHTML;
     
     item.onclick = (e) => {
