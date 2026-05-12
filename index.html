@@ -1119,6 +1119,48 @@
         </div>
 
 
+        <div class="panel" id="workshop-panel">
+            <div class="panel-header" onclick="togglePanel('workshop-panel')">
+                <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
+                <h3 data-i18n="workshopPanelLabel">Prompt Workshop</h3>
+            </div>
+            <div class="panel-content">
+                <div class="checkbox-group" style="margin-bottom: 8px;">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="workshop-enable" name="workshop-enable">
+                        <span data-i18n="workshopEnableLabel">Enable Workshop</span>
+                    </label>
+                </div>
+                <p id="workshop-description" class="beta-notice" style="margin-bottom: 16px; font-style: normal; opacity: 0.8;" data-i18n="workshopDescription">
+                    Refines your prompt using a text AI model before generating the image to improve results.
+                </p>
+                <div id="workshop-controls" class="hidden">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="workshopModelLabel">Text Model</label>
+                        <div class="custom-select" id="workshop-model-select-btn">
+                            <div class="select-value"><span class="model-badge"></span><span id="current-workshop-model-name">Loading models...</span></div>
+                            <span class="select-arrow"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 9l6 6 6-6"></path></svg></span>
+                        </div>
+                        <select id="workshop-model" name="workshop-model" style="display: none;"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="workshopSystemPromptLabel">System Prompt Override</label>
+                        <textarea id="workshop-system-prompt" name="workshop-system-prompt" data-i18n-placeholder="workshopSystemPromptPlaceholder" placeholder="Leave empty for default prompt..." style="resize: vertical; min-height: 60px;"></textarea>
+                    </div>
+                    <div class="checkbox-group">
+                        <label class="checkbox-item" id="workshop-parallel-option">
+                            <input type="checkbox" id="workshop-parallel-per-image" name="workshop-parallel-per-image">
+                            <span data-i18n="workshopParallelPerImageLabel">Process for each image (for parallel mode)</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="workshop-thinking" name="workshop-thinking" checked>
+                            <span data-i18n="workshopThinkingLabel">Thinking (if available)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="panel" id="refinement-panel">
             <div class="panel-header" onclick="togglePanel('refinement-panel')">
                 <span class="caret"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 18l6-6-6-6"></path></svg></span>
@@ -1318,6 +1360,7 @@
             <div class="popover-item" data-ratio="9:16" data-w="1026" data-h="1824"><div class="ratio-icon-container"><div class="ratio-icon" style="width: 8px; height: 18px;"></div></div>Vertical (9:16)</div>
         </div>
         <div class="popover" id="model-popover"></div>
+        <div class="popover" id="workshop-model-popover"></div>
         <div id="lightbox" class="lightbox hidden">
             <button class="lightbox-close" type="button">&times;</button>
             <div class="lightbox-content">
@@ -1549,7 +1592,8 @@
                 btnIcon.style.height = itemIcon.style.height;
 
                 aspectPopover.classList.remove('visible');
-            };
+                if (window.saveSidebarSettings) window.saveSidebarSettings();
+                };
         });
     </script>
     <script src="js/i18n.js"></script>

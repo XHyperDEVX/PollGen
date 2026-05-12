@@ -7,6 +7,8 @@
 // STATE MANAGEMENT
 // ============================================================================
 
+const WORKSHOP_SYSTEM_PROMPT = "You are a prompt engineer. Your task is to refine the user's image generation prompt to make it more detailed and effective for AI image generation. Return only the refined prompt, no other text.";
+
 const state = {
   apiKey: null,
   models: [],
@@ -26,6 +28,7 @@ const state = {
   profile: null, // User profile data from /account/profile
   allModels: [], // Full model list (no API key)
   allVideoModels: [], // Full video model list (no API key)
+  selectedModel: null,
   restrictedModels: [], // API-key filtered models
   restrictedVideoModels: [], // API-key filtered video models
   // Parallel mode state
@@ -51,7 +54,14 @@ const state = {
   generationStartTimes: new Map(),
   timerIntervals: new Map(),
   persistedGenerations: [],
-  isRestoringGenerations: false
+  isRestoringGenerations: false,
+  // Workshop Prompt state
+  workshopEnabled: false,
+  workshopModel: null,
+  workshopSystemPrompt: '',
+  workshopParallelPerImage: false,
+  workshopThinking: true,
+  textModels: []
 };
 
 // ============================================================================
@@ -145,6 +155,9 @@ function updateUploadUI() {
       }
     }
   });
+  if (typeof state !== 'undefined' && state.textModels && state.textModels.length > 0) {
+    renderWorkshopModelOptions(state.textModels);
+  }
 }
 
 function showUploadProgress(show, slotIndex = 0) {
@@ -205,6 +218,7 @@ function clearUploadedImage(slotIndex = null) {
   }
 
   updateUploadUI();
+      if (state.textModels.length > 0) renderWorkshopModelOptions(state.textModels);
 }
 
 async function deleteUploadedImage(slotIndex = 0) {
@@ -808,12 +822,13 @@ async function updateBalance(apiKey, forceReload = false) {
 
 // Premium Models Filter
 function loadShowPremiumModels() {
-  const saved = localStorage.getItem('pollgen_show_premium_models');
-  if (saved !== null) {
-    state.showPremiumModels = saved === 'true';
-  } else {
-    state.showPremiumModels = false;
+  const checkbox = document.getElementById('show-premium-models');
+  if (checkbox) {
+    checkbox.checked = state.showPremiumModels;
   }
+  return state.showPremiumModels;
+}
+function legacy_loadShowPremiumModels() {
 
   const checkbox = document.getElementById('show-premium-models');
   if (checkbox) {
@@ -824,6 +839,10 @@ function loadShowPremiumModels() {
 }
 
 function saveShowPremiumModels(show) {
+  state.showPremiumModels = show;
+  saveSidebarSettings();
+}
+function legacy_saveShowPremiumModels(show) {
   state.showPremiumModels = show;
   localStorage.setItem('pollgen_show_premium_models', show.toString());
 }
@@ -867,12 +886,13 @@ function saveUploadConsent(consent) {
 }
 
 function loadPerformanceMode() {
-  const saved = localStorage.getItem('pollgen_performance_mode');
-  if (saved !== null) {
-    state.performanceMode = saved === 'true';
-  } else {
-    state.performanceMode = false;
+  const checkbox = document.getElementById('performance-mode');
+  if (checkbox) {
+    checkbox.checked = state.performanceMode;
   }
+  return state.performanceMode;
+}
+function legacy_loadPerformanceMode() {
 
   const checkbox = document.getElementById('performance-mode');
   if (checkbox) {
@@ -884,9 +904,14 @@ function loadPerformanceMode() {
 
 function savePerformanceMode(enabled) {
   state.performanceMode = Boolean(enabled);
+  saveSidebarSettings();
+}
+function legacy_savePerformanceMode(enabled) {
+  state.performanceMode = Boolean(enabled);
   localStorage.setItem('pollgen_performance_mode', state.performanceMode.toString());
 }
 
+const SETTINGS_COOKIE_NAME = 'pollgen_settings';
 const API_KEY_COOKIE_NAME = 'pollinations_api_key';
 const PROMPT_COOKIE_NAME = 'pollgen_prompt';
 const GENERATIONS_COOKIE_NAME = 'pollgen_generations';
@@ -1188,6 +1213,25 @@ async function fetchModelsFromAPI(apiKey = null) {
   }
 }
 
+async function fetchTextModels(apiKey = null) {
+  try {
+    const headers = {};
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey.trim()}`;
+    }
+
+    const response = await fetch('https://gen.pollinations.ai/text/models', { headers });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch text models: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching text models:', error);
+    throw error;
+  }
+}
+
 function getCachedModels() {
   try {
     const cached = localStorage.getItem(MODELS_CACHE_KEY);
@@ -1338,7 +1382,16 @@ async function loadModels() {
     saveShowPremiumModels(false);
   }
 
-  applyActiveModels(false);
+    applyActiveModels(false);
+  
+  try {
+    const textModels = await fetchTextModels(state.apiKey);
+    state.textModels = textModels;
+    renderWorkshopModelOptions(textModels);
+  } catch (error) {
+    console.error('Failed to load text models:', error);
+  }
+
   setStatus('', '');
 }
 
@@ -1425,7 +1478,7 @@ function renderModelOptions(models, forceReset = false) {
   const currentModelName = document.getElementById('current-model-name');
   if (!select || !modelPopover) return;
 
-  const previousValue = forceReset ? '' : select.value;
+  const previousValue = forceReset ? '' : (select.value || state.selectedModel);
   select.innerHTML = '';
   modelPopover.innerHTML = '';
 
@@ -1542,6 +1595,7 @@ function renderModelOptions(models, forceReset = false) {
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
+      state.selectedModel = model.name;
       const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
       const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
       currentModelName.innerHTML = name + btnPremiumIndicator + btnImg2ImgIndicator;
@@ -1553,6 +1607,7 @@ function renderModelOptions(models, forceReset = false) {
       modelPopover.classList.remove('visible');
       updateUploadUI();
       updateTransparentOptionAvailability();
+      saveSidebarSettings();
     };
     modelPopover.appendChild(item);
   });
@@ -1841,7 +1896,15 @@ function removeParallelStatusBadge(card) {
 
 async function processParallelJob(job, totalJobs, setId) {
   startGenerationTimer(job.genId);
-  const { genId, payload, isVideoMode, index, sourceUrl } = job;
+  let { genId, payload, isVideoMode, index, sourceUrl } = job;
+  
+  if (state.workshopEnabled && state.workshopParallelPerImage) {
+    const refinedPrompt = await processWorkshopPrompt(payload.prompt, genId);
+    if (refinedPrompt !== payload.prompt) {
+      payload.prompt = refinedPrompt;
+      sourceUrl = buildGenerationUrl(payload, isVideoMode);
+    }
+  }
   const card = document.getElementById(`gen-card-${genId}`);
 
   if (card && setId === state.currentSetId) {
@@ -1928,7 +1991,9 @@ async function startParallelProcessor(setId, totalJobs) {
     }
     
     // Update balance after all jobs complete
-    if (state.apiKey) {
+    loadSidebarSettings();
+
+  if (state.apiKey) {
       await updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
     }
 
@@ -1952,8 +2017,13 @@ async function startParallelProcessor(setId, totalJobs) {
   }
 }
 
-function addParallelJobs(payload, isVideoMode, count) {
+async function addParallelJobs(payload, isVideoMode, count) {
   const galleryFeed = document.getElementById('gallery-feed');
+  
+  if (state.workshopEnabled && !state.workshopParallelPerImage) {
+    const refinedPrompt = await processWorkshopPrompt(payload.prompt);
+    payload.prompt = refinedPrompt;
+  }
   const emptyState = document.getElementById('placeholder');
   
   if (emptyState) emptyState.style.display = 'none';
@@ -2044,8 +2114,16 @@ function switchParallelMode(enabled) {
   // Update count unit label (Images/Videos)
   updateCountUnitLabel();
   
+  // Disable/enable workshop parallel option
+  const workshopParallelPerImage = document.getElementById('workshop-parallel-per-image');
+  if (workshopParallelPerImage) {
+    workshopParallelPerImage.disabled = !enabled;
+    workshopParallelPerImage.closest('.checkbox-item').classList.toggle('disabled', !enabled);
+  }
+  
   // Update cost display
   window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
+  saveSidebarSettings();
 }
 
 function updateCountUnitLabel() {
@@ -2073,6 +2151,7 @@ function updateParallelCount(delta) {
   
   // Update cost display
   window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
+  saveSidebarSettings();
 }
 
 function setupParallelCountHandlers() {
@@ -3289,6 +3368,161 @@ function adjustPromptHeight() {
 // EVENT HANDLERS
 // ============================================================================
 
+
+window.saveSidebarSettings = saveSidebarSettings;
+function saveSidebarSettings() {
+  const settings = {
+    mode: document.getElementById('mode')?.value,
+    model: document.getElementById('model')?.value,
+    aspectRatio: document.getElementById('aspect-ratio')?.value,
+    duration: document.getElementById('duration-hidden')?.value,
+    workshopEnabled: document.getElementById('workshop-enable')?.checked,
+    workshopModel: document.getElementById('workshop-model')?.value,
+    workshopSystemPrompt: document.getElementById('workshop-system-prompt')?.value,
+    workshopParallelPerImage: document.getElementById('workshop-parallel-per-image')?.checked,
+    workshopThinking: document.getElementById('workshop-thinking')?.checked,
+    seed: document.getElementById('seed')?.value,
+    negativePrompt: document.getElementById('negative_prompt')?.value,
+    parallelMode: document.getElementById('parallel-checkbox')?.checked,
+    parallelCount: state.parallelCount,
+    transparent: document.getElementById('transparent')?.checked,
+    performanceMode: document.getElementById('performance-mode')?.checked,
+    enhance: document.getElementById('enhance')?.checked,
+    private: document.getElementById('private')?.checked,
+    nologo: document.getElementById('nologo')?.checked,
+    nofeed: document.getElementById('nofeed')?.checked,
+    safe: document.getElementById('safe')?.checked,
+    showPremiumModels: document.getElementById('show-premium-models')?.checked
+  };
+  setCookie(SETTINGS_COOKIE_NAME, JSON.stringify(settings));
+}
+
+function loadSidebarSettings() {
+  const cookie = getCookie(SETTINGS_COOKIE_NAME);
+  if (!cookie) return;
+
+  try {
+    const settings = JSON.parse(cookie);
+    
+    if (settings.mode && typeof window.switchMode === 'function') {
+      window.switchMode(settings.mode);
+    }
+    
+    if (settings.model) {
+      const modelSelect = document.getElementById('model');
+      if (modelSelect) modelSelect.value = settings.model;
+      state.selectedModel = settings.model;
+    }
+
+    if (settings.aspectRatio) {
+      const arInput = document.getElementById('aspect-ratio');
+      if (arInput) {
+        arInput.value = settings.aspectRatio;
+        // Update UI for aspect ratio
+        const arItem = document.querySelector(`#aspect-ratio-popover .popover-item[data-ratio="${settings.aspectRatio}"]`);
+        if (arItem) {
+          document.querySelectorAll('#aspect-ratio-popover .popover-item').forEach(i => i.classList.remove('selected'));
+          arItem.classList.add('selected');
+          document.getElementById('current-ratio-label').textContent = arItem.textContent.trim();
+          document.getElementById('width').value = arItem.dataset.w;
+          document.getElementById('height').value = arItem.dataset.h;
+          const btnIcon = document.getElementById('current-ratio-icon');
+          const itemIcon = arItem.querySelector('.ratio-icon');
+          if (btnIcon && itemIcon) {
+            btnIcon.style.width = itemIcon.style.width;
+            btnIcon.style.height = itemIcon.style.height;
+          }
+        }
+      }
+    }
+
+    if (settings.duration) {
+      const durInput = document.getElementById('duration-hidden');
+      const durSlider = document.getElementById('duration');
+      const durValue = document.getElementById('duration-value');
+      if (durInput) durInput.value = settings.duration;
+      if (durSlider) durSlider.value = settings.duration;
+      if (durValue) durValue.textContent = settings.duration + 's';
+    }
+
+    if (settings.workshopEnabled !== undefined) {
+      const workshopEnable = document.getElementById('workshop-enable');
+      if (workshopEnable) {
+        workshopEnable.checked = settings.workshopEnabled;
+        state.workshopEnabled = settings.workshopEnabled;
+        document.getElementById('workshop-controls')?.classList.toggle('hidden', !settings.workshopEnabled);
+      }
+    }
+
+    if (settings.workshopModel) {
+      state.workshopModel = settings.workshopModel;
+      const wsModelSelect = document.getElementById('workshop-model');
+      if (wsModelSelect) wsModelSelect.value = settings.workshopModel;
+    }
+
+    if (settings.workshopSystemPrompt !== undefined) {
+      const wsSysPrompt = document.getElementById('workshop-system-prompt');
+      if (wsSysPrompt) {
+        wsSysPrompt.value = settings.workshopSystemPrompt;
+        state.workshopSystemPrompt = settings.workshopSystemPrompt;
+      }
+    }
+
+    if (settings.workshopParallelPerImage !== undefined) {
+      const wsParallel = document.getElementById('workshop-parallel-per-image');
+      if (wsParallel) {
+        wsParallel.checked = settings.workshopParallelPerImage;
+        state.workshopParallelPerImage = settings.workshopParallelPerImage;
+      }
+    }
+
+    if (settings.workshopThinking !== undefined) {
+      const wsThinking = document.getElementById('workshop-thinking');
+      if (wsThinking) {
+        wsThinking.checked = settings.workshopThinking;
+        state.workshopThinking = settings.workshopThinking;
+      }
+    }
+
+    if (settings.seed !== undefined) {
+      const seedInput = document.getElementById('seed');
+      if (seedInput) seedInput.value = settings.seed;
+    }
+
+    if (settings.negativePrompt !== undefined) {
+      const negInput = document.getElementById('negative_prompt');
+      if (negInput) negInput.value = settings.negativePrompt;
+    }
+
+    if (settings.parallelCount !== undefined) {
+      state.parallelCount = settings.parallelCount;
+      const countEl = document.getElementById('parallel-count');
+      if (countEl) countEl.textContent = settings.parallelCount;
+    }
+
+    if (settings.parallelMode !== undefined) {
+      switchParallelMode(settings.parallelMode);
+    }
+
+    ['transparent', 'performance-mode', 'enhance', 'private', 'nologo', 'nofeed', 'safe', 'show-premium-models'].forEach(id => {
+      const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      const val = settings[id === 'performance-mode' ? 'performanceMode' : (id === 'show-premium-models' ? 'showPremiumModels' : key)];
+      if (val !== undefined) {
+        const cb = document.getElementById(id);
+        if (cb) cb.checked = val;
+        if (id === 'performance-mode') state.performanceMode = val;
+        if (id === 'show-premium-models') {
+           state.showPremiumModels = val;
+           // applyActiveModels is called later during init
+        }
+      }
+    });
+
+  } catch (e) {
+    console.error('Failed to load settings', e);
+  }
+}
+
 function setupEventListeners() {
   const loginBtn = document.getElementById('login-btn');
   const popupLoginBtn = document.getElementById('auth-popup-login-btn');
@@ -3355,12 +3589,12 @@ function setupEventListeners() {
       const isVideoMode = payload.mode === 'video';
 
       if (state.parallelMode) {
-        addParallelJobs(payload, isVideoMode, state.parallelCount);
+        await addParallelJobs(payload, isVideoMode, state.parallelCount);
         return;
       }
 
       const genId = Date.now();
-      const sourceUrl = buildGenerationUrl(payload, isVideoMode);
+      let sourceUrl = buildGenerationUrl(payload, isVideoMode);
       upsertPersistedGeneration({
         genId: String(genId),
         type: isVideoMode ? 'video' : 'image',
@@ -3383,6 +3617,13 @@ function setupEventListeners() {
       toggleLoading(true);
       setStatus('', '');
       try {
+        if (state.workshopEnabled) {
+          const refinedPrompt = await processWorkshopPrompt(payload.prompt, genId);
+          if (refinedPrompt !== payload.prompt) {
+            payload.prompt = refinedPrompt;
+            sourceUrl = buildGenerationUrl(payload, isVideoMode);
+          }
+        }
         if (isVideoMode) {
           const response = await generateVideo(payload, sourceUrl);
           stopGenerationTimer(genId);
@@ -3447,13 +3688,84 @@ function setupEventListeners() {
   window.addEventListener('languageChanged', () => {
     const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
     renderModelOptions(modelsToRender);
-    if (state.apiKey) {
+    loadSidebarSettings();
+
+  if (state.apiKey) {
       updateBalance(state.apiKey);
     }
   });
 
   setupParallelCountHandlers();
+  // Workshop Prompt Event Listeners
+  const workshopEnable = document.getElementById('workshop-enable');
+  const workshopControls = document.getElementById('workshop-controls');
+  const workshopModelBtn = document.getElementById('workshop-model-select-btn');
+  const workshopModelPopover = document.getElementById('workshop-model-popover');
+  const workshopSystemPrompt = document.getElementById('workshop-system-prompt');
+  const workshopParallelPerImage = document.getElementById('workshop-parallel-per-image');
+  const workshopThinking = document.getElementById('workshop-thinking');
+
+  if (workshopEnable) {
+    workshopEnable.addEventListener('change', () => {
+      state.workshopEnabled = workshopEnable.checked;
+      workshopControls.classList.toggle('hidden', !state.workshopEnabled);
+    });
+  }
+
+  if (workshopModelBtn) {
+    workshopModelBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = workshopModelPopover.classList.contains('visible');
+      document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
+      if (!isVisible) {
+        workshopModelPopover.classList.add('visible');
+        if (typeof positionPopover === 'function') {
+          positionPopover(workshopModelBtn, workshopModelPopover);
+        }
+      }
+    });
+  }
+
+  if (workshopSystemPrompt) {
+    workshopSystemPrompt.addEventListener('input', () => {
+      state.workshopSystemPrompt = workshopSystemPrompt.value;
+    });
+  }
+
+  if (workshopParallelPerImage) {
+    workshopParallelPerImage.addEventListener('change', () => {
+      state.workshopParallelPerImage = workshopParallelPerImage.checked;
+    });
+  }
+
+  if (workshopThinking) {
+    workshopThinking.addEventListener('change', () => {
+      state.workshopThinking = workshopThinking.checked;
+    });
+  }
+
   setupContextMenu();
+  // Automatic saving for sidebar settings
+  const sidebarInputs = [
+    'workshop-enable', 'workshop-model', 'workshop-system-prompt', 
+    'workshop-parallel-per-image', 'workshop-thinking', 'seed', 
+    'negative_prompt', 'parallel-checkbox', 'transparent', 
+    'performance-mode', 'enhance', 'private', 'nologo', 
+    'nofeed', 'safe', 'show-premium-models'
+  ];
+  sidebarInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const eventType = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+      el.addEventListener(eventType, saveSidebarSettings);
+    }
+  });
+
+  // Aspect ratio and model selects also need to save settings
+  // These are handled by their click/item-click handlers usually, but we can hook into state changes if any,
+  // or just add it to the existing handlers.
+  // For simplicity, let's add it to some key functions that change state.
+
 }
 
 // Context menu state
@@ -3765,7 +4077,6 @@ async function init() {
   loadPersistedGenerations();
 
   restorePrompt();
-
   setupEventListeners();
   setupImageUploadHandlers();
   updateUploadUI();
@@ -3791,6 +4102,8 @@ async function init() {
   } else {
     loadApiKey();
   }
+
+  loadSidebarSettings();
 
   if (state.apiKey) {
     const isValid = await updateBalance(state.apiKey, true);
@@ -3992,4 +4305,185 @@ function updateLoginButtonState(isLoggedIn) {
   }
 
   syncApiKeyInputMask();
+}
+
+function renderWorkshopModelOptions(models) {
+  const select = document.getElementById('workshop-model');
+  const modelPopover = document.getElementById('workshop-model-popover');
+  const currentModelName = document.getElementById('current-workshop-model-name');
+  if (!select || !modelPopover) return;
+
+  const previousValue = select.value || state.workshopModel;
+  select.innerHTML = '';
+  modelPopover.innerHTML = '';
+
+  // Filter models by input_modalities if an image is uploaded
+  const hasImage = getUploadedImageUrls().length > 0;
+  let filteredModels = models;
+  if (hasImage) {
+    filteredModels = models.filter(m => m.input_modalities && m.input_modalities.includes('image'));
+  }
+
+  const sortedModels = [...filteredModels].sort((a, b) => {
+    let priceA = parseFloat(a.pricing?.completionTextTokens || 0);
+    let priceB = parseFloat(b.pricing?.completionTextTokens || 0);
+    return priceA - priceB;
+  });
+
+  if (sortedModels.length === 0) {
+    if (currentModelName) currentModelName.textContent = i18n.t('modelPlaceholder');
+    select.value = '';
+    return;
+  }
+
+  let maxWidth = 280;
+  const measureCanvas = document.createElement('canvas');
+  const ctx = measureCanvas.getContext('2d');
+  ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+  sortedModels.forEach(model => {
+    const name = model.name || 'Unknown';
+    const description = model.description || '';
+    const priceInfo = formatModelPrice(model);
+    
+    const option = document.createElement('option');
+    option.value = model.name;
+    option.textContent = name;
+    select.appendChild(option);
+
+    const item = document.createElement('div');
+    item.className = 'popover-item';
+    if (model.name === previousValue) item.classList.add('selected');
+    
+    let displayHTML = `<div class="model-badge" style="background-color: ${stringToColor(name)}"></div>`;
+    displayHTML += '<div class="model-info">';
+    
+    if (description && description !== name) {
+      displayHTML += `<div class="model-name-desc">${name}</div>`;
+      displayHTML += `<div class="model-description">${description}</div>`;
+      maxWidth = Math.max(maxWidth, ctx.measureText(description).width + 120);
+    } else {
+      displayHTML += `<div class="model-name-single">${name}</div>`;
+      maxWidth = Math.max(maxWidth, ctx.measureText(name).width + 120);
+    }
+    
+    if (priceInfo.textTokenPrice) {
+      const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
+      displayHTML += `<div class="model-price">${textPriceStr}</div>`;
+      maxWidth = Math.max(maxWidth, ctx.measureText(textPriceStr).width + 50);
+    }
+    
+    displayHTML += '</div>';
+    item.innerHTML = displayHTML;
+    
+    item.onclick = (e) => {
+      e.stopPropagation();
+      select.value = model.name;
+      state.workshopModel = model.name;
+      currentModelName.innerHTML = name;
+      const btnBadge = document.querySelector('#workshop-model-select-btn .model-badge');
+      if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
+      modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      modelPopover.classList.remove('visible');
+      saveSidebarSettings();
+    };
+    modelPopover.appendChild(item);
+  });
+
+  modelPopover.style.width = Math.min(maxWidth, 450) + 'px';
+
+  if (previousValue && [...select.options].some(opt => opt.value === previousValue)) {
+    select.value = previousValue;
+  } else if (sortedModels.length > 0) {
+    select.value = sortedModels[0].name;
+    state.workshopModel = sortedModels[0].name;
+    currentModelName.innerHTML = sortedModels[0].name;
+    const btnBadge = document.querySelector('#workshop-model-select-btn .model-badge');
+    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
+    modelPopover.querySelector('.popover-item')?.classList.add('selected');
+  }
+}
+
+async function processWorkshopPrompt(originalPrompt, genId = null) {
+  if (!state.workshopEnabled || !state.workshopModel) return originalPrompt;
+
+  const systemPrompt = state.workshopSystemPrompt || WORKSHOP_SYSTEM_PROMPT;
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: originalPrompt }
+  ];
+
+  const uploadedImageUrls = getUploadedImageUrls();
+  if (uploadedImageUrls.length > 0) {
+    const userMessage = messages[1];
+    const content = [{ type: 'text', text: originalPrompt }];
+    uploadedImageUrls.forEach(url => {
+      content.push({ type: 'image_url', image_url: { url } });
+    });
+    userMessage.content = content;
+  }
+
+  setStatus(i18n.t('statusWorkshopProcessingPrompt'), 'info');
+  if (genId) {
+    const card = document.getElementById(`gen-card-${genId}`);
+    if (card) {
+      const statusBadge = document.createElement('div');
+      statusBadge.className = 'workshop-status-badge';
+      statusBadge.style.position = 'absolute';
+      statusBadge.style.top = '50%';
+      statusBadge.style.left = '50%';
+      statusBadge.style.transform = 'translate(-50%, -50%)';
+      statusBadge.style.background = 'rgba(37, 99, 235, 0.9)';
+      statusBadge.style.color = 'white';
+      statusBadge.style.padding = '12px 24px';
+      statusBadge.style.borderRadius = '8px';
+      statusBadge.style.fontSize = '16px';
+      statusBadge.style.fontWeight = 'bold';
+      statusBadge.style.zIndex = '11';
+      statusBadge.style.whiteSpace = 'nowrap';
+      statusBadge.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+      statusBadge.textContent = i18n.t('statusWorkshopProcessingPrompt');
+      card.appendChild(statusBadge);
+    }
+  }
+
+  try {
+    const response = await fetch('https://gen.pollinations.ai/text', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.apiKey}`
+      },
+      body: JSON.stringify({
+        messages,
+        model: state.workshopModel,
+        response_format: { type: 'text' },
+        seed: -1,
+        stream: false,
+        thinking: { type: state.workshopThinking ? 'enabled' : 'disabled' },
+        reasoning_effort: 'medium',
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Workshop API error: ${response.status}`);
+    }
+
+    const result = await response.text();
+    if (genId) {
+      const card = document.getElementById(`gen-card-${genId}`);
+      card?.querySelector('.workshop-status-badge')?.remove();
+    }
+    return result.trim();
+  } catch (error) {
+    if (genId) {
+      const card = document.getElementById(`gen-card-${genId}`);
+      card?.querySelector('.workshop-status-badge')?.remove();
+    }
+    console.error('Workshop processing failed:', error);
+    setStatus('Workshop failed: ' + error.message, 'error');
+    return originalPrompt;
+  }
 }
