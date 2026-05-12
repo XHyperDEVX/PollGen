@@ -148,7 +148,17 @@ const translations = {
     uploadErrorFileSize: 'File too large. Please choose a smaller image.',
     uploadErrorFileType: 'Invalid file type. Please upload an image file.',
     uploadErrorGeneric: 'Upload failed. Please try again.',
-    uploadErrorAuth: 'Upload requires a valid API key.'
+    uploadErrorAuth: 'Upload requires a valid API key.',
+
+    // Workshop Prompt
+    workshopPanelLabel: 'Workshop Prompt',
+    workshopEnableLabel: 'Enable Workshop',
+    workshopModelLabel: 'Text Model',
+    workshopSystemPromptLabel: 'System Prompt Override',
+    workshopSystemPromptPlaceholder: 'Leave empty for default prompt...',
+    workshopParallelPerImageLabel: 'Process for each image',
+    workshopThinkingLabel: 'Thinking',
+    statusWorkshopProcessing: 'Workshop is processing prompt...'
   },
 
   de: {
@@ -295,7 +305,17 @@ const translations = {
     uploadErrorFileSize: 'Datei zu groß. Bitte wählen Sie ein kleineres Bild.',
     uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
     uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
-    uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.'
+    uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
+
+    // Workshop Prompt
+    workshopPanelLabel: 'Workshop Prompt',
+    workshopEnableLabel: 'Workshop aktivieren',
+    workshopModelLabel: 'Text-Modell',
+    workshopSystemPromptLabel: 'System-Prompt-Überschreibung',
+    workshopSystemPromptPlaceholder: 'Leer lassen für Standard-Prompt...',
+    workshopParallelPerImageLabel: 'Für jedes Bild einzeln verarbeiten',
+    workshopThinkingLabel: 'Thinking',
+    statusWorkshopProcessing: 'Workshop verarbeitet Prompt...'
   }
 };
 

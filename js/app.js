@@ -7,6 +7,8 @@
 // STATE MANAGEMENT
 // ============================================================================
 
+const WORKSHOP_SYSTEM_PROMPT = "You are a prompt engineer. Your task is to refine the user's image generation prompt to make it more detailed and effective for AI image generation. Return only the refined prompt, no other text.";
+
 const state = {
   apiKey: null,
   models: [],
@@ -51,7 +53,14 @@ const state = {
   generationStartTimes: new Map(),
   timerIntervals: new Map(),
   persistedGenerations: [],
-  isRestoringGenerations: false
+  isRestoringGenerations: false,
+  // Workshop Prompt state
+  workshopEnabled: false,
+  workshopModel: null,
+  workshopSystemPrompt: '',
+  workshopParallelPerImage: false,
+  workshopThinking: true,
+  textModels: []
 };
 
 // ============================================================================
@@ -145,6 +154,9 @@ function updateUploadUI() {
       }
     }
   });
+  if (typeof state !== 'undefined' && state.textModels && state.textModels.length > 0) {
+    renderWorkshopModelOptions(state.textModels);
+  }
 }
 
 function showUploadProgress(show, slotIndex = 0) {
@@ -205,6 +217,7 @@ function clearUploadedImage(slotIndex = null) {
   }
 
   updateUploadUI();
+      if (state.textModels.length > 0) renderWorkshopModelOptions(state.textModels);
 }
 
 async function deleteUploadedImage(slotIndex = 0) {
@@ -1188,6 +1201,25 @@ async function fetchModelsFromAPI(apiKey = null) {
   }
 }
 
+async function fetchTextModels(apiKey = null) {
+  try {
+    const headers = {};
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey.trim()}`;
+    }
+
+    const response = await fetch('https://gen.pollinations.ai/text/models', { headers });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch text models: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching text models:', error);
+    throw error;
+  }
+}
+
 function getCachedModels() {
   try {
     const cached = localStorage.getItem(MODELS_CACHE_KEY);
@@ -1338,7 +1370,16 @@ async function loadModels() {
     saveShowPremiumModels(false);
   }
 
-  applyActiveModels(false);
+    applyActiveModels(false);
+  
+  try {
+    const textModels = await fetchTextModels(state.apiKey);
+    state.textModels = textModels;
+    renderWorkshopModelOptions(textModels);
+  } catch (error) {
+    console.error('Failed to load text models:', error);
+  }
+
   setStatus('', '');
 }
 
@@ -1841,7 +1882,15 @@ function removeParallelStatusBadge(card) {
 
 async function processParallelJob(job, totalJobs, setId) {
   startGenerationTimer(job.genId);
-  const { genId, payload, isVideoMode, index, sourceUrl } = job;
+  let { genId, payload, isVideoMode, index, sourceUrl } = job;
+  
+  if (state.workshopEnabled && state.workshopParallelPerImage) {
+    const refinedPrompt = await processWorkshopPrompt(payload.prompt, genId);
+    if (refinedPrompt !== payload.prompt) {
+      payload.prompt = refinedPrompt;
+      sourceUrl = buildGenerationUrl(payload, isVideoMode);
+    }
+  }
   const card = document.getElementById(`gen-card-${genId}`);
 
   if (card && setId === state.currentSetId) {
@@ -1952,8 +2001,13 @@ async function startParallelProcessor(setId, totalJobs) {
   }
 }
 
-function addParallelJobs(payload, isVideoMode, count) {
+async function addParallelJobs(payload, isVideoMode, count) {
   const galleryFeed = document.getElementById('gallery-feed');
+  
+  if (state.workshopEnabled && !state.workshopParallelPerImage) {
+    const refinedPrompt = await processWorkshopPrompt(payload.prompt);
+    payload.prompt = refinedPrompt;
+  }
   const emptyState = document.getElementById('placeholder');
   
   if (emptyState) emptyState.style.display = 'none';
@@ -3355,12 +3409,12 @@ function setupEventListeners() {
       const isVideoMode = payload.mode === 'video';
 
       if (state.parallelMode) {
-        addParallelJobs(payload, isVideoMode, state.parallelCount);
+        await addParallelJobs(payload, isVideoMode, state.parallelCount);
         return;
       }
 
       const genId = Date.now();
-      const sourceUrl = buildGenerationUrl(payload, isVideoMode);
+      let sourceUrl = buildGenerationUrl(payload, isVideoMode);
       upsertPersistedGeneration({
         genId: String(genId),
         type: isVideoMode ? 'video' : 'image',
@@ -3383,6 +3437,13 @@ function setupEventListeners() {
       toggleLoading(true);
       setStatus('', '');
       try {
+        if (state.workshopEnabled) {
+          const refinedPrompt = await processWorkshopPrompt(payload.prompt, genId);
+          if (refinedPrompt !== payload.prompt) {
+            payload.prompt = refinedPrompt;
+            sourceUrl = buildGenerationUrl(payload, isVideoMode);
+          }
+        }
         if (isVideoMode) {
           const response = await generateVideo(payload, sourceUrl);
           stopGenerationTimer(genId);
@@ -3453,6 +3514,54 @@ function setupEventListeners() {
   });
 
   setupParallelCountHandlers();
+  // Workshop Prompt Event Listeners
+  const workshopEnable = document.getElementById('workshop-enable');
+  const workshopControls = document.getElementById('workshop-controls');
+  const workshopModelBtn = document.getElementById('workshop-model-select-btn');
+  const workshopModelPopover = document.getElementById('workshop-model-popover');
+  const workshopSystemPrompt = document.getElementById('workshop-system-prompt');
+  const workshopParallelPerImage = document.getElementById('workshop-parallel-per-image');
+  const workshopThinking = document.getElementById('workshop-thinking');
+
+  if (workshopEnable) {
+    workshopEnable.addEventListener('change', () => {
+      state.workshopEnabled = workshopEnable.checked;
+      workshopControls.classList.toggle('hidden', !state.workshopEnabled);
+    });
+  }
+
+  if (workshopModelBtn) {
+    workshopModelBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = workshopModelPopover.classList.contains('visible');
+      document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible'));
+      if (!isVisible) {
+        workshopModelPopover.classList.add('visible');
+        if (typeof positionPopover === 'function') {
+          positionPopover(workshopModelBtn, workshopModelPopover);
+        }
+      }
+    });
+  }
+
+  if (workshopSystemPrompt) {
+    workshopSystemPrompt.addEventListener('input', () => {
+      state.workshopSystemPrompt = workshopSystemPrompt.value;
+    });
+  }
+
+  if (workshopParallelPerImage) {
+    workshopParallelPerImage.addEventListener('change', () => {
+      state.workshopParallelPerImage = workshopParallelPerImage.checked;
+    });
+  }
+
+  if (workshopThinking) {
+    workshopThinking.addEventListener('change', () => {
+      state.workshopThinking = workshopThinking.checked;
+    });
+  }
+
   setupContextMenu();
 }
 
@@ -3992,4 +4101,180 @@ function updateLoginButtonState(isLoggedIn) {
   }
 
   syncApiKeyInputMask();
+}
+
+function renderWorkshopModelOptions(models) {
+  const select = document.getElementById('workshop-model');
+  const modelPopover = document.getElementById('workshop-model-popover');
+  const currentModelName = document.getElementById('current-workshop-model-name');
+  if (!select || !modelPopover) return;
+
+  const previousValue = select.value;
+  select.innerHTML = '';
+  modelPopover.innerHTML = '';
+
+  // Filter models by input_modalities if an image is uploaded
+  const hasImage = getUploadedImageUrls().length > 0;
+  let filteredModels = models;
+  if (hasImage) {
+    filteredModels = models.filter(m => m.input_modalities && m.input_modalities.includes('image'));
+  }
+
+  const sortedModels = [...filteredModels].sort((a, b) => {
+    let priceA = parseFloat(a.pricing?.completionTextTokens || 0);
+    let priceB = parseFloat(b.pricing?.completionTextTokens || 0);
+    return priceA - priceB;
+  });
+
+  if (sortedModels.length === 0) {
+    if (currentModelName) currentModelName.textContent = i18n.t('modelPlaceholder');
+    select.value = '';
+    return;
+  }
+
+  let maxWidth = 280;
+  const measureCanvas = document.createElement('canvas');
+  const ctx = measureCanvas.getContext('2d');
+  ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+  sortedModels.forEach(model => {
+    const name = model.name || 'Unknown';
+    const description = model.description || '';
+    const priceInfo = formatModelPrice(model);
+    
+    const option = document.createElement('option');
+    option.value = model.name;
+    option.textContent = name;
+    select.appendChild(option);
+
+    const item = document.createElement('div');
+    item.className = 'popover-item';
+    if (model.name === previousValue) item.classList.add('selected');
+    
+    let displayHTML = `<div class="model-badge" style="background-color: ${stringToColor(name)}"></div>`;
+    displayHTML += '<div class="model-info">';
+    
+    if (description && description !== name) {
+      displayHTML += `<div class="model-name-desc">${name}</div>`;
+      displayHTML += `<div class="model-description">${description}</div>`;
+      maxWidth = Math.max(maxWidth, ctx.measureText(description).width + 120);
+    } else {
+      displayHTML += `<div class="model-name-single">${name}</div>`;
+      maxWidth = Math.max(maxWidth, ctx.measureText(name).width + 120);
+    }
+    
+    if (priceInfo.textTokenPrice) {
+      const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
+      displayHTML += `<div class="model-price">${textPriceStr}</div>`;
+      maxWidth = Math.max(maxWidth, ctx.measureText(textPriceStr).width + 50);
+    }
+    
+    displayHTML += '</div>';
+    item.innerHTML = displayHTML;
+    
+    item.onclick = (e) => {
+      e.stopPropagation();
+      select.value = model.name;
+      state.workshopModel = model.name;
+      currentModelName.innerHTML = name;
+      const btnBadge = document.querySelector('#workshop-model-select-btn .model-badge');
+      if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
+      modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      modelPopover.classList.remove('visible');
+    };
+    modelPopover.appendChild(item);
+  });
+
+  modelPopover.style.width = Math.min(maxWidth, 450) + 'px';
+
+  if (previousValue && [...select.options].some(opt => opt.value === previousValue)) {
+    select.value = previousValue;
+  } else if (sortedModels.length > 0) {
+    select.value = sortedModels[0].name;
+    state.workshopModel = sortedModels[0].name;
+    currentModelName.innerHTML = sortedModels[0].name;
+    const btnBadge = document.querySelector('#workshop-model-select-btn .model-badge');
+    if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
+    modelPopover.querySelector('.popover-item')?.classList.add('selected');
+  }
+}
+
+async function processWorkshopPrompt(originalPrompt, genId = null) {
+  if (!state.workshopEnabled || !state.workshopModel) return originalPrompt;
+
+  const systemPrompt = state.workshopSystemPrompt || WORKSHOP_SYSTEM_PROMPT;
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: originalPrompt }
+  ];
+
+  const uploadedImageUrls = getUploadedImageUrls();
+  if (uploadedImageUrls.length > 0) {
+    const userMessage = messages[1];
+    const content = [{ type: 'text', text: originalPrompt }];
+    uploadedImageUrls.forEach(url => {
+      content.push({ type: 'image_url', image_url: { url } });
+    });
+    userMessage.content = content;
+  }
+
+  setStatus(i18n.t('statusWorkshopProcessing'), 'info');
+  if (genId) {
+    const card = document.getElementById(`gen-card-${genId}`);
+    if (card) {
+      const statusBadge = document.createElement('div');
+      statusBadge.className = 'workshop-status-badge';
+      statusBadge.style.position = 'absolute';
+      statusBadge.style.top = '40px';
+      statusBadge.style.left = '12px';
+      statusBadge.style.background = 'rgba(37, 99, 235, 0.8)';
+      statusBadge.style.color = 'white';
+      statusBadge.style.padding = '4px 8px';
+      statusBadge.style.borderRadius = '4px';
+      statusBadge.style.fontSize = '10px';
+      statusBadge.style.zIndex = '11';
+      statusBadge.textContent = 'Workshop...';
+      card.appendChild(statusBadge);
+    }
+  }
+
+  try {
+    const response = await fetch('https://gen.pollinations.ai/text', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.apiKey}`
+      },
+      body: JSON.stringify({
+        messages,
+        model: state.workshopModel,
+        response_format: { type: 'text' },
+        seed: -1,
+        stream: false,
+        thinking: { type: state.workshopThinking ? 'enabled' : 'disabled' },
+        reasoning_effort: 'medium',
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Workshop API error: ${response.status}`);
+    }
+
+    const result = await response.text();
+    if (genId) {
+      const card = document.getElementById(`gen-card-${genId}`);
+      card?.querySelector('.workshop-status-badge')?.remove();
+    }
+    return result.trim();
+  } catch (error) {
+    if (genId) {
+      const card = document.getElementById(`gen-card-${genId}`);
+      card?.querySelector('.workshop-status-badge')?.remove();
+    }
+    console.error('Workshop processing failed:', error);
+    setStatus('Workshop failed: ' + error.message, 'error');
+    return originalPrompt;
+  }
 }
