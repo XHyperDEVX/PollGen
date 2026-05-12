@@ -1125,12 +1125,15 @@
                 <h3 data-i18n="workshopPanelLabel">Prompt Workshop</h3>
             </div>
             <div class="panel-content">
-                <div class="checkbox-group" style="margin-bottom: 16px;">
+                <div class="checkbox-group" style="margin-bottom: 8px;">
                     <label class="checkbox-item">
                         <input type="checkbox" id="workshop-enable" name="workshop-enable">
                         <span data-i18n="workshopEnableLabel">Enable Workshop</span>
                     </label>
                 </div>
+                <p id="workshop-description" class="beta-notice" style="margin-bottom: 16px; font-style: normal; opacity: 0.8;" data-i18n="workshopDescription">
+                    Refines your prompt using a text AI model before generating the image to improve results.
+                </p>
                 <div id="workshop-controls" class="hidden">
                     <div class="form-group">
                         <label class="form-label" data-i18n="workshopModelLabel">Text Model</label>
@@ -1589,7 +1592,8 @@
                 btnIcon.style.height = itemIcon.style.height;
 
                 aspectPopover.classList.remove('visible');
-            };
+                if (window.saveSidebarSettings) window.saveSidebarSettings();
+                };
         });
     </script>
     <script src="js/i18n.js"></script>

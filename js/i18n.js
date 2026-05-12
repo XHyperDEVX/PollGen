@@ -158,7 +158,8 @@ const translations = {
     workshopSystemPromptPlaceholder: 'Leave empty for default prompt...',
     workshopParallelPerImageLabel: 'Process for each image',
     workshopThinkingLabel: 'Thinking',
-    statusWorkshopProcessing: 'Workshop is processing prompt...'
+    workshopDescription: 'Refines your prompt using a text AI model before generating the image to improve results.',
+    statusWorkshopProcessingPrompt: 'Refining Prompt...'
   },
 
   de: {
@@ -315,7 +316,8 @@ const translations = {
     workshopSystemPromptPlaceholder: 'Leer lassen für Standard-Prompt...',
     workshopParallelPerImageLabel: 'Für jedes Bild einzeln verarbeiten',
     workshopThinkingLabel: 'Thinking',
-    statusWorkshopProcessing: 'Workshop verarbeitet Prompt...'
+    workshopDescription: 'Verfeinert deinen Prompt mit einem Text-KI-Modell, bevor das Bild generiert wird, um die Ergebnisse zu verbessern.',
+    statusWorkshopProcessingPrompt: 'Prompt wird verfeinert...'
   }
 };
 

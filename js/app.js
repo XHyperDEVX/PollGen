@@ -28,6 +28,7 @@ const state = {
   profile: null, // User profile data from /account/profile
   allModels: [], // Full model list (no API key)
   allVideoModels: [], // Full video model list (no API key)
+  selectedModel: null,
   restrictedModels: [], // API-key filtered models
   restrictedVideoModels: [], // API-key filtered video models
   // Parallel mode state
@@ -821,12 +822,13 @@ async function updateBalance(apiKey, forceReload = false) {
 
 // Premium Models Filter
 function loadShowPremiumModels() {
-  const saved = localStorage.getItem('pollgen_show_premium_models');
-  if (saved !== null) {
-    state.showPremiumModels = saved === 'true';
-  } else {
-    state.showPremiumModels = false;
+  const checkbox = document.getElementById('show-premium-models');
+  if (checkbox) {
+    checkbox.checked = state.showPremiumModels;
   }
+  return state.showPremiumModels;
+}
+function legacy_loadShowPremiumModels() {
 
   const checkbox = document.getElementById('show-premium-models');
   if (checkbox) {
@@ -837,6 +839,10 @@ function loadShowPremiumModels() {
 }
 
 function saveShowPremiumModels(show) {
+  state.showPremiumModels = show;
+  saveSidebarSettings();
+}
+function legacy_saveShowPremiumModels(show) {
   state.showPremiumModels = show;
   localStorage.setItem('pollgen_show_premium_models', show.toString());
 }
@@ -880,12 +886,13 @@ function saveUploadConsent(consent) {
 }
 
 function loadPerformanceMode() {
-  const saved = localStorage.getItem('pollgen_performance_mode');
-  if (saved !== null) {
-    state.performanceMode = saved === 'true';
-  } else {
-    state.performanceMode = false;
+  const checkbox = document.getElementById('performance-mode');
+  if (checkbox) {
+    checkbox.checked = state.performanceMode;
   }
+  return state.performanceMode;
+}
+function legacy_loadPerformanceMode() {
 
   const checkbox = document.getElementById('performance-mode');
   if (checkbox) {
@@ -897,9 +904,14 @@ function loadPerformanceMode() {
 
 function savePerformanceMode(enabled) {
   state.performanceMode = Boolean(enabled);
+  saveSidebarSettings();
+}
+function legacy_savePerformanceMode(enabled) {
+  state.performanceMode = Boolean(enabled);
   localStorage.setItem('pollgen_performance_mode', state.performanceMode.toString());
 }
 
+const SETTINGS_COOKIE_NAME = 'pollgen_settings';
 const API_KEY_COOKIE_NAME = 'pollinations_api_key';
 const PROMPT_COOKIE_NAME = 'pollgen_prompt';
 const GENERATIONS_COOKIE_NAME = 'pollgen_generations';
@@ -1466,7 +1478,7 @@ function renderModelOptions(models, forceReset = false) {
   const currentModelName = document.getElementById('current-model-name');
   if (!select || !modelPopover) return;
 
-  const previousValue = forceReset ? '' : select.value;
+  const previousValue = forceReset ? '' : (select.value || state.selectedModel);
   select.innerHTML = '';
   modelPopover.innerHTML = '';
 
@@ -1583,6 +1595,7 @@ function renderModelOptions(models, forceReset = false) {
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
+      state.selectedModel = model.name;
       const btnImg2ImgIndicator = isImg2Img ? getImg2ImgIndicator() : '';
       const btnPremiumIndicator = isPremium ? getPremiumIndicator() : '';
       currentModelName.innerHTML = name + btnPremiumIndicator + btnImg2ImgIndicator;
@@ -1594,6 +1607,7 @@ function renderModelOptions(models, forceReset = false) {
       modelPopover.classList.remove('visible');
       updateUploadUI();
       updateTransparentOptionAvailability();
+      saveSidebarSettings();
     };
     modelPopover.appendChild(item);
   });
@@ -1977,7 +1991,9 @@ async function startParallelProcessor(setId, totalJobs) {
     }
     
     // Update balance after all jobs complete
-    if (state.apiKey) {
+    loadSidebarSettings();
+
+  if (state.apiKey) {
       await updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
     }
 
@@ -2098,8 +2114,16 @@ function switchParallelMode(enabled) {
   // Update count unit label (Images/Videos)
   updateCountUnitLabel();
   
+  // Disable/enable workshop parallel option
+  const workshopParallelPerImage = document.getElementById('workshop-parallel-per-image');
+  if (workshopParallelPerImage) {
+    workshopParallelPerImage.disabled = !enabled;
+    workshopParallelPerImage.closest('.checkbox-item').classList.toggle('disabled', !enabled);
+  }
+  
   // Update cost display
   window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
+  saveSidebarSettings();
 }
 
 function updateCountUnitLabel() {
@@ -2127,6 +2151,7 @@ function updateParallelCount(delta) {
   
   // Update cost display
   window.updateCurrentCostDisplay && window.updateCurrentCostDisplay();
+  saveSidebarSettings();
 }
 
 function setupParallelCountHandlers() {
@@ -3343,6 +3368,161 @@ function adjustPromptHeight() {
 // EVENT HANDLERS
 // ============================================================================
 
+
+window.saveSidebarSettings = saveSidebarSettings;
+function saveSidebarSettings() {
+  const settings = {
+    mode: document.getElementById('mode')?.value,
+    model: document.getElementById('model')?.value,
+    aspectRatio: document.getElementById('aspect-ratio')?.value,
+    duration: document.getElementById('duration-hidden')?.value,
+    workshopEnabled: document.getElementById('workshop-enable')?.checked,
+    workshopModel: document.getElementById('workshop-model')?.value,
+    workshopSystemPrompt: document.getElementById('workshop-system-prompt')?.value,
+    workshopParallelPerImage: document.getElementById('workshop-parallel-per-image')?.checked,
+    workshopThinking: document.getElementById('workshop-thinking')?.checked,
+    seed: document.getElementById('seed')?.value,
+    negativePrompt: document.getElementById('negative_prompt')?.value,
+    parallelMode: document.getElementById('parallel-checkbox')?.checked,
+    parallelCount: state.parallelCount,
+    transparent: document.getElementById('transparent')?.checked,
+    performanceMode: document.getElementById('performance-mode')?.checked,
+    enhance: document.getElementById('enhance')?.checked,
+    private: document.getElementById('private')?.checked,
+    nologo: document.getElementById('nologo')?.checked,
+    nofeed: document.getElementById('nofeed')?.checked,
+    safe: document.getElementById('safe')?.checked,
+    showPremiumModels: document.getElementById('show-premium-models')?.checked
+  };
+  setCookie(SETTINGS_COOKIE_NAME, JSON.stringify(settings));
+}
+
+function loadSidebarSettings() {
+  const cookie = getCookie(SETTINGS_COOKIE_NAME);
+  if (!cookie) return;
+
+  try {
+    const settings = JSON.parse(cookie);
+    
+    if (settings.mode && typeof window.switchMode === 'function') {
+      window.switchMode(settings.mode);
+    }
+    
+    if (settings.model) {
+      const modelSelect = document.getElementById('model');
+      if (modelSelect) modelSelect.value = settings.model;
+      state.selectedModel = settings.model;
+    }
+
+    if (settings.aspectRatio) {
+      const arInput = document.getElementById('aspect-ratio');
+      if (arInput) {
+        arInput.value = settings.aspectRatio;
+        // Update UI for aspect ratio
+        const arItem = document.querySelector(`#aspect-ratio-popover .popover-item[data-ratio="${settings.aspectRatio}"]`);
+        if (arItem) {
+          document.querySelectorAll('#aspect-ratio-popover .popover-item').forEach(i => i.classList.remove('selected'));
+          arItem.classList.add('selected');
+          document.getElementById('current-ratio-label').textContent = arItem.textContent.trim();
+          document.getElementById('width').value = arItem.dataset.w;
+          document.getElementById('height').value = arItem.dataset.h;
+          const btnIcon = document.getElementById('current-ratio-icon');
+          const itemIcon = arItem.querySelector('.ratio-icon');
+          if (btnIcon && itemIcon) {
+            btnIcon.style.width = itemIcon.style.width;
+            btnIcon.style.height = itemIcon.style.height;
+          }
+        }
+      }
+    }
+
+    if (settings.duration) {
+      const durInput = document.getElementById('duration-hidden');
+      const durSlider = document.getElementById('duration');
+      const durValue = document.getElementById('duration-value');
+      if (durInput) durInput.value = settings.duration;
+      if (durSlider) durSlider.value = settings.duration;
+      if (durValue) durValue.textContent = settings.duration + 's';
+    }
+
+    if (settings.workshopEnabled !== undefined) {
+      const workshopEnable = document.getElementById('workshop-enable');
+      if (workshopEnable) {
+        workshopEnable.checked = settings.workshopEnabled;
+        state.workshopEnabled = settings.workshopEnabled;
+        document.getElementById('workshop-controls')?.classList.toggle('hidden', !settings.workshopEnabled);
+      }
+    }
+
+    if (settings.workshopModel) {
+      state.workshopModel = settings.workshopModel;
+      const wsModelSelect = document.getElementById('workshop-model');
+      if (wsModelSelect) wsModelSelect.value = settings.workshopModel;
+    }
+
+    if (settings.workshopSystemPrompt !== undefined) {
+      const wsSysPrompt = document.getElementById('workshop-system-prompt');
+      if (wsSysPrompt) {
+        wsSysPrompt.value = settings.workshopSystemPrompt;
+        state.workshopSystemPrompt = settings.workshopSystemPrompt;
+      }
+    }
+
+    if (settings.workshopParallelPerImage !== undefined) {
+      const wsParallel = document.getElementById('workshop-parallel-per-image');
+      if (wsParallel) {
+        wsParallel.checked = settings.workshopParallelPerImage;
+        state.workshopParallelPerImage = settings.workshopParallelPerImage;
+      }
+    }
+
+    if (settings.workshopThinking !== undefined) {
+      const wsThinking = document.getElementById('workshop-thinking');
+      if (wsThinking) {
+        wsThinking.checked = settings.workshopThinking;
+        state.workshopThinking = settings.workshopThinking;
+      }
+    }
+
+    if (settings.seed !== undefined) {
+      const seedInput = document.getElementById('seed');
+      if (seedInput) seedInput.value = settings.seed;
+    }
+
+    if (settings.negativePrompt !== undefined) {
+      const negInput = document.getElementById('negative_prompt');
+      if (negInput) negInput.value = settings.negativePrompt;
+    }
+
+    if (settings.parallelCount !== undefined) {
+      state.parallelCount = settings.parallelCount;
+      const countEl = document.getElementById('parallel-count');
+      if (countEl) countEl.textContent = settings.parallelCount;
+    }
+
+    if (settings.parallelMode !== undefined) {
+      switchParallelMode(settings.parallelMode);
+    }
+
+    ['transparent', 'performance-mode', 'enhance', 'private', 'nologo', 'nofeed', 'safe', 'show-premium-models'].forEach(id => {
+      const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      const val = settings[id === 'performance-mode' ? 'performanceMode' : (id === 'show-premium-models' ? 'showPremiumModels' : key)];
+      if (val !== undefined) {
+        const cb = document.getElementById(id);
+        if (cb) cb.checked = val;
+        if (id === 'performance-mode') state.performanceMode = val;
+        if (id === 'show-premium-models') {
+           state.showPremiumModels = val;
+           // applyActiveModels is called later during init
+        }
+      }
+    });
+
+  } catch (e) {
+    console.error('Failed to load settings', e);
+  }
+}
+
 function setupEventListeners() {
   const loginBtn = document.getElementById('login-btn');
   const popupLoginBtn = document.getElementById('auth-popup-login-btn');
@@ -3508,7 +3688,9 @@ function setupEventListeners() {
   window.addEventListener('languageChanged', () => {
     const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
     renderModelOptions(modelsToRender);
-    if (state.apiKey) {
+    loadSidebarSettings();
+
+  if (state.apiKey) {
       updateBalance(state.apiKey);
     }
   });
@@ -3563,6 +3745,27 @@ function setupEventListeners() {
   }
 
   setupContextMenu();
+  // Automatic saving for sidebar settings
+  const sidebarInputs = [
+    'workshop-enable', 'workshop-model', 'workshop-system-prompt', 
+    'workshop-parallel-per-image', 'workshop-thinking', 'seed', 
+    'negative_prompt', 'parallel-checkbox', 'transparent', 
+    'performance-mode', 'enhance', 'private', 'nologo', 
+    'nofeed', 'safe', 'show-premium-models'
+  ];
+  sidebarInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const eventType = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+      el.addEventListener(eventType, saveSidebarSettings);
+    }
+  });
+
+  // Aspect ratio and model selects also need to save settings
+  // These are handled by their click/item-click handlers usually, but we can hook into state changes if any,
+  // or just add it to the existing handlers.
+  // For simplicity, let's add it to some key functions that change state.
+
 }
 
 // Context menu state
@@ -3874,7 +4077,6 @@ async function init() {
   loadPersistedGenerations();
 
   restorePrompt();
-
   setupEventListeners();
   setupImageUploadHandlers();
   updateUploadUI();
@@ -3900,6 +4102,8 @@ async function init() {
   } else {
     loadApiKey();
   }
+
+  loadSidebarSettings();
 
   if (state.apiKey) {
     const isValid = await updateBalance(state.apiKey, true);
@@ -4109,7 +4313,7 @@ function renderWorkshopModelOptions(models) {
   const currentModelName = document.getElementById('current-workshop-model-name');
   if (!select || !modelPopover) return;
 
-  const previousValue = select.value;
+  const previousValue = select.value || state.workshopModel;
   select.innerHTML = '';
   modelPopover.innerHTML = '';
 
@@ -4182,6 +4386,7 @@ function renderWorkshopModelOptions(models) {
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
       item.classList.add('selected');
       modelPopover.classList.remove('visible');
+      saveSidebarSettings();
     };
     modelPopover.appendChild(item);
   });
@@ -4219,22 +4424,26 @@ async function processWorkshopPrompt(originalPrompt, genId = null) {
     userMessage.content = content;
   }
 
-  setStatus(i18n.t('statusWorkshopProcessing'), 'info');
+  setStatus(i18n.t('statusWorkshopProcessingPrompt'), 'info');
   if (genId) {
     const card = document.getElementById(`gen-card-${genId}`);
     if (card) {
       const statusBadge = document.createElement('div');
       statusBadge.className = 'workshop-status-badge';
       statusBadge.style.position = 'absolute';
-      statusBadge.style.top = '40px';
-      statusBadge.style.left = '12px';
-      statusBadge.style.background = 'rgba(37, 99, 235, 0.8)';
+      statusBadge.style.top = '50%';
+      statusBadge.style.left = '50%';
+      statusBadge.style.transform = 'translate(-50%, -50%)';
+      statusBadge.style.background = 'rgba(37, 99, 235, 0.9)';
       statusBadge.style.color = 'white';
-      statusBadge.style.padding = '4px 8px';
-      statusBadge.style.borderRadius = '4px';
-      statusBadge.style.fontSize = '10px';
+      statusBadge.style.padding = '12px 24px';
+      statusBadge.style.borderRadius = '8px';
+      statusBadge.style.fontSize = '16px';
+      statusBadge.style.fontWeight = 'bold';
       statusBadge.style.zIndex = '11';
-      statusBadge.textContent = 'Workshop...';
+      statusBadge.style.whiteSpace = 'nowrap';
+      statusBadge.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+      statusBadge.textContent = i18n.t('statusWorkshopProcessingPrompt');
       card.appendChild(statusBadge);
     }
   }
