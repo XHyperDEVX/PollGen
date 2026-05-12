@@ -196,7 +196,6 @@
         .api-key-hint a { color: var(--accent); text-decoration: none; }
         .api-key-hint a:hover { text-decoration: underline; }
 
-        /* Login Button */
         .login-btn {
             width: auto;
             padding: 6px 12px;
@@ -239,17 +238,75 @@
         .login-btn:disabled .login-icon img {
             filter: invert(1);
         }
-        .login-or {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-left: 8px;
-        }
         .login-btn-wrapper {
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 8px;
+        }
+
+        .api-key-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        #api-key {
+            padding-right: 40px;
+        }
+
+        .copy-api-key-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            background: #2a2a2c;
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .copy-api-key-btn:hover {
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .copy-api-key-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .copy-api-key-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .logout-btn {
+            position: fixed;
+            left: 14px;
+            bottom: 14px;
+            z-index: 101;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(25, 25, 27, 0.9);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            color: #fff;
+            border-color: var(--accent);
         }
 
         /* Profile Display in Empty State */
@@ -538,11 +595,24 @@
 
         .prompt-bar { min-height: 104px; height: auto; max-height: 300px; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: flex-start; gap: 20px; z-index: 60; position: fixed; bottom: 0; left: 360px; right: 0; }
         .prompt-bar:hover, .prompt-bar:focus-within { z-index: 200000; }
-        .prompt-input-wrapper { flex: 1; min-height: 72px; max-height: 200px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-start; padding: 12px 24px; border: 1px solid #3a3a3c; transition: all 0.3s ease; overflow: visible; }
+        .prompt-input-wrapper { flex: 1; min-height: 72px; max-height: 200px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-start; padding: 12px 20px; border: 1px solid #3a3a3c; transition: all 0.3s ease; overflow: hidden; }
         .prompt-actions { display: flex; gap: 12px; align-items: stretch; margin-top: auto; align-self: flex-end; flex-shrink: 0; }
         .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
 
-        #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0 8px 0 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: auto; overflow-x: hidden; display: block; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; scrollbar-gutter: stable; height: auto; min-height: 48px; }
+        .upload-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-right: 12px;
+        }
+
+        .upload-slot {
+            display: flex;
+            align-items: center;
+            min-height: 36px;
+        }
+
+        #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0 2px 0 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: auto; overflow-x: hidden; display: block; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; scrollbar-gutter: stable; height: auto; min-height: 48px; }
         #prompt::-webkit-scrollbar { width: 6px; }
         #prompt::-webkit-scrollbar-track { background: transparent; }
         #prompt::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
@@ -554,9 +624,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 16px;
-            align-self: flex-start;
-            margin-top: 4px;
+            margin-right: 0;
+            align-self: center;
+            margin-top: 0;
         }
 
 
@@ -590,9 +660,9 @@
             display: none;
             align-items: center;
             justify-content: center;
-            margin-right: 12px;
-            align-self: flex-start;
-            margin-top: 2px;
+            margin-right: 6px;
+            align-self: center;
+            margin-top: 0;
         }
 
         .upload-thumbnail-wrapper.visible {
@@ -937,6 +1007,55 @@
             background: var(--accent-hover);
         }
 
+        .auth-gate {
+            position: fixed;
+            inset: 0;
+            background: rgba(7, 7, 9, 0.92);
+            backdrop-filter: blur(5px);
+            z-index: 120000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-popup {
+            width: min(460px, 100%);
+            background: var(--panel-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+        }
+
+        .auth-popup-logo {
+            width: 58px;
+            height: 58px;
+            border-radius: 12px;
+            margin-bottom: 14px;
+        }
+
+        .auth-popup h2 {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        .auth-popup p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 18px;
+            line-height: 1.45;
+        }
+
+        body.auth-locked .sidebar,
+        body.auth-locked .canvas,
+        body.auth-locked .api-key-container,
+        body.auth-locked #logout-btn {
+            pointer-events: none;
+            user-select: none;
+        }
+
     </style>
 </head>
 <body>
@@ -1040,12 +1159,21 @@
                 </span>
                 <span id="login-btn-text" data-i18n="loginWithPollinations">Login with Pollinations</span>
             </button>
-            <span class="login-or" data-i18n="orLabel">or</span>
         </div>
-        <div class="api-key-wrapper"><input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="current-password"></div>
+        <div class="api-key-wrapper">
+            <input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="off" readonly>
+            <button class="copy-api-key-btn" id="copy-api-key-btn" type="button" title="Copy API key" aria-label="Copy API key">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+            </button>
+        </div>
         <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
         <div id="resolution-warning" class="resolution-warning" data-i18n="resolutionWarning">For optimal use, a resolution of at least 1080p is recommended.</div>
     </div>
+
+    <button class="logout-btn hidden" id="logout-btn" type="button" data-i18n="logoutLabel">Logout</button>
 
     <main class="canvas">
         <div class="canvas-workspace" id="canvas-workspace">
@@ -1067,63 +1195,69 @@
 
         <div class="prompt-bar">
             <div class="prompt-input-wrapper">
-                <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
-                    <img class="upload-thumbnail-preview" id="upload-thumbnail-preview" src="" alt="Preview">
-                    <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
-                    <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
+                <div class="upload-slots">
+                    <div class="upload-slot">
+                        <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
+                            <img class="upload-thumbnail-preview" id="upload-thumbnail-preview" src="" alt="Preview">
+                            <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
+                            <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </div>
+                            <div class="upload-progress" id="upload-progress" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                                </svg>
+                            </div>
+                            <div class="upload-delete-progress" id="upload-delete-progress" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="upload-icon-container" id="upload-icon-container" title="">
+                            <svg class="upload-icon" id="upload-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17,8 12,3 7,8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
                     </div>
-                    <div class="upload-progress" id="upload-progress" style="display: none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                        </svg>
-                    </div>
-                    <div class="upload-delete-progress" id="upload-delete-progress" style="display: none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="upload-icon-container" id="upload-icon-container" title="">
-                    <svg class="upload-icon" id="upload-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17,8 12,3 7,8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                </div>
-                <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
 
-                <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper-2">
-                    <img class="upload-thumbnail-preview" id="upload-thumbnail-preview-2" src="" alt="Preview">
-                    <img class="upload-thumbnail" id="upload-thumbnail-2" src="" alt="Uploaded image 2">
-                    <div class="upload-thumbnail-delete" id="upload-thumbnail-delete-2" title="Remove image">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </div>
-                    <div class="upload-progress" id="upload-progress-2" style="display: none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                        </svg>
-                    </div>
-                    <div class="upload-delete-progress" id="upload-delete-progress-2" style="display: none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                        </svg>
+                    <div class="upload-slot">
+                        <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper-2">
+                            <img class="upload-thumbnail-preview" id="upload-thumbnail-preview-2" src="" alt="Preview">
+                            <img class="upload-thumbnail" id="upload-thumbnail-2" src="" alt="Uploaded image 2">
+                            <div class="upload-thumbnail-delete" id="upload-thumbnail-delete-2" title="Remove image">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </div>
+                            <div class="upload-progress" id="upload-progress-2" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                                </svg>
+                            </div>
+                            <div class="upload-delete-progress" id="upload-delete-progress-2" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="upload-icon-container" id="upload-icon-container-2" title="">
+                            <svg class="upload-icon" id="upload-icon-2" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17,8 12,3 7,8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <input type="file" id="image-upload-input-2" accept="image/*" style="display: none;">
                     </div>
                 </div>
-                <div class="upload-icon-container" id="upload-icon-container-2" title="">
-                    <svg class="upload-icon" id="upload-icon-2" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17,8 12,3 7,8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                </div>
-                <input type="file" id="image-upload-input-2" accept="image/*" style="display: none;">
                 <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="2"></textarea>
             </div>
             <div class="prompt-actions">
@@ -1222,6 +1356,21 @@
             <span data-i18n="useAsReferenceImage">Use as reference image</span>
         </div>
     </div>
+
+    <div id="auth-gate" class="auth-gate hidden">
+        <div class="auth-popup">
+            <img class="auth-popup-logo" src="js/icon.png" alt="Pollgen">
+            <h2 data-i18n="welcomePopupTitle">Welcome to Pollgen</h2>
+            <p data-i18n="welcomePopupText">Create AI images and videos with Pollinations. Log in to continue.</p>
+            <button class="login-btn" id="auth-popup-login-btn" type="button">
+                <span class="login-icon">
+                    <img src="https://raw.githubusercontent.com/pollinations/pollinations/refs/heads/main/assets/logo.svg" alt="">
+                </span>
+                <span data-i18n="loginWithPollinations">Login with Pollinations</span>
+            </button>
+        </div>
+    </div>
+
     <form id="generation-form" style="display: none;">
         <input type="hidden" name="width" id="width" value="1366">
         <input type="hidden" name="height" id="height" value="1025">

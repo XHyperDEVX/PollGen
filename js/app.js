@@ -49,7 +49,9 @@ const state = {
   performanceMode: false, // Performance mode flag
   activeLoadingScopes: 0,
   generationStartTimes: new Map(),
-  timerIntervals: new Map()
+  timerIntervals: new Map(),
+  persistedGenerations: [],
+  isRestoringGenerations: false
 };
 
 // ============================================================================
@@ -537,10 +539,11 @@ function formatExpirationTime(expiresIn) {
   if (expiresIn === null || expiresIn === undefined) return '';
 
   const seconds = Math.max(0, Number(expiresIn) || 0);
-  const hours = Math.floor(seconds / 3600);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
 
-  return `${i18n.t('keyValidFor')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
+  return `${i18n.t('keyValidFor')}${days}${i18n.t('daysShort')}${hours}${i18n.t('hoursShort')}${minutes}${i18n.t('minutesShort')}`;
 }
 
 async function validateApiKeyInfo(apiKey) {
@@ -712,7 +715,8 @@ function isApiKeyValidForGeneration() {
 
 async function updateBalance(apiKey, forceReload = false) {
   const apiKeyHint = document.getElementById('api-key-hint');
-  if (!apiKeyHint) return;
+  const logoutBtn = document.getElementById('logout-btn');
+  if (!apiKeyHint) return false;
 
   apiKeyHint.classList.remove('hidden');
 
@@ -720,51 +724,32 @@ async function updateBalance(apiKey, forceReload = false) {
 
   if (!trimmedKey) {
     apiKeyHint.innerHTML = i18n.t('apiKeyHint');
-    state.keyInfo = null;
-    state.keyInfoApiKey = null;
-    state.allowedModels = null;
-    state.profile = null;
-    clearPersistedApiKey();
-    setGenerateButtonEnabled(false);
-    updateLoginButtonState(false);
-    displayProfile(null);
-    setSidebarControlsEnabled(false);
-    setPremiumToggleVisible(false);
-    clearModels();
-    return;
+    resetAuthState();
+    showAuthGate();
+    return false;
   }
 
-  let keyInfo = state.keyInfo;
-  let isKeyChanged = !keyInfo || state.keyInfoApiKey !== trimmedKey;
+  const isKeyChanged = !state.keyInfo || state.keyInfoApiKey !== trimmedKey;
+  const keyInfo = await validateApiKeyInfo(trimmedKey);
 
-  if (isKeyChanged) {
-    keyInfo = await validateApiKeyInfo(trimmedKey);
+  if (state.apiKey !== trimmedKey) return false;
 
-    if (state.apiKey !== trimmedKey) return;
-
-    if (!keyInfo || keyInfo.valid === false) {
-      apiKeyHint.textContent = i18n.t('invalidApiKey');
-      state.keyInfo = null;
-      state.keyInfoApiKey = null;
-      state.allowedModels = null;
-      state.profile = null;
-      clearPersistedApiKey();
-      setGenerateButtonEnabled(false);
-      updateLoginButtonState(false);
-      displayProfile(null);
-      setSidebarControlsEnabled(false);
-      setPremiumToggleVisible(false);
-      clearModels();
-      return;
-    }
-
-    state.keyInfo = keyInfo;
-    state.keyInfoApiKey = trimmedKey;
+  if (!keyInfo || keyInfo.valid === false) {
+    apiKeyHint.textContent = i18n.t('invalidApiKey');
+    resetAuthState();
+    showAuthGate();
+    return false;
   }
+
+  state.keyInfo = keyInfo;
+  state.keyInfoApiKey = trimmedKey;
 
   persistApiKey(trimmedKey);
+  saveApiKey(trimmedKey);
+  hideAuthGate();
   setGenerateButtonEnabled(true);
   updateLoginButtonState(true);
+  if (logoutBtn) logoutBtn.classList.remove('hidden');
 
   if (Object.prototype.hasOwnProperty.call(keyInfo.permissions || {}, 'models')) {
     state.allowedModels = keyInfo.permissions.models;
@@ -793,7 +778,7 @@ async function updateBalance(apiKey, forceReload = false) {
     }
   }
 
-  if (state.apiKey !== trimmedKey) return;
+  if (state.apiKey !== trimmedKey) return false;
 
   let displayText = i18n.t('balanceUnavailable');
   const budget = keyInfo.pollenBudget;
@@ -814,6 +799,7 @@ async function updateBalance(apiKey, forceReload = false) {
   apiKeyHint.textContent = displayText;
   updateUploadUI();
   refreshGenerateButtonState();
+  return true;
 }
 
 // ============================================================================
@@ -901,10 +887,60 @@ function savePerformanceMode(enabled) {
   localStorage.setItem('pollgen_performance_mode', state.performanceMode.toString());
 }
 
+const API_KEY_COOKIE_NAME = 'pollinations_api_key';
+const PROMPT_COOKIE_NAME = 'pollgen_prompt';
+const GENERATIONS_COOKIE_NAME = 'pollgen_generations';
+const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const MAX_PERSISTED_GENERATIONS = 10;
+const MAX_GENERATIONS_COOKIE_LENGTH = 3500;
+
+function setCookie(name, value, maxAgeSeconds = COOKIE_MAX_AGE_SECONDS) {
+  const secure = window.location.protocol === 'https:' ? '; secure' : '';
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; samesite=lax${secure}`;
+}
+
+function getCookie(name) {
+  const nameEq = `${name}=`;
+  const parts = document.cookie ? document.cookie.split('; ') : [];
+  for (const part of parts) {
+    if (part.startsWith(nameEq)) {
+      return decodeURIComponent(part.slice(nameEq.length));
+    }
+  }
+  return '';
+}
+
+function deleteCookie(name) {
+  document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+}
+
+function syncApiKeyInputMask() {
+  const apiKeyInput = document.getElementById('api-key');
+  if (!apiKeyInput) return;
+  apiKeyInput.value = state.apiKey ? '***' : '';
+}
+
+function setAuthLocked(locked) {
+  document.body.classList.toggle('auth-locked', locked);
+}
+
+function showAuthGate() {
+  const authGate = document.getElementById('auth-gate');
+  if (authGate) authGate.classList.remove('hidden');
+  setAuthLocked(true);
+}
+
+function hideAuthGate() {
+  const authGate = document.getElementById('auth-gate');
+  if (authGate) authGate.classList.add('hidden');
+  setAuthLocked(false);
+}
+
 function loadApiKey() {
-  const saved = sessionStorage.getItem('pollinations_api_key');
+  const saved = getCookie(API_KEY_COOKIE_NAME);
   if (saved && saved.trim()) {
     state.apiKey = saved.trim();
+    syncApiKeyInputMask();
     return true;
   }
   return false;
@@ -915,12 +951,12 @@ function persistApiKey(key) {
     return false;
   }
   const trimmedKey = key.trim();
-  sessionStorage.setItem('pollinations_api_key', trimmedKey);
+  setCookie(API_KEY_COOKIE_NAME, trimmedKey);
   return true;
 }
 
 function clearPersistedApiKey() {
-  sessionStorage.removeItem('pollinations_api_key');
+  deleteCookie(API_KEY_COOKIE_NAME);
 }
 
 function saveApiKey(key) {
@@ -929,19 +965,181 @@ function saveApiKey(key) {
   }
   const trimmedKey = key.trim();
   state.apiKey = trimmedKey;
+  syncApiKeyInputMask();
   return true;
 }
 
-function validateApiKey() {
-  const input = document.getElementById('api-key');
-  if (!input) return false;
-  
-  const key = input.value.trim();
-  if (key) {
-    saveApiKey(key);
-    return true;
+function persistPrompt() {
+  const promptInput = document.getElementById('prompt');
+  if (!promptInput) return;
+  setCookie(PROMPT_COOKIE_NAME, promptInput.value || '');
+}
+
+function restorePrompt() {
+  const promptInput = document.getElementById('prompt');
+  if (!promptInput) return;
+  const savedPrompt = getCookie(PROMPT_COOKIE_NAME);
+  if (savedPrompt) {
+    promptInput.value = savedPrompt;
   }
-  return false;
+}
+
+function normalizePersistedGeneration(record) {
+  if (!record) return null;
+
+  const genId = String(record.genId || record.g || '');
+  const sourceUrl = record.sourceUrl || record.u;
+  const rawType = record.type || record.t;
+  const rawStatus = record.status || record.s;
+
+  if (!genId || !sourceUrl) return null;
+
+  return {
+    genId,
+    type: rawType === 'v' || rawType === 'video' ? 'video' : 'image',
+    status: rawStatus === 'c' || rawStatus === 'completed' ? 'completed' : 'generating',
+    sourceUrl,
+    createdAt: Number(record.createdAt || record.c) || Date.now()
+  };
+}
+
+function serializePersistedGenerations(records) {
+  return records.map((record) => ({
+    g: String(record.genId),
+    t: record.type === 'video' ? 'v' : 'i',
+    s: record.status === 'completed' ? 'c' : 'g',
+    u: record.sourceUrl,
+    c: Number(record.createdAt) || Date.now()
+  }));
+}
+
+function persistGenerationState() {
+  const normalized = state.persistedGenerations
+    .map(normalizePersistedGeneration)
+    .filter(Boolean)
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .slice(-MAX_PERSISTED_GENERATIONS);
+
+  state.persistedGenerations = normalized;
+
+  if (!normalized.length) {
+    deleteCookie(GENERATIONS_COOKIE_NAME);
+    return;
+  }
+
+  let payload = serializePersistedGenerations(normalized);
+  let encoded = JSON.stringify(payload);
+
+  while (encoded.length > MAX_GENERATIONS_COOKIE_LENGTH && payload.length > 1) {
+    payload.shift();
+    encoded = JSON.stringify(payload);
+  }
+
+  setCookie(GENERATIONS_COOKIE_NAME, encoded);
+}
+
+function loadPersistedGenerations() {
+  const raw = getCookie(GENERATIONS_COOKIE_NAME);
+  if (!raw) {
+    state.persistedGenerations = [];
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      state.persistedGenerations = [];
+      return;
+    }
+
+    state.persistedGenerations = parsed
+      .map(normalizePersistedGeneration)
+      .filter(Boolean)
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .slice(-MAX_PERSISTED_GENERATIONS);
+  } catch (error) {
+    state.persistedGenerations = [];
+  }
+}
+
+function upsertPersistedGeneration(record) {
+  const normalized = normalizePersistedGeneration(record);
+  if (!normalized) return;
+
+  const existingIndex = state.persistedGenerations.findIndex((entry) => entry.genId === normalized.genId);
+  if (existingIndex >= 0) {
+    state.persistedGenerations[existingIndex] = {
+      ...state.persistedGenerations[existingIndex],
+      ...normalized
+    };
+  } else {
+    state.persistedGenerations.push(normalized);
+  }
+
+  persistGenerationState();
+}
+
+function markPersistedGenerationCompleted(genId, sourceUrl = null) {
+  const existing = state.persistedGenerations.find((entry) => entry.genId === String(genId));
+  if (!existing) return;
+
+  existing.status = 'completed';
+  if (sourceUrl) existing.sourceUrl = sourceUrl;
+  persistGenerationState();
+}
+
+function removePersistedGeneration(genId) {
+  const beforeCount = state.persistedGenerations.length;
+  state.persistedGenerations = state.persistedGenerations.filter((entry) => entry.genId !== String(genId));
+  if (state.persistedGenerations.length !== beforeCount) {
+    persistGenerationState();
+  }
+}
+
+async function copyApiKeyToClipboard() {
+  if (!state.apiKey) {
+    setStatus(i18n.t('apiKeyMissing'), 'error');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(state.apiKey);
+    setStatus(i18n.t('copyApiKeySuccess'), 'success');
+  } catch (error) {
+    setStatus(i18n.t('copyApiKeyError'), 'error');
+  }
+}
+
+function resetAuthState() {
+  state.apiKey = null;
+  state.keyInfo = null;
+  state.keyInfoApiKey = null;
+  state.allowedModels = null;
+  state.profile = null;
+  clearPersistedApiKey();
+  syncApiKeyInputMask();
+  setGenerateButtonEnabled(false);
+  updateLoginButtonState(false);
+  displayProfile(null);
+  setSidebarControlsEnabled(false);
+  setPremiumToggleVisible(false);
+  clearModels();
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) logoutBtn.classList.add('hidden');
+}
+
+function logoutUser(showStatus = false) {
+  resetAuthState();
+  const apiKeyHint = document.getElementById('api-key-hint');
+  if (apiKeyHint) {
+    apiKeyHint.innerHTML = i18n.t('apiKeyHint');
+  }
+  showAuthGate();
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) logoutBtn.classList.add('hidden');
+  if (showStatus) {
+    setStatus(i18n.t('logoutLabel'), 'info');
+  }
 }
 
 // ============================================================================
@@ -1500,11 +1698,10 @@ function updateCostDisplay(model) {
 // IMAGE GENERATION
 // ============================================================================
 
-async function generateImage(payload) {
-  if (!state.apiKey) throw new Error(i18n.t('apiKeyMissing'));
-  
+function buildGenerationUrl(payload, isVideo = false) {
   const endpoint = `https://gen.pollinations.ai/image/${encodeURIComponent(payload.prompt)}`;
   const params = new URLSearchParams();
+
   if (payload.model) params.append('model', payload.model);
   if (payload.width) params.append('width', payload.width);
   if (payload.height) params.append('height', payload.height);
@@ -1516,77 +1713,61 @@ async function generateImage(payload) {
   if (payload.nofeed) params.append('nofeed', 'true');
   if (payload.safe) params.append('safe', 'true');
   if (payload.transparent) params.append('transparent', 'true');
+
+  if (isVideo) {
+    if (payload.aspectRatio) params.append('aspectRatio', payload.aspectRatio);
+    if (payload.duration) params.append('duration', payload.duration);
+  }
+
   if (Array.isArray(payload.images) && payload.images.length > 0) {
     payload.images.forEach(imageUrl => params.append('image', imageUrl));
   } else if (payload.image) {
     params.append('image', payload.image);
   }
-  
-  const url = `${endpoint}?${params.toString()}`;
-  const response = await fetch(url, {
+
+  return `${endpoint}?${params.toString()}`;
+}
+
+async function requestGeneratedMedia(sourceUrl, isVideo = false) {
+  const response = await fetch(sourceUrl, {
     headers: { 'Authorization': `Bearer ${state.apiKey}` }
   });
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(parseErrorMessage(errorText, response.status));
   }
-  
+
   const blob = await response.blob();
-  const imageUrl = URL.createObjectURL(blob);
-  
+  const objectUrl = URL.createObjectURL(blob);
+
+  if (isVideo) {
+    return {
+      success: true,
+      videoData: objectUrl,
+      contentType: blob.type,
+      sourceUrl
+    };
+  }
+
   return {
     success: true,
-    imageData: imageUrl,
+    imageData: objectUrl,
     contentType: blob.type,
-    sourceUrl: url
+    sourceUrl
   };
 }
 
-async function generateVideo(payload) {
+async function generateImage(payload, precomputedSourceUrl = null) {
   if (!state.apiKey) throw new Error(i18n.t('apiKeyMissing'));
+  const sourceUrl = precomputedSourceUrl || buildGenerationUrl(payload, false);
+  return requestGeneratedMedia(sourceUrl, false);
+}
 
-  // Video uses the same /image endpoint, just with a video model and duration parameter
-  const endpoint = `https://gen.pollinations.ai/image/${encodeURIComponent(payload.prompt)}`;
-  const params = new URLSearchParams();
-  if (payload.model) params.append('model', payload.model);
-  if (payload.width) params.append('width', payload.width);
-  if (payload.height) params.append('height', payload.height);
-  if (payload.aspectRatio) params.append('aspectRatio', payload.aspectRatio);
-  if (payload.duration) params.append('duration', payload.duration);
-  if (payload.seed) params.append('seed', payload.seed);
-  if (payload.negative_prompt) params.append('negative_prompt', payload.negative_prompt);
-  if (payload.enhance) params.append('enhance', 'true');
-  if (payload.private) params.append('private', 'true');
-  if (payload.nologo) params.append('nologo', 'true');
-  if (payload.nofeed) params.append('nofeed', 'true');
-  if (payload.safe) params.append('safe', 'true');
-  if (payload.transparent) params.append('transparent', 'true');
-  if (Array.isArray(payload.images) && payload.images.length > 0) {
-    payload.images.forEach(imageUrl => params.append('image', imageUrl));
-  } else if (payload.image) {
-    params.append('image', payload.image);
-  }
-
-  const url = `${endpoint}?${params.toString()}`;
-  const response = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${state.apiKey}` }
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(parseErrorMessage(errorText, response.status));
-  }
-
-  const blob = await response.blob();
-  const videoUrl = URL.createObjectURL(blob);
-
-  return {
-    success: true,
-    videoData: videoUrl,
-    contentType: blob.type,
-    sourceUrl: url
-  };
+async function generateVideo(payload, precomputedSourceUrl = null) {
+  if (!state.apiKey) throw new Error(i18n.t('apiKeyMissing'));
+  const sourceUrl = precomputedSourceUrl || buildGenerationUrl(payload, true);
+  return requestGeneratedMedia(sourceUrl, true);
 }
 
 function parseErrorMessage(text, status) {
@@ -1660,7 +1841,7 @@ function removeParallelStatusBadge(card) {
 
 async function processParallelJob(job, totalJobs, setId) {
   startGenerationTimer(job.genId);
-  const { genId, payload, isVideoMode, index } = job;
+  const { genId, payload, isVideoMode, index, sourceUrl } = job;
   const card = document.getElementById(`gen-card-${genId}`);
 
   if (card && setId === state.currentSetId) {
@@ -1671,19 +1852,20 @@ async function processParallelJob(job, totalJobs, setId) {
 
   try {
     if (isVideoMode) {
-      const response = await generateVideo(payload);
+      const response = await generateVideo(payload, sourceUrl);
       stopGenerationTimer(genId);
       displayVideoResultInCard(genId, response);
       handleUsageIntegration(genId, payload.model, true);
       addToVideoHistory(response);
     } else {
-      const response = await generateImage(payload);
+      const response = await generateImage(payload, sourceUrl);
       stopGenerationTimer(genId);
       displayResultInCard(genId, response);
       handleUsageIntegration(genId, payload.model, false);
       addToImageHistory(response);
     }
 
+    markPersistedGenerationCompleted(genId, sourceUrl);
     state.completedCount++;
     if (card && setId === state.currentSetId) {
       addParallelStatusBadge(card, "completed", index, totalJobs);
@@ -1704,6 +1886,7 @@ async function processParallelJob(job, totalJobs, setId) {
           "linear-gradient(135deg, #2a2a2a 0%, #3a2a2a 100%)";
       }
     }
+    removePersistedGeneration(genId);
     state.activeJobs.set(genId, { job, status: "error", index, setId, error });
     console.error(`Parallel job ${genId} failed:`, error);
     return { success: false, genId, error };
@@ -1802,12 +1985,22 @@ function addParallelJobs(payload, isVideoMode, count) {
     // Add initial "pending" badge immediately (shows X/Y ⏳)
     addParallelStatusBadge(card, 'pending', i, count);
 
+    const sourceUrl = buildGenerationUrl(jobPayload, isVideoMode);
+    upsertPersistedGeneration({
+      genId: String(genId),
+      type: isVideoMode ? 'video' : 'image',
+      status: 'generating',
+      sourceUrl,
+      createdAt: Date.now() + i
+    });
+
     state.parallelQueue.push({
       genId,
       payload: jobPayload,
       isVideoMode,
       setId,
-      index: i
+      index: i,
+      sourceUrl
     });
   }
 
@@ -3015,6 +3208,59 @@ function addToVideoHistory(historyItem) {
   if (state.videoHistory.length > 18) state.videoHistory.pop();
 }
 
+async function restorePersistedGenerations() {
+  if (!state.apiKey || state.isRestoringGenerations) return;
+
+  const galleryFeed = document.getElementById('gallery-feed');
+  const emptyState = document.getElementById('placeholder');
+  const miniView = document.getElementById('mini-view');
+  if (!galleryFeed || !emptyState) return;
+
+  if (!state.persistedGenerations.length) {
+    if (galleryFeed.children.length === 0) emptyState.style.display = 'block';
+    return;
+  }
+
+  state.isRestoringGenerations = true;
+
+  galleryFeed.innerHTML = '';
+  if (miniView) {
+    miniView.innerHTML = '';
+    miniView.classList.remove('visible');
+  }
+  emptyState.style.display = 'none';
+
+  const orderedGenerations = [...state.persistedGenerations].sort((a, b) => a.createdAt - b.createdAt);
+
+  for (const generation of orderedGenerations) {
+    const genId = generation.genId;
+    const isVideo = generation.type === 'video';
+    const card = isVideo ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
+    galleryFeed.appendChild(card);
+
+    try {
+      const response = await requestGeneratedMedia(generation.sourceUrl, isVideo);
+      if (isVideo) {
+        displayVideoResultInCard(genId, response);
+      } else {
+        displayResultInCard(genId, response);
+      }
+      markPersistedGenerationCompleted(genId, generation.sourceUrl);
+    } catch (error) {
+      console.error('Failed to restore generation:', error);
+      removePersistedGeneration(genId);
+      card.remove();
+    }
+  }
+
+  if (galleryFeed.children.length === 0) {
+    emptyState.style.display = 'block';
+  }
+
+  scheduleImageCardResize();
+  state.isRestoringGenerations = false;
+}
+
 function adjustPromptHeight() {
     const prompt = document.getElementById('prompt');
     if (!prompt) return;
@@ -3044,17 +3290,27 @@ function adjustPromptHeight() {
 // ============================================================================
 
 function setupEventListeners() {
-  // Login button handler
   const loginBtn = document.getElementById('login-btn');
-  if (loginBtn) {
-    loginBtn.addEventListener('click', () => {
-      if (!loginBtn.disabled) {
+  const popupLoginBtn = document.getElementById('auth-popup-login-btn');
+  [loginBtn, popupLoginBtn].forEach((btn) => {
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (!btn.disabled) {
         initiateOAuthLogin();
       }
     });
+  });
+
+  const copyApiKeyBtn = document.getElementById('copy-api-key-btn');
+  if (copyApiKeyBtn) {
+    copyApiKeyBtn.addEventListener('click', copyApiKeyToClipboard);
   }
 
-  // Premium models toggle checkbox
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => logoutUser(true));
+  }
+
   const showPremiumCheckbox = document.getElementById('show-premium-models');
   if (showPremiumCheckbox) {
     showPremiumCheckbox.addEventListener('change', () => {
@@ -3070,58 +3326,21 @@ function setupEventListeners() {
     });
   }
 
-  const apiKeyInput = document.getElementById('api-key');
-  if (apiKeyInput) {
-    apiKeyInput.addEventListener('blur', async () => {
-      validateApiKey();
-      await updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
-    });
-
-    // Avoid rate limits: do not call /account/key while typing
-    apiKeyInput.addEventListener('input', () => {
-      const key = apiKeyInput.value.trim();
-      if (key) saveApiKey(key);
-      else state.apiKey = null;
-
-      if (state.keyInfoApiKey && state.keyInfoApiKey !== state.apiKey) {
-        state.keyInfo = null;
-        state.keyInfoApiKey = null;
-        state.allowedModels = null;
-        setPremiumToggleVisible(false);
-        clearModels();
-      }
-
-      if (!key) {
-        setSidebarControlsEnabled(false);
-        setPremiumToggleVisible(false);
-        clearModels();
-      }
-
-      updateUploadUI();
-
-      // Disable generate until validation on blur succeeds
-      setGenerateButtonEnabled(false);
-    });
-  }
-  
   const generateBtn = document.getElementById('generate-btn');
   const galleryFeed = document.getElementById('gallery-feed');
   const emptyState = document.getElementById('placeholder');
 
   if (generateBtn) {
     generateBtn.addEventListener('click', async () => {
-      // Check screen resolution on generate button click
       checkResolution();
-      // Check for mobile devices on generate button click
       checkMobileDevice();
 
-      if (!state.apiKey) {
-        validateApiKey();
-        if (!state.apiKey) {
-          setStatus(i18n.t('apiKeyMissing'), 'error');
-          return;
-        }
+      if (!isApiKeyValidForGeneration()) {
+        setStatus(i18n.t('apiKeyMissing'), 'error');
+        showAuthGate();
+        return;
       }
+
       const payload = collectPayload();
       if (!payload.prompt) {
         setStatus(i18n.t('statusPromptMissing'), 'error');
@@ -3132,57 +3351,65 @@ function setupEventListeners() {
         return;
       }
 
+      persistPrompt();
       const isVideoMode = payload.mode === 'video';
 
-      // In parallel mode, generate multiple images at once
       if (state.parallelMode) {
         addParallelJobs(payload, isVideoMode, state.parallelCount);
         return;
       }
 
-      // Single mode generation
       const genId = Date.now();
+      const sourceUrl = buildGenerationUrl(payload, isVideoMode);
+      upsertPersistedGeneration({
+        genId: String(genId),
+        type: isVideoMode ? 'video' : 'image',
+        status: 'generating',
+        sourceUrl,
+        createdAt: Date.now()
+      });
+
       startGenerationTimer(genId);
       const card = isVideoMode ? createVideoPlaceholderCard(genId) : createPlaceholderCard(genId);
 
       if (emptyState) emptyState.style.display = 'none';
       galleryFeed.appendChild(card);
 
-      // Full scroll to bottom
       setTimeout(() => {
-          const scrollContainer = document.getElementById('canvas-workspace');
-          if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        const scrollContainer = document.getElementById('canvas-workspace');
+        if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }, 50);
 
       toggleLoading(true);
       setStatus('', '');
       try {
         if (isVideoMode) {
-          const response = await generateVideo(payload);
+          const response = await generateVideo(payload, sourceUrl);
           stopGenerationTimer(genId);
           displayVideoResultInCard(genId, response);
-          
-          // Concurrent API calls
+          markPersistedGenerationCompleted(genId, sourceUrl);
+
           Promise.all([
             handleUsageIntegration(genId, payload.model, true),
             updateBalance(state.apiKey)
           ]);
-          
+
           addToVideoHistory(response);
         } else {
-          const response = await generateImage(payload);
+          const response = await generateImage(payload, sourceUrl);
           stopGenerationTimer(genId);
           displayResultInCard(genId, response);
-          
-          // Concurrent API calls
+          markPersistedGenerationCompleted(genId, sourceUrl);
+
           Promise.all([
             handleUsageIntegration(genId, payload.model, false),
             updateBalance(state.apiKey)
           ]);
-          
+
           addToImageHistory(response);
         }
       } catch (error) {
+        removePersistedGeneration(genId);
         setStatus(error.message || i18n.t('statusError'), 'error');
         console.error(error);
         card.remove();
@@ -3198,32 +3425,34 @@ function setupEventListeners() {
     promptInput.addEventListener('input', () => {
       adjustPromptHeight();
       refreshGenerateButtonState();
+      persistPrompt();
     });
+
     promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            generateBtn.click();
-        } else if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey)) {
-            e.preventDefault();
-            const start = promptInput.selectionStart;
-            const end = promptInput.selectionEnd;
-            promptInput.value = promptInput.value.substring(0, start) + "\n" + promptInput.value.substring(end);
-            promptInput.selectionStart = promptInput.selectionEnd = start + 1;
-            adjustPromptHeight();
-        }
+      if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        generateBtn?.click();
+      } else if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey)) {
+        e.preventDefault();
+        const start = promptInput.selectionStart;
+        const end = promptInput.selectionEnd;
+        promptInput.value = promptInput.value.substring(0, start) + "\n" + promptInput.value.substring(end);
+        promptInput.selectionStart = promptInput.selectionEnd = start + 1;
+        adjustPromptHeight();
+        persistPrompt();
+      }
     });
   }
 
   window.addEventListener('languageChanged', () => {
-      const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
-      renderModelOptions(modelsToRender);
-      updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
+    const modelsToRender = state.currentMode === 'video' ? state.videoModels : state.models;
+    renderModelOptions(modelsToRender);
+    if (state.apiKey) {
+      updateBalance(state.apiKey);
+    }
   });
-  
-  // Setup parallel count handlers
+
   setupParallelCountHandlers();
-  
-  // Setup context menu
   setupContextMenu();
 }
 
@@ -3507,7 +3736,7 @@ function pinApiKeyFooter() {
   }
 }
 
-function init() {
+async function init() {
   i18n.updatePageLanguage();
 
   const lang = i18n.getCurrentLanguage();
@@ -3525,57 +3754,61 @@ function init() {
     if (modeInput) modeInput.value = 'image';
   }
 
-  // Default disabled until validated
   setGenerateButtonEnabled(false);
   setSidebarControlsEnabled(false);
   setPremiumToggleVisible(false);
-
-  // Update login button state
   updateLoginButtonState(false);
 
-  // Load premium models toggle setting
   loadShowPremiumModels();
-  
-  // Load upload consent
   loadUploadConsent();
-
-  // Load performance mode
   loadPerformanceMode();
+  loadPersistedGenerations();
 
-  // Check screen resolution
-  checkResolution();
-  window.addEventListener('resize', checkResolution);
+  restorePrompt();
 
-  // Check for mobile devices
-  checkMobileDevice();
-  window.addEventListener('resize', checkMobileDevice);
-
-  // Handle OAuth callback first (from login popup redirect)
-  if (handleOAuthCallback()) {
-    // OAuth callback was handled, API key is now set
-  } else {
-    // No OAuth callback, try to load saved API key
-    loadApiKey();
-    if (state.apiKey) {
-      const apiKeyInput = document.getElementById('api-key');
-      if (apiKeyInput) apiKeyInput.value = state.apiKey;
-      updateBalance(state.apiKey); if (state.profile) displayProfile(state.profile); const promptEl = document.getElementById("prompt"); if (promptEl) promptEl.placeholder = i18n.t(state.currentMode === "video" ? "videoPromptPlaceholder" : "promptPlaceholder");
-    } else {
-      updateBalance(null);
-    }
-  }
   setupEventListeners();
   setupImageUploadHandlers();
   updateUploadUI();
   updateTransparentOptionAvailability();
   adjustPromptHeight();
 
+  checkResolution();
+  window.addEventListener('resize', checkResolution);
+
+  checkMobileDevice();
+  window.addEventListener('resize', checkMobileDevice);
+
   window.addEventListener('resize', scheduleImageCardResize);
   scheduleImageCardResize();
+
+  showAuthGate();
+
+  const oauthApiKey = handleOAuthCallback();
+  if (oauthApiKey) {
+    saveApiKey(oauthApiKey);
+    persistApiKey(oauthApiKey);
+    setStatus(i18n.t('apiKeyStored'), 'success');
+  } else {
+    loadApiKey();
+  }
+
+  if (state.apiKey) {
+    const isValid = await updateBalance(state.apiKey, true);
+    if (isValid) {
+      await restorePersistedGenerations();
+    }
+  } else {
+    await updateBalance(null);
+  }
+
+  adjustPromptHeight();
+  refreshGenerateButtonState();
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    init();
+  });
 } else {
   init();
 }
@@ -3585,39 +3818,22 @@ if (document.readyState === 'loading') {
 // ============================================================================
 
 function initiateOAuthLogin() {
-  const redirectUrl = window.location.href.split('#')[0]; // Remove any existing hash
+  const redirectUrl = window.location.href.split('#')[0];
   const authUrl = `https://enter.pollinations.ai/authorize?redirect_url=${encodeURIComponent(redirectUrl)}&client_id=pk_ZWDXoNBfRRBS7AEN&scope=profile,usage&expiry=3&budget=1`;
-  
-  // Redirect in the same tab instead of popup
   window.location.href = authUrl;
 }
 
 function handleOAuthCallback() {
   const hash = window.location.hash;
-  if (!hash) return false;
-  
+  if (!hash) return '';
+
   const params = new URLSearchParams(hash.substring(1));
   const apiKey = params.get('api_key');
-  
-  if (apiKey) {
-    // Clear the hash from URL immediately
-    history.replaceState(null, '', window.location.pathname + window.location.search);
-    
-    // Save the API key
-    saveApiKey(apiKey);
-    
-    // Update the input field
-    const apiKeyInput = document.getElementById('api-key');
-    if (apiKeyInput) apiKeyInput.value = apiKey;
-    
-    // Validate and fetch balance/profile
-    updateBalance(apiKey);
-    
-    setStatus(i18n.t('apiKeyStored'), 'success');
-    return true;
-  }
-  
-  return false;
+
+  if (!apiKey) return '';
+
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+  return apiKey.trim();
 }
 
 // ============================================================================
@@ -3757,7 +3973,8 @@ function displayProfile(profile) {
 function updateLoginButtonState(isLoggedIn) {
   const loginBtn = document.getElementById('login-btn');
   const loginBtnText = document.getElementById('login-btn-text');
-  
+  const copyApiKeyBtn = document.getElementById('copy-api-key-btn');
+
   if (loginBtn && loginBtnText) {
     if (isLoggedIn) {
       loginBtnText.textContent = i18n.t('loggedIn');
@@ -3769,4 +3986,10 @@ function updateLoginButtonState(isLoggedIn) {
       loginBtn.classList.remove('active');
     }
   }
+
+  if (copyApiKeyBtn) {
+    copyApiKeyBtn.disabled = !isLoggedIn;
+  }
+
+  syncApiKeyInputMask();
 }
