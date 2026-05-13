@@ -161,8 +161,8 @@
         .checkbox-group { display: flex; flex-direction: column; gap: 12px; }
         .checkbox-item { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none; }
         .checkbox-item input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
-        .checkbox-item.disabled { opacity: 0.45; cursor: not-allowed; }
-        .checkbox-item.disabled input { cursor: not-allowed; }
+        .checkbox-item.disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+        .checkbox-item.disabled input { cursor: not-allowed; pointer-events: none; }
 
         /* Premium filter - smaller and less conspicuous */
         .premium-filter {
@@ -195,6 +195,65 @@
         .api-key-hint { font-size: 11px; margin-top: 8px; color: var(--text-muted); text-align: center; }
         .api-key-hint a { color: var(--accent); text-decoration: none; }
         .api-key-hint a:hover { text-decoration: underline; }
+
+        .image-editing-panel {
+            padding-bottom: 18px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .image-editing-title {
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+        .image-editing-slots {
+            display: flex;
+            gap: 12px;
+        }
+        .image-editing-slot {
+            flex: 1;
+            background: #1a1a1c;
+            border: 1px dashed var(--border-subtle);
+            border-radius: 18px;
+            min-height: 118px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 16px;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .image-editing-slot.has-image {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.08);
+        }
+        .upload-icon-container {
+            width: 68px;
+            height: 68px;
+            border-radius: 18px;
+            border: 1px solid #3a3a3c;
+            background: #262628;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+        .upload-icon-container:hover {
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+        }
+        .upload-icon-container.disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+            border-style: dashed;
+            box-shadow: none;
+        }
 
         .login-btn {
             width: auto;
@@ -289,24 +348,48 @@
             height: 14px;
         }
 
-        .logout-btn {
-            position: fixed;
-            left: 14px;
-            bottom: 14px;
-            z-index: 101;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            background: rgba(25, 25, 27, 0.9);
-            color: var(--text-secondary);
-            border-radius: 8px;
-            padding: 7px 10px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+        .session-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
         }
 
-        .logout-btn:hover {
-            color: #fff;
-            border-color: var(--accent);
+        .session-controls button {
+            flex: 1;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(160deg, #1f1f21 0%, #111 90%);
+            color: rgba(255, 255, 255, 0.85);
+            cursor: pointer;
+            transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+        }
+
+        .session-controls button:hover {
+            border-color: rgba(255, 255, 255, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .logout-btn {
+            border-color: rgba(255, 255, 255, 0.18);
+            background: linear-gradient(160deg, #2e2e33 0%, #151517 90%);
+            color: var(--text-primary);
+        }
+
+        .history-clear-btn {
+            background: rgba(50, 50, 56, 0.75);
+            color: var(--text-secondary);
+        }
+
+        .history-clear-btn:hover {
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+
+        .history-clear-btn.hidden {
+            display: none;
         }
 
         /* Profile Display in Empty State */
@@ -593,76 +676,95 @@
             50% { opacity: 0.85; }
         }
 
-        .prompt-bar { min-height: 104px; height: auto; max-height: 300px; background-color: #1a1a1c; border-top: 1px solid var(--border-subtle); padding: 14px 24px; display: flex; align-items: flex-start; gap: 20px; z-index: 60; position: fixed; bottom: 0; left: 360px; right: 0; }
-        .prompt-bar:hover, .prompt-bar:focus-within { z-index: 200000; }
-        .prompt-input-wrapper { flex: 1; min-height: 72px; max-height: 200px; height: auto; background-color: #2a2a2c; border-radius: 26px; display: flex; align-items: flex-start; padding: 12px 20px; border: 1px solid #3a3a3c; transition: all 0.3s ease; overflow: hidden; }
-        .prompt-actions { display: flex; gap: 12px; align-items: stretch; margin-top: auto; align-self: flex-end; flex-shrink: 0; }
-        .prompt-input-wrapper:focus-within { border-color: var(--accent); background-color: #303033; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
-
-        .upload-slots {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-right: 12px;
-        }
-
-        .upload-slot {
+        .prompt-bar {
+            min-height: 120px;
+            height: auto;
+            max-height: 320px;
+            background-color: #151517;
+            border-top: 1px solid var(--border-subtle);
+            padding: 20px 32px;
             display: flex;
             align-items: center;
-            min-height: 36px;
+            gap: 24px;
+            z-index: 60;
+            position: fixed;
+            bottom: 0;
+            left: 360px;
+            right: 0;
         }
-
-        #prompt { flex: 1; background: transparent; border: none; color: var(--text-primary); font-size: 15px; outline: none; width: 100%; padding: 0 2px 0 0; resize: none; max-height: 200px; line-height: 1.5; overflow-y: auto; overflow-x: hidden; display: block; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; scrollbar-gutter: stable; height: auto; min-height: 48px; }
+        .prompt-bar:hover,
+        .prompt-bar:focus-within {
+            z-index: 200000;
+        }
+        .prompt-input-wrapper {
+            flex: 1;
+            min-height: 86px;
+            max-height: 240px;
+            background-color: #1f1f21;
+            border-radius: 32px;
+            border: 1px solid #2f2f33;
+            padding: 18px 26px;
+            display: flex;
+            align-items: stretch;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+        }
+        .prompt-input-wrapper:focus-within {
+            border-color: var(--accent);
+            background-color: #242427;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+        .prompt-actions {
+            display: flex;
+            gap: 16px;
+            align-items: stretch;
+            flex-shrink: 0;
+        }
+        #prompt {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            line-height: 1.6;
+            font-weight: 400;
+            outline: none;
+            width: 100%;
+            padding: 0;
+            resize: none;
+            max-height: 240px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: block;
+            scrollbar-width: thin;
+            scrollbar-color: #3a3a3a transparent;
+            scrollbar-gutter: stable;
+            min-height: 64px;
+        }
         #prompt::-webkit-scrollbar { width: 6px; }
         #prompt::-webkit-scrollbar-track { background: transparent; }
         #prompt::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
         #prompt::-webkit-scrollbar-thumb:hover { background: #4a4a4c; }
         #prompt::placeholder { color: #6a6a6c; }
 
-        .upload-icon-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0;
-            align-self: center;
-            margin-top: 0;
-        }
-
-
         .upload-icon {
-            width: 16px;
-            height: 16px;
+            width: 28px;
+            height: 28px;
             color: var(--text-primary);
             opacity: 0.85;
-            cursor: pointer;
             transition: opacity 0.2s ease, filter 0.2s ease;
-        }
-
-        .upload-icon:hover {
-            opacity: 1;
-            filter: brightness(1.3);
-        }
-
-        .upload-icon.disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .upload-icon-container:hover .upload-icon.disabled {
-            opacity: 0.4;
         }
 
         /* Upload thumbnail styles */
         .upload-thumbnail-wrapper {
-            position: relative;
+            position: absolute;
+            inset: 14px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border-subtle);
             display: none;
-            align-items: center;
+            align-items: stretch;
             justify-content: center;
-            margin-right: 6px;
-            align-self: center;
-            margin-top: 0;
+            background: rgba(0, 0, 0, 0.65);
         }
 
         .upload-thumbnail-wrapper.visible {
@@ -670,38 +772,61 @@
         }
 
         .upload-thumbnail {
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
             object-fit: cover;
             cursor: pointer;
-            border: 1px solid var(--border-subtle);
-            transition: all 0.2s ease;
+            border: none;
+            transition: transform 0.2s ease, filter 0.2s ease;
+            display: block;
+        }
+
+        .image-editing-slot.has-image .upload-thumbnail {
+            border-color: transparent;
         }
 
         .upload-thumbnail:hover {
-            border-color: var(--accent);
+            transform: scale(1.02);
+            filter: brightness(1.05);
+        }
+
+        .upload-thumbnail-preview {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            display: block;
+            object-fit: contain;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .upload-thumbnail-wrapper:hover .upload-thumbnail-preview {
+            opacity: 1;
+            visibility: visible;
         }
 
         .upload-thumbnail-delete {
             position: absolute;
-            top: -6px;
-            right: -6px;
-            width: 16px;
-            height: 16px;
-            background-color: var(--error);
+            top: 8px;
+            right: 8px;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(239, 68, 68, 0.9);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .upload-thumbnail-wrapper:hover .upload-thumbnail-delete {
             opacity: 1;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            z-index: 4;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
         }
 
         .upload-thumbnail-delete svg {
@@ -710,42 +835,13 @@
             color: white;
         }
 
-        .upload-thumbnail-delete:hover {
-            background-color: #ef4444;
-            transform: scale(1.1);
-        }
-
-        .upload-thumbnail-preview {
-            position: absolute;
-            bottom: calc(100% + 10px);
-            left: 50%;
-            transform: translateX(-50%);
-            max-width: 320px;
-            max-height: 320px;
-            width: auto;
-            height: auto;
-            border-radius: 10px;
-            object-fit: contain;
-            border: 2px solid var(--border-subtle);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s ease, visibility 0.2s ease;
-            z-index: 200000;
-            pointer-events: none;
-        }
-
-        .upload-thumbnail-wrapper:hover .upload-thumbnail-preview {
-            opacity: 1;
-            visibility: visible;
-        }
 
         /* Upload progress indicator */
         .upload-progress {
             position: absolute;
             inset: 0;
             background: rgba(37, 99, 235, 0.9);
-            border-radius: 6px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -768,7 +864,7 @@
             position: absolute;
             inset: 0;
             background: rgba(15, 23, 42, 0.6);
-            border-radius: 6px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -885,6 +981,22 @@
         .model-name-single { font-weight: 400; color: var(--text-primary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .model-description { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .model-price { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .workshop-token-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .workshop-token-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .workshop-token-line span:first-child {
+            color: var(--text-secondary);
+        }
 
         .model-premium {
             display: inline-flex;
@@ -964,6 +1076,7 @@
         }
         
         .upload-consent-content {
+            position: relative;
             background: var(--panel-bg);
             border-radius: 12px;
             padding: 24px;
@@ -971,6 +1084,27 @@
             width: 90%;
             border: 1px solid var(--border-subtle);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        .upload-consent-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: var(--text-primary);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .upload-consent-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
         }
         
         .upload-consent-content h3 {
@@ -1150,11 +1284,11 @@
                     <div class="checkbox-group">
                         <label class="checkbox-item" id="workshop-parallel-option">
                             <input type="checkbox" id="workshop-parallel-per-image" name="workshop-parallel-per-image">
-                            <span data-i18n="workshopParallelPerImageLabel">Process for each image (for parallel mode)</span>
+                            <span data-i18n="workshopParallelPerImageLabel">Process for each image</span>
                         </label>
                         <label class="checkbox-item">
                             <input type="checkbox" id="workshop-thinking" name="workshop-thinking" checked>
-                            <span data-i18n="workshopThinkingLabel">Thinking (if available)</span>
+                            <span data-i18n="workshopThinkingLabel">Thinking</span>
                         </label>
                     </div>
                 </div>
@@ -1194,13 +1328,74 @@
     </aside>
 
     <div class="api-key-container">
-        <div class="login-btn-wrapper">
-            <button class="login-btn" id="login-btn" type="button">
-                <span class="login-icon">
-                    <img src="https://raw.githubusercontent.com/pollinations/pollinations/refs/heads/main/assets/logo.svg" alt="">
-                </span>
-                <span id="login-btn-text" data-i18n="loginWithPollinations">Login with Pollinations</span>
-            </button>
+        <div class="image-editing-panel">
+            <div class="image-editing-title" data-i18n="imageEditingTitle">Image Editing</div>
+            <div class="image-editing-slots">
+            <div class="image-editing-slot" id="image-editing-slot-1">
+                <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
+                    <img class="upload-thumbnail-preview" id="upload-thumbnail-preview" src="" alt="Preview">
+                    <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
+                    <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="upload-progress" id="upload-progress" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                    </div>
+                    <div class="upload-delete-progress" id="upload-delete-progress" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="upload-icon-container" id="upload-icon-container" title="">
+                    <svg class="upload-icon" id="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17,8 12,3 7,8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
+            </div>
+            <div class="image-editing-slot" id="image-editing-slot-2">
+                <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper-2">
+                    <img class="upload-thumbnail-preview" id="upload-thumbnail-preview-2" src="" alt="Preview">
+                    <img class="upload-thumbnail" id="upload-thumbnail-2" src="" alt="Uploaded image 2">
+                    <div class="upload-thumbnail-delete" id="upload-thumbnail-delete-2" title="Remove image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="upload-progress" id="upload-progress-2" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                    </div>
+                    <div class="upload-delete-progress" id="upload-delete-progress-2" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="upload-icon-container" id="upload-icon-container-2" title="">
+                    <svg class="upload-icon" id="upload-icon-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17,8 12,3 7,8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <input type="file" id="image-upload-input-2" accept="image/*" style="display: none;">
+            </div>
+            </div>
+        </div>
+        <div class="session-controls">
+            <button class="logout-btn hidden" id="logout-btn" type="button" data-i18n="logoutLabel">Logout</button>
+            <button class="history-clear-btn hidden" id="clear-history-btn" type="button" data-i18n="clearHistoryBtn">Clear history</button>
         </div>
         <div class="api-key-wrapper">
             <input type="password" id="api-key" data-i18n-placeholder="apiKeyPlaceholder" placeholder="API Key" autocomplete="off" readonly>
@@ -1214,8 +1409,6 @@
         <div id="api-key-hint" class="api-key-hint" data-i18n="apiKeyHint">Get your API key from <a href="https://pollinations.ai" target="_blank">Pollinations</a></div>
         <div id="resolution-warning" class="resolution-warning" data-i18n="resolutionWarning">For optimal use, a resolution of at least 1080p is recommended.</div>
     </div>
-
-    <button class="logout-btn hidden" id="logout-btn" type="button" data-i18n="logoutLabel">Logout</button>
 
     <main class="canvas">
         <div class="canvas-workspace" id="canvas-workspace">
@@ -1237,69 +1430,6 @@
 
         <div class="prompt-bar">
             <div class="prompt-input-wrapper">
-                <div class="upload-slots">
-                    <div class="upload-slot">
-                        <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper">
-                            <img class="upload-thumbnail-preview" id="upload-thumbnail-preview" src="" alt="Preview">
-                            <img class="upload-thumbnail" id="upload-thumbnail" src="" alt="Uploaded image">
-                            <div class="upload-thumbnail-delete" id="upload-thumbnail-delete" title="Remove image">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </div>
-                            <div class="upload-progress" id="upload-progress" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                                </svg>
-                            </div>
-                            <div class="upload-delete-progress" id="upload-delete-progress" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="upload-icon-container" id="upload-icon-container" title="">
-                            <svg class="upload-icon" id="upload-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17,8 12,3 7,8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                        </div>
-                        <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
-                    </div>
-
-                    <div class="upload-slot">
-                        <div class="upload-thumbnail-wrapper" id="upload-thumbnail-wrapper-2">
-                            <img class="upload-thumbnail-preview" id="upload-thumbnail-preview-2" src="" alt="Preview">
-                            <img class="upload-thumbnail" id="upload-thumbnail-2" src="" alt="Uploaded image 2">
-                            <div class="upload-thumbnail-delete" id="upload-thumbnail-delete-2" title="Remove image">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </div>
-                            <div class="upload-progress" id="upload-progress-2" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                                </svg>
-                            </div>
-                            <div class="upload-delete-progress" id="upload-delete-progress-2" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="upload-icon-container" id="upload-icon-container-2" title="">
-                            <svg class="upload-icon" id="upload-icon-2" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17,8 12,3 7,8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                        </div>
-                        <input type="file" id="image-upload-input-2" accept="image/*" style="display: none;">
-                    </div>
-                </div>
                 <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="Describe the image you want to generate" rows="2"></textarea>
             </div>
             <div class="prompt-actions">
@@ -1563,6 +1693,70 @@
             popover.style.bottom = 'auto';
         }
 
+        function applyAspectRatioSelection(item, options = {}) {
+            if (!item) return;
+            const { closePopover = true, persist = true } = options;
+            const selected = aspectPopover.querySelector('.selected');
+            if (selected && selected !== item) {
+                selected.classList.remove('selected');
+            }
+            item.classList.add('selected');
+
+            const label = document.getElementById('current-ratio-label');
+            if (label) label.textContent = item.textContent.trim();
+
+            const widthInput = document.getElementById('width');
+            if (widthInput && item.dataset.w) widthInput.value = item.dataset.w;
+            const heightInput = document.getElementById('height');
+            if (heightInput && item.dataset.h) heightInput.value = item.dataset.h;
+            const aspectInput = document.getElementById('aspect-ratio');
+            if (aspectInput && item.dataset.ratio) aspectInput.value = item.dataset.ratio;
+
+            const btnIcon = document.getElementById('current-ratio-icon');
+            const itemIcon = item.querySelector('.ratio-icon');
+            if (btnIcon && itemIcon) {
+                btnIcon.style.width = itemIcon.style.width;
+                btnIcon.style.height = itemIcon.style.height;
+            }
+
+            if (closePopover) {
+                aspectPopover.classList.remove('visible');
+            }
+
+            if (persist && typeof window.saveSidebarSettings === 'function') {
+                window.saveSidebarSettings();
+            }
+        }
+
+        function findClosestAspectRatio(targetRatio) {
+            if (!aspectPopover) return null;
+            const items = Array.from(aspectPopover.querySelectorAll('.popover-item'));
+            let bestItem = null;
+            let bestDiff = Infinity;
+            items.forEach(item => {
+                const ratioStr = item.dataset.ratio;
+                if (!ratioStr) return;
+                const [w, h] = ratioStr.split(':').map(Number);
+                if (!w || !h) return;
+                const ratio = w / h;
+                const diff = Math.abs(ratio - targetRatio);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    bestItem = item;
+                }
+            });
+            return bestItem;
+        }
+
+        window.adjustAspectRatioToImage = function (width, height) {
+            if (!width || !height) return;
+            const ratio = width / height;
+            const bestItem = findClosestAspectRatio(ratio);
+            if (bestItem) {
+                applyAspectRatioSelection(bestItem, { closePopover: false });
+            }
+        };
+
         aspectBtn.onclick = (e) => { e.stopPropagation(); const isVisible = aspectPopover.classList.contains('visible'); document.querySelectorAll('.popover').forEach(p => p.classList.remove('visible')); if (!isVisible) { aspectPopover.classList.add('visible'); positionPopover(aspectBtn, aspectPopover); } };
         modelBtn.onclick = (e) => {
             if (modelBtn.classList.contains('disabled')) return;
@@ -1579,21 +1773,8 @@
         aspectPopover.querySelectorAll('.popover-item').forEach(item => {
             item.onclick = (e) => {
                 e.stopPropagation();
-                aspectPopover.querySelector('.selected')?.classList.remove('selected');
-                item.classList.add('selected');
-                document.getElementById('current-ratio-label').textContent = item.textContent.trim();
-                document.getElementById('width').value = item.dataset.w;
-                document.getElementById('height').value = item.dataset.h;
-                document.getElementById('aspect-ratio').value = item.dataset.ratio;
-
-                const btnIcon = document.getElementById('current-ratio-icon');
-                const itemIcon = item.querySelector('.ratio-icon');
-                btnIcon.style.width = itemIcon.style.width;
-                btnIcon.style.height = itemIcon.style.height;
-
-                aspectPopover.classList.remove('visible');
-                if (window.saveSidebarSettings) window.saveSidebarSettings();
-                };
+                applyAspectRatioSelection(item);
+            };
         });
     </script>
     <script src="js/i18n.js"></script>

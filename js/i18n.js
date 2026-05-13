@@ -21,11 +21,13 @@ const translations = {
     welcomePopupText: 'Create AI images and videos with Pollinations. Please log in to continue.',
     copyApiKeySuccess: 'API key copied',
     copyApiKeyError: 'Could not copy API key',
+    closeLabel: 'Close',
 
     // Balance & key lifetime
     balanceRemaining: 'pollen remaining',
     balanceUnlimited: 'Unlimited pollen budget',
     balanceUnavailable: 'Pollen budget unavailable',
+    balanceAccountTotalLabel: 'total',
     keyValidFor: 'Key valid for ',
     daysShort: 'd ',
     hoursShort: 'h ',
@@ -109,6 +111,7 @@ const translations = {
     generatingLabel: 'Generating...',
     generatingVideoLabel: 'Generating video...',
     parallelComplete: '%d completed, %d failed',
+    clearHistoryBtn: 'Clear history',
 
     // Status & errors
     statusPromptMissing: 'Please enter a prompt',
@@ -116,6 +119,7 @@ const translations = {
     statusError: 'An error occurred',
     videoError: 'Failed to generate video',
     errorGeneration: 'Generation error',
+    historyCleared: 'Generation history cleared',
     paidOnlyLabel: 'Paid only',
     paidOnlyError: 'This model requires paid pollen',
     img2imgSupported: 'Supports image-to-image generation',
@@ -141,7 +145,7 @@ const translations = {
     uploadSuccess: 'Image uploaded successfully',
     uploadDeleteSuccess: 'Uploaded image deleted',
     uploadConsentTitle: 'External Upload',
-    uploadConsentText: 'The maximum upload size is 10 MB. All images are stored permanently on the Pollinations Media Server unless you delete them. Please ensure that your uploads contain no pornography or violent content, are legally permitted, and that you own the necessary rights to the images.\n\n**Your image will be uploaded to the Pollinations Media Server and stored permanently.**',
+    uploadConsentText: 'The maximum upload size is 10 MB. All images are stored on the Pollinations Media Server for 30 days. Please ensure that your uploads contain no pornography or violent content, are legally permitted, and that you own the necessary rights to the images.\n\n**Your image will be uploaded and stored to the Pollinations Media Server**',
     uploadConsentConfirm: 'Confirm',
     uploadErrorNetwork: 'Upload service unavailable. Please try again later.',
     uploadErrorServer: 'Upload failed. The service may be temporarily unavailable.',
@@ -149,6 +153,7 @@ const translations = {
     uploadErrorFileType: 'Invalid file type. Please upload an image file.',
     uploadErrorGeneric: 'Upload failed. Please try again.',
     uploadErrorAuth: 'Upload requires a valid API key.',
+    imageEditingTitle: 'Image Editing',
 
     // Workshop Prompt
     workshopPanelLabel: 'Prompt Workshop',
@@ -159,7 +164,9 @@ const translations = {
     workshopParallelPerImageLabel: 'Process for each image',
     workshopThinkingLabel: 'Thinking',
     workshopDescription: 'Refines your prompt using a text AI model before generating the image to improve results.',
-    statusWorkshopProcessingPrompt: 'Refining Prompt...'
+    statusWorkshopProcessingPrompt: 'Refining Prompt...',
+    inputLabel: 'Input',
+    outputLabel: 'Output'
   },
 
   de: {
@@ -179,11 +186,13 @@ const translations = {
     welcomePopupText: 'Erstelle KI-Bilder und Videos mit Pollinations. Bitte melde dich an, um fortzufahren.',
     copyApiKeySuccess: 'API-Schlüssel kopiert',
     copyApiKeyError: 'API-Schlüssel konnte nicht kopiert werden',
+    closeLabel: 'Schließen',
 
     // Balance & key lifetime
     balanceRemaining: 'Pollen verbleibend',
     balanceUnlimited: 'Unbegrenztes Pollen-Budget',
     balanceUnavailable: 'Pollen-Budget nicht verfügbar',
+    balanceAccountTotalLabel: 'gesamt',
     keyValidFor: 'Key gültig für ',
     daysShort: 'T ',
     hoursShort: 'h ',
@@ -267,6 +276,7 @@ const translations = {
     generatingLabel: 'Generiere...',
     generatingVideoLabel: 'Video wird generiert...',
     parallelComplete: '%d abgeschlossen, %d fehlgeschlagen',
+    clearHistoryBtn: 'Verlauf löschen',
 
     // Status & errors
     statusPromptMissing: 'Bitte gib einen Prompt ein',
@@ -274,6 +284,7 @@ const translations = {
     statusError: 'Ein Fehler ist aufgetreten',
     videoError: 'Fehler bei der Videogenerierung',
     errorGeneration: 'Generierungsfehler',
+    historyCleared: 'Verlauf gelöscht',
     paidOnlyLabel: 'Paid only',
     paidOnlyError: 'Dieses Modell erfordert bezahltes Pollen',
     img2imgSupported: 'Unterstützt Bild-zu-Bild-Generierung',
@@ -299,7 +310,7 @@ const translations = {
     uploadSuccess: 'Bild erfolgreich hochgeladen',
     uploadDeleteSuccess: 'Hochgeladenes Bild gelöscht',
     uploadConsentTitle: 'Externer Upload',
-    uploadConsentText: 'Die maximale Upload-Größe beträgt 10 MB. Deine hochgeladenen Bilder werden dauerhaft auf dem Pollinations Media Server gespeichert, sofern du sie nicht löschst. Pornografische oder gewalttätige Inhalte sind untersagt; lade nur rechtlich zulässige Bilder hoch, an denen du die entsprechenden Urheberrechte besitzt.\n\n**Dein Bild wird auf den Pollinations Media Server hochgeladen und dauerhaft gespeichert.**',
+    uploadConsentText: 'Die maximale Upload-Größe beträgt 10 MB. Deine hochgeladenen Bilder werden für 30 Tage auf dem Pollinations Media Server gespeichert. Pornografische oder gewalttätige Inhalte sind untersagt; lade nur rechtlich zulässige Bilder hoch, an denen du die entsprechenden Urheberrechte besitzt.\n\n**Dein Bild wird auf den Pollinations Media Server hochgeladen und dort gespeichert.**',
     uploadConsentConfirm: 'Bestätigen',
     uploadErrorNetwork: 'Upload-Dienst nicht verfügbar. Bitte versuchen Sie es später erneut.',
     uploadErrorServer: 'Upload fehlgeschlagen. Der Dienst ist möglicherweise vorübergehend nicht verfügbar.',
@@ -307,6 +318,7 @@ const translations = {
     uploadErrorFileType: 'Ungültiger Dateityp. Bitte laden Sie eine Bilddatei hoch.',
     uploadErrorGeneric: 'Upload fehlgeschlagen. Bitte versuchen Sie es erneut.',
     uploadErrorAuth: 'Upload erfordert einen gültigen API-Schlüssel.',
+    imageEditingTitle: 'Bildbearbeitung',
 
     // Workshop Prompt
     workshopPanelLabel: 'Prompt Workshop',
@@ -317,7 +329,9 @@ const translations = {
     workshopParallelPerImageLabel: 'Für jedes Bild einzeln verarbeiten',
     workshopThinkingLabel: 'Thinking',
     workshopDescription: 'Verfeinert deinen Prompt mit einem Text-KI-Modell, bevor das Bild generiert wird, um die Ergebnisse zu verbessern.',
-    statusWorkshopProcessingPrompt: 'Prompt wird verfeinert...'
+    statusWorkshopProcessingPrompt: 'Prompt wird verfeinert...',
+    inputLabel: 'Eingabe',
+    outputLabel: 'Ausgabe'
   }
 };
 
