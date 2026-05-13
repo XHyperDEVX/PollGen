@@ -22,6 +22,7 @@ const state = {
   allowedModels: null, // For filtering models based on API key permissions
   keyInfo: null, // Store key info from /account/key endpoint
   keyInfoApiKey: null, // Which API key the keyInfo was validated for
+  accountBalance: null,
   showPremiumModels: false, // Whether to show premium models when toggle is available
   premiumToggleVisible: false, // Whether premium toggle should be shown
   uploadConsent: false, // Whether user has consented to external upload
@@ -126,6 +127,11 @@ function updateUploadUI() {
   const supported = isImageUploadSupported();
   const hasValidKey = isApiKeyValidForGeneration();
 
+  const editingPanel = document.querySelector('.image-editing-panel');
+  if (editingPanel) {
+    editingPanel.classList.toggle('hidden', !supported);
+  }
+
   forEachUploadSlot((slotIndex, slot) => {
     const uploadIcon = getUploadElement('upload-icon', slotIndex);
     const uploadIconContainer = getUploadElement('upload-icon-container', slotIndex);
@@ -225,45 +231,8 @@ async function deleteUploadedImage(slotIndex = 0) {
   const slot = getUploadSlotState(slotIndex);
   if (!slot) return;
 
-  const uploadId = slot.uploadedImageId;
-
-  if (!uploadId) {
-    clearUploadedImage(slotIndex);
-    return;
-  }
-
-  if (!state.apiKey) {
-    setStatus(i18n.t('uploadErrorAuth'), 'error');
-    clearUploadedImage(slotIndex);
-    return;
-  }
-
-  slot.isDeletingUpload = true;
-  showDeleteProgress(true, slotIndex);
-
-  try {
-    const response = await fetch(`https://media.pollinations.ai/${encodeURIComponent(uploadId)}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${state.apiKey}`
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        setStatus(i18n.t('uploadErrorAuth'), 'error');
-      } else {
-        setStatus(i18n.t('uploadErrorServer'), 'error');
-      }
-    } else {
-      setStatus(i18n.t('uploadDeleteSuccess'), 'success');
-    }
-  } catch (error) {
-    console.error('Delete upload error:', error);
-    setStatus(i18n.t('uploadErrorNetwork'), 'error');
-  } finally {
-    clearUploadedImage(slotIndex);
-  }
+  clearUploadedImage(slotIndex);
+  setStatus(i18n.t('uploadDeleteSuccess'), 'success');
 }
 
 function validateImageFile(file) {
@@ -433,6 +402,13 @@ async function handleImageUpload(file, slotIndex = 0) {
     slot.uploadedImageUrl = url;
     slot.uploadedImageFile = null;
     setUploadThumbnailFromUrl(url, slotIndex);
+    if (typeof window.adjustAspectRatioToImage === 'function') {
+      const previewImg = new Image();
+      previewImg.onload = () => {
+        window.adjustAspectRatioToImage(previewImg.naturalWidth, previewImg.naturalHeight);
+      };
+      previewImg.src = url;
+    }
     setStatus(i18n.t('uploadSuccess') || 'Image uploaded successfully', 'success');
     updateUploadUI();
   } else {
@@ -483,6 +459,23 @@ function setupImageUploadHandlers() {
   });
 }
 
+function setupSessionControls() {
+  const clearBtn = document.getElementById('clear-history-btn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      clearGenerationHistory();
+    });
+  }
+
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      logoutUser(true);
+    });
+  }
+}
+
 function showUploadConsentPopup(onConfirm) {
   // Check if popup already exists
   let popup = document.getElementById('upload-consent-popup');
@@ -501,6 +494,7 @@ function showUploadConsentPopup(onConfirm) {
 
   popup.innerHTML = `
     <div class="upload-consent-content">
+      <button type="button" class="upload-consent-close" aria-label="${i18n.t('closeLabel')}">&times;</button>
       <h3>${i18n.t('uploadConsentTitle')}</h3>
       <p>${consentText}</p>
       <div class="upload-consent-buttons">
@@ -516,11 +510,25 @@ function showUploadConsentPopup(onConfirm) {
     popup.classList.add('visible');
   });
   
+  const closePopup = () => {
+    popup.classList.remove('visible');
+  };
+
+  const closeBtn = popup.querySelector('.upload-consent-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closePopup);
+  }
+  popup.addEventListener('click', (event) => {
+    if (event.target === popup) {
+      closePopup();
+    }
+  });
+  
   // Handle confirm
   const confirmBtn = popup.querySelector('.upload-consent-confirm');
   confirmBtn.addEventListener('click', () => {
     saveUploadConsent(true);
-    popup.classList.remove('visible');
+    closePopup();
     if (onConfirm) onConfirm();
   });
 }
@@ -582,6 +590,32 @@ async function validateApiKeyInfo(apiKey) {
   } catch (error) {
     console.log('Key validation API call failed:', error.message);
     return { valid: false };
+  }
+}
+
+async function fetchAccountBalance(apiKey) {
+  if (!apiKey || !apiKey.trim()) return null;
+
+  try {
+    const response = await fetch('https://gen.pollinations.ai/account/balance', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey.trim()}`
+      }
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (!data || typeof data.balance === 'undefined' || data.balance === null) return null;
+
+    const numericBalance = Number(data.balance);
+    if (!Number.isFinite(numericBalance)) return null;
+
+    return numericBalance;
+  } catch (error) {
+    console.warn('Balance API call failed:', error.message);
+    return null;
   }
 }
 
@@ -794,14 +828,22 @@ async function updateBalance(apiKey, forceReload = false) {
 
   if (state.apiKey !== trimmedKey) return false;
 
+  state.accountBalance = null;
   let displayText = i18n.t('balanceUnavailable');
   const budget = keyInfo.pollenBudget;
 
   if (budget === null) {
-    displayText = i18n.t('balanceUnlimited');
+    const generalBalance = await fetchAccountBalance(trimmedKey);
+    if (generalBalance !== null) {
+      state.accountBalance = generalBalance;
+      const formattedBalance = formatBalanceDisplay(generalBalance);
+      const accountLabel = i18n.t('balanceAccountTotalLabel');
+      displayText = `${formattedBalance} ${i18n.t('balanceRemaining')} (${accountLabel})`;
+    }
   } else {
     const numericBudget = Number(budget);
     if (Number.isFinite(numericBudget)) {
+      state.accountBalance = null;
       displayText = `${formatBalanceDisplay(numericBudget)} ${i18n.t('balanceRemaining')}`;
     }
   }
@@ -860,29 +902,24 @@ function setPremiumToggleVisible(visible) {
 }
 
 function loadUploadConsent() {
-  const storedVersion = localStorage.getItem('pollgen_upload_consent_version');
-  const saved = localStorage.getItem('pollgen_upload_consent');
+  const storedVersion = getCookie(UPLOAD_CONSENT_VERSION_COOKIE_NAME);
+  const saved = getCookie(UPLOAD_CONSENT_COOKIE_NAME);
 
   if (storedVersion !== UPLOAD_CONSENT_VERSION) {
     state.uploadConsent = false;
-    localStorage.setItem('pollgen_upload_consent', 'false');
-    localStorage.setItem('pollgen_upload_consent_version', UPLOAD_CONSENT_VERSION);
+    setCookie(UPLOAD_CONSENT_COOKIE_NAME, 'false');
+    setCookie(UPLOAD_CONSENT_VERSION_COOKIE_NAME, UPLOAD_CONSENT_VERSION);
     return state.uploadConsent;
   }
 
-  if (saved !== null) {
-    state.uploadConsent = saved === 'true';
-  } else {
-    state.uploadConsent = false;
-  }
-
+  state.uploadConsent = saved === 'true';
   return state.uploadConsent;
 }
 
 function saveUploadConsent(consent) {
   state.uploadConsent = consent;
-  localStorage.setItem('pollgen_upload_consent', consent.toString());
-  localStorage.setItem('pollgen_upload_consent_version', UPLOAD_CONSENT_VERSION);
+  setCookie(UPLOAD_CONSENT_COOKIE_NAME, consent.toString());
+  setCookie(UPLOAD_CONSENT_VERSION_COOKIE_NAME, UPLOAD_CONSENT_VERSION);
 }
 
 function loadPerformanceMode() {
@@ -915,6 +952,8 @@ const SETTINGS_COOKIE_NAME = 'pollgen_settings';
 const API_KEY_COOKIE_NAME = 'pollinations_api_key';
 const PROMPT_COOKIE_NAME = 'pollgen_prompt';
 const GENERATIONS_COOKIE_NAME = 'pollgen_generations';
+const UPLOAD_CONSENT_COOKIE_NAME = 'pollgen_upload_consent';
+const UPLOAD_CONSENT_VERSION_COOKIE_NAME = 'pollgen_upload_consent_version';
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const MAX_PERSISTED_GENERATIONS = 10;
 const MAX_GENERATIONS_COOKIE_LENGTH = 3500;
@@ -942,7 +981,7 @@ function deleteCookie(name) {
 function syncApiKeyInputMask() {
   const apiKeyInput = document.getElementById('api-key');
   if (!apiKeyInput) return;
-  apiKeyInput.value = state.apiKey ? '***' : '';
+  apiKeyInput.value = state.apiKey ? '*'.repeat(35) : '';
 }
 
 function setAuthLocked(locked) {
@@ -1063,6 +1102,31 @@ function persistGenerationState() {
   setCookie(GENERATIONS_COOKIE_NAME, encoded);
 }
 
+function resetGalleryDisplay() {
+  const galleryFeed = document.getElementById('gallery-feed');
+  if (galleryFeed) {
+    galleryFeed.innerHTML = '';
+  }
+  const miniView = document.getElementById('mini-view');
+  if (miniView) {
+    miniView.innerHTML = '';
+    miniView.classList.remove('visible');
+  }
+  const placeholder = document.getElementById('placeholder');
+  if (placeholder) {
+    placeholder.style.display = '';
+  }
+}
+
+function clearGenerationHistory() {
+  state.persistedGenerations = [];
+  state.imageHistory = [];
+  state.videoHistory = [];
+  persistGenerationState();
+  resetGalleryDisplay();
+  setStatus(i18n.t('historyCleared'), 'success');
+}
+
 function loadPersistedGenerations() {
   const raw = getCookie(GENERATIONS_COOKIE_NAME);
   if (!raw) {
@@ -1151,6 +1215,8 @@ function resetAuthState() {
   clearModels();
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) logoutBtn.classList.add('hidden');
+  const clearHistoryBtn = document.getElementById('clear-history-btn');
+  if (clearHistoryBtn) clearHistoryBtn.classList.add('hidden');
 }
 
 function logoutUser(showStatus = false) {
@@ -1675,6 +1741,18 @@ function formatCostValue(value) {
   return value.toFixed(2).replace(/\.?0+$/, '');
 }
 
+function formatTokensPerMillion(value) {
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const perMillion = value * 1e6;
+  if (perMillion < 0.01) {
+    return perMillion.toFixed(8).replace(/\.?0+$/, '');
+  }
+  if (perMillion < 1) {
+    return perMillion.toFixed(4).replace(/\.?0+$/, '');
+  }
+  return perMillion.toFixed(2).replace(/\.?0+$/, '');
+}
+
 // Function to update cost display based on currently selected model (exposed to window)
 window.updateCurrentCostDisplay = function() {
   const select = document.getElementById('model');
@@ -1774,10 +1852,14 @@ function buildGenerationUrl(payload, isVideo = false) {
     if (payload.duration) params.append('duration', payload.duration);
   }
 
+  let imageParam = '';
   if (Array.isArray(payload.images) && payload.images.length > 0) {
-    payload.images.forEach(imageUrl => params.append('image', imageUrl));
+    imageParam = payload.images.join(',');
   } else if (payload.image) {
-    params.append('image', payload.image);
+    imageParam = payload.image;
+  }
+  if (imageParam) {
+    params.append('image', imageParam);
   }
 
   return `${endpoint}?${params.toString()}`;
@@ -2237,10 +2319,8 @@ function collectPayload() {
   // Include uploaded image URLs for image-to-image generation
   if (mode === 'image' && isImageUploadSupported()) {
     const uploadedImageUrls = getUploadedImageUrls();
-    if (uploadedImageUrls.length === 1) {
-      payload.image = uploadedImageUrls[0];
-    } else if (uploadedImageUrls.length > 1) {
-      payload.images = uploadedImageUrls;
+    if (uploadedImageUrls.length > 0) {
+      payload.image = uploadedImageUrls.join(',');
     }
   }
 
@@ -4079,6 +4159,7 @@ async function init() {
   restorePrompt();
   setupEventListeners();
   setupImageUploadHandlers();
+  setupSessionControls();
   updateUploadUI();
   updateTransparentOptionAvailability();
   adjustPromptHeight();
@@ -4091,8 +4172,6 @@ async function init() {
 
   window.addEventListener('resize', scheduleImageCardResize);
   scheduleImageCardResize();
-
-  showAuthGate();
 
   const oauthApiKey = handleOAuthCallback();
   if (oauthApiKey) {
@@ -4284,22 +4363,16 @@ function displayProfile(profile) {
 }
 
 function updateLoginButtonState(isLoggedIn) {
-  const loginBtn = document.getElementById('login-btn');
-  const loginBtnText = document.getElementById('login-btn-text');
+  const logoutBtn = document.getElementById('logout-btn');
+  const clearHistoryBtn = document.getElementById('clear-history-btn');
   const copyApiKeyBtn = document.getElementById('copy-api-key-btn');
 
-  if (loginBtn && loginBtnText) {
-    if (isLoggedIn) {
-      loginBtnText.textContent = i18n.t('loggedIn');
-      loginBtn.disabled = true;
-      loginBtn.classList.add('active');
-    } else {
-      loginBtnText.textContent = i18n.t('loginWithPollinations');
-      loginBtn.disabled = false;
-      loginBtn.classList.remove('active');
-    }
+  if (logoutBtn) {
+    logoutBtn.classList.toggle('hidden', !isLoggedIn);
   }
-
+  if (clearHistoryBtn) {
+    clearHistoryBtn.classList.toggle('hidden', !isLoggedIn);
+  }
   if (copyApiKeyBtn) {
     copyApiKeyBtn.disabled = !isLoggedIn;
   }
@@ -4317,17 +4390,20 @@ function renderWorkshopModelOptions(models) {
   select.innerHTML = '';
   modelPopover.innerHTML = '';
 
-  // Filter models by input_modalities if an image is uploaded
-  const hasImage = getUploadedImageUrls().length > 0;
-  let filteredModels = models;
-  if (hasImage) {
-    filteredModels = models.filter(m => m.input_modalities && m.input_modalities.includes('image'));
+  const uploadedImageUrls = getUploadedImageUrls();
+  let filteredModels = Array.isArray(models) ? [...models] : [];
+  if (uploadedImageUrls.length > 0) {
+    filteredModels = filteredModels.filter(model => model.input_modalities && model.input_modalities.includes('image'));
   }
 
-  const sortedModels = [...filteredModels].sort((a, b) => {
-    let priceA = parseFloat(a.pricing?.completionTextTokens || 0);
-    let priceB = parseFloat(b.pricing?.completionTextTokens || 0);
-    return priceA - priceB;
+  const sortedModels = filteredModels.sort((a, b) => {
+    const promptA = Number(a.pricing?.promptTextTokens || 0);
+    const promptB = Number(b.pricing?.promptTextTokens || 0);
+    const completionA = Number(a.pricing?.completionTextTokens || 0);
+    const completionB = Number(b.pricing?.completionTextTokens || 0);
+    const rateA = promptA || completionA;
+    const rateB = promptB || completionB;
+    return rateA - rateB;
   });
 
   if (sortedModels.length === 0) {
@@ -4337,27 +4413,42 @@ function renderWorkshopModelOptions(models) {
   }
 
   let maxWidth = 280;
-  const measureCanvas = document.createElement('canvas');
-  const ctx = measureCanvas.getContext('2d');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
   ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
   sortedModels.forEach(model => {
     const name = model.name || 'Unknown';
     const description = model.description || '';
-    const priceInfo = formatModelPrice(model);
-    
     const option = document.createElement('option');
     option.value = model.name;
     option.textContent = name;
     select.appendChild(option);
 
+    const tokenLines = [];
+    const inputRate = formatTokensPerMillion(Number(model.pricing?.promptTextTokens || 0));
+    const outputRate = formatTokensPerMillion(Number(model.pricing?.completionTextTokens || 0));
+    const tokenSuffix = `${i18n.t('pollenLabel').toLowerCase()}${i18n.t('tokensPerMillion')}`;
+
+    if (inputRate) {
+      const line = `${i18n.t('inputLabel')}: ${inputRate} ${tokenSuffix}`;
+      tokenLines.push(`<div class="workshop-token-line"><span>${i18n.t('inputLabel')}:</span><span>${inputRate} ${tokenSuffix}</span></div>`);
+      maxWidth = Math.max(maxWidth, ctx.measureText(line).width + 140);
+    }
+
+    if (outputRate) {
+      const line = `${i18n.t('outputLabel')}: ${outputRate} ${tokenSuffix}`;
+      tokenLines.push(`<div class="workshop-token-line"><span>${i18n.t('outputLabel')}:</span><span>${outputRate} ${tokenSuffix}</span></div>`);
+      maxWidth = Math.max(maxWidth, ctx.measureText(line).width + 140);
+    }
+
     const item = document.createElement('div');
     item.className = 'popover-item';
     if (model.name === previousValue) item.classList.add('selected');
-    
+
     let displayHTML = `<div class="model-badge" style="background-color: ${stringToColor(name)}"></div>`;
     displayHTML += '<div class="model-info">';
-    
+
     if (description && description !== name) {
       displayHTML += `<div class="model-name-desc">${name}</div>`;
       displayHTML += `<div class="model-description">${description}</div>`;
@@ -4366,21 +4457,19 @@ function renderWorkshopModelOptions(models) {
       displayHTML += `<div class="model-name-single">${name}</div>`;
       maxWidth = Math.max(maxWidth, ctx.measureText(name).width + 120);
     }
-    
-    if (priceInfo.textTokenPrice) {
-      const textPriceStr = `${priceInfo.textTokenPrice} ${priceInfo.currency.toLowerCase()}${i18n.t('tokensPerMillion')}`;
-      displayHTML += `<div class="model-price">${textPriceStr}</div>`;
-      maxWidth = Math.max(maxWidth, ctx.measureText(textPriceStr).width + 50);
+
+    if (tokenLines.length) {
+      displayHTML += `<div class="model-price workshop-token-list">${tokenLines.join('')}</div>`;
     }
-    
+
     displayHTML += '</div>';
     item.innerHTML = displayHTML;
-    
+
     item.onclick = (e) => {
       e.stopPropagation();
       select.value = model.name;
       state.workshopModel = model.name;
-      currentModelName.innerHTML = name;
+      if (currentModelName) currentModelName.textContent = name;
       const btnBadge = document.querySelector('#workshop-model-select-btn .model-badge');
       if (btnBadge) btnBadge.style.backgroundColor = stringToColor(name);
       modelPopover.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
@@ -4388,6 +4477,7 @@ function renderWorkshopModelOptions(models) {
       modelPopover.classList.remove('visible');
       saveSidebarSettings();
     };
+
     modelPopover.appendChild(item);
   });
 
@@ -4398,7 +4488,7 @@ function renderWorkshopModelOptions(models) {
   } else if (sortedModels.length > 0) {
     select.value = sortedModels[0].name;
     state.workshopModel = sortedModels[0].name;
-    currentModelName.innerHTML = sortedModels[0].name;
+    if (currentModelName) currentModelName.textContent = sortedModels[0].name;
     const btnBadge = document.querySelector('#workshop-model-select-btn .model-badge');
     if (btnBadge) btnBadge.style.backgroundColor = stringToColor(sortedModels[0].name);
     modelPopover.querySelector('.popover-item')?.classList.add('selected');
